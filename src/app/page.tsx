@@ -26,35 +26,48 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
-        {/* Animated background elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+        {/* Background */}
+        <div className="absolute inset-0" aria-hidden="true">
+          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-gradient-to-br from-blue-400/20 to-cyan-400/5 blur-3xl"></div>
+          <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full bg-gradient-to-br from-purple-400/15 to-blue-400/5 blur-3xl"></div>
+          <div className="absolute bottom-0 left-1/3 w-80 h-80 rounded-full bg-gradient-to-br from-cyan-400/10 to-transparent blur-3xl"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(100,116,139,0.10)_1px,transparent_0)] [background-size:32px_32px]"></div>
+        </div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
-          <div className="mb-6 inline-block">
-            <span className="px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/50 text-blue-600 text-sm font-medium">
-              🚀 Build Your Future Here
-            </span>
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            <span className="text-sm font-medium text-slate-600">Build Your Future Here</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Turn Your <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Ideas Into Reality</span>
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight text-slate-900">
+            Turn Your <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Ideas Into Reality</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-slate-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-2xl mx-auto">
             Join our incubator or pre-incubator program and accelerate your startup journey with expert mentorship, funding, and resources.
           </p>
 
-          <Link href="/programs">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold px-8 py-6 text-lg rounded-lg group"
-            >
-              Join Now
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/programs" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold px-8 py-6 text-lg rounded-lg group shadow-lg shadow-blue-500/20"
+              >
+                Join Now
+                <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <a href="#programs" className="w-full sm:w-auto">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full px-8 py-6 text-lg rounded-lg border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400"
+              >
+                Learn More
+              </Button>
+            </a>
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-12 border-t border-slate-200">
