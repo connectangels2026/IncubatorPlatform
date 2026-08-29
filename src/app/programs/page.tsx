@@ -9,7 +9,6 @@ type Program = 'pre-incubator' | 'incubator' | null;
 
 export default function ProgramsPage() {
   const [selectedProgram, setSelectedProgram] = useState<Program>(null);
-  const [showForm, setShowForm] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -22,8 +21,8 @@ export default function ProgramsPage() {
       subtitle: 'Perfect for early-stage ideas - Founder & Business Validation',
       color: 'from-blue-400 to-cyan-400',
       description: 'Validate your idea and prepare for the next stage with our structured prerequisite questionnaire and personalized assessment',
-      duration: '3 months',
-      investment: 'Free',
+      duration: '1 year',
+      investment: '₹6,500',
       features: [
         'Comprehensive founder readiness assessment',
         'Business model validation workshops',
@@ -51,8 +50,8 @@ export default function ProgramsPage() {
       subtitle: 'For validated startups ready to scale',
       color: 'from-cyan-400 to-purple-400',
       description: 'Accelerate your growth with funding, investor connections, and intensive support for pre-incubator graduates',
-      duration: '6 months',
-      investment: '$0 for 2% equity',
+      duration: '1 year',
+      investment: '₹60,000 - ₹1,20,000',
       features: [
         'All Pre-Incubator benefits',
         'Seed funding up to $250K',
@@ -80,10 +79,10 @@ export default function ProgramsPage() {
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 text-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
-          <p className="mt-4 text-slate-400">Loading programs...</p>
+          <p className="mt-4 text-slate-500">Loading programs...</p>
         </div>
       </div>
     );
@@ -92,9 +91,9 @@ export default function ProgramsPage() {
   const selected = selectedProgram ? programs[selectedProgram] : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 text-slate-900">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
             <ArrowLeft className="w-5 h-5" />
@@ -115,7 +114,7 @@ export default function ProgramsPage() {
                 <h1 className="text-5xl md:text-6xl font-bold mb-6">
                   Choose Your <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Program</span>
                 </h1>
-                <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+                <p className="text-xl text-slate-600 max-w-2xl mx-auto">
                   Select the program that best fits your startup's current stage and goals.
                 </p>
               </div>
@@ -128,34 +127,36 @@ export default function ProgramsPage() {
                   className="group cursor-pointer"
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-                    <div className="relative bg-slate-800 p-8 rounded-xl border border-slate-700 group-hover:border-blue-400/50 transition h-full flex flex-col">
+                    <div className="relative bg-white p-8 rounded-xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300 transition h-full flex flex-col">
+                      <div className="relative flex flex-col flex-grow">
                       <div className="mb-6">
                         <div className={`inline-block p-3 rounded-lg bg-gradient-to-r ${programs['pre-incubator'].color} bg-clip-text`}>
-                          <Zap className="w-8 h-8 text-blue-400" />
+                          <Zap className="w-8 h-8 text-blue-600" />
                         </div>
                       </div>
 
                       <h2 className="text-3xl font-bold mb-2">{programs['pre-incubator'].title}</h2>
-                      <p className="text-slate-400 mb-4">{programs['pre-incubator'].subtitle}</p>
-                      <p className="text-slate-300 mb-6 flex-grow">{programs['pre-incubator'].description}</p>
+                      <p className="text-slate-500 mb-4">{programs['pre-incubator'].subtitle}</p>
+                      <p className="text-slate-600 mb-6 flex-grow">{programs['pre-incubator'].description}</p>
 
-                      <div className="space-y-4 mb-6 pb-6 border-b border-slate-700">
+                      <div className="space-y-4 mb-6 pb-6 border-b border-slate-200">
                         <div>
-                          <p className="text-sm text-slate-400">Duration</p>
+                          <p className="text-sm text-slate-500">Duration</p>
                           <p className="text-lg font-semibold">{programs['pre-incubator'].duration}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Cost</p>
-                          <p className="text-lg font-semibold text-green-400">{programs['pre-incubator'].investment}</p>
+                          <p className="text-sm text-slate-500">Cost</p>
+                          <p className="text-lg font-semibold text-green-600">{programs['pre-incubator'].investment}</p>
                         </div>
                       </div>
 
-                      <Link href="/programs/preincubator" className="block">
-                        <Button className="w-full bg-blue-500 hover:bg-blue-600 group-hover:scale-105 transition-transform">
-                          Start Application →
-                        </Button>
-                      </Link>
+                      <Button
+                        onClick={() => setSelectedProgram('pre-incubator')}
+                        className="w-full bg-blue-500 hover:bg-blue-600 group-hover:scale-105 transition-transform"
+                      >
+                        Start Application →
+                      </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -166,52 +167,53 @@ export default function ProgramsPage() {
                   className="group cursor-pointer"
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-                    <div className="relative bg-slate-800 p-8 rounded-xl border border-slate-700 group-hover:border-cyan-400/50 transition h-full flex flex-col">
-                      <div className="absolute -top-4 left-4">
-                        <span className="bg-gradient-to-r from-cyan-400 to-purple-400 text-slate-900 px-4 py-1 rounded-full text-xs font-bold">
-                          MOST POPULAR
-                        </span>
-                      </div>
-
+                    <div className="relative bg-white p-8 rounded-xl border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-300 transition h-full flex flex-col">
+                      <div className="relative flex flex-col flex-grow">
                       <div className="mb-6 mt-4">
                         <div className={`inline-block p-3 rounded-lg bg-gradient-to-r ${programs['incubator'].color} bg-clip-text`}>
-                          <TrendingUp className="w-8 h-8 text-cyan-400" />
+                          <TrendingUp className="w-8 h-8 text-cyan-600" />
                         </div>
                       </div>
 
                       <h2 className="text-3xl font-bold mb-2">{programs['incubator'].title}</h2>
-                      <p className="text-slate-400 mb-4">{programs['incubator'].subtitle}</p>
-                      <p className="text-slate-300 mb-6 flex-grow">{programs['incubator'].description}</p>
+                      <p className="text-slate-500 mb-4">{programs['incubator'].subtitle}</p>
+                      <p className="text-slate-600 mb-6 flex-grow">{programs['incubator'].description}</p>
 
-                      <div className="space-y-4 mb-6 pb-6 border-b border-slate-700">
+                      <div className="space-y-4 mb-6 pb-6 border-b border-slate-200">
                         <div>
-                          <p className="text-sm text-slate-400">Duration</p>
+                          <p className="text-sm text-slate-500">Duration</p>
                           <p className="text-lg font-semibold">{programs['incubator'].duration}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Investment</p>
-                          <p className="text-lg font-semibold text-green-400">{programs['incubator'].investment}</p>
+                          <p className="text-sm text-slate-500">Investment</p>
+                          <p className="text-lg font-semibold text-green-600">{programs['incubator'].investment}</p>
                         </div>
                       </div>
 
-                      <Link href="/programs/incubator" className="block">
-                        <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 group-hover:scale-105 transition-transform">
-                          Start Application →
-                        </Button>
-                      </Link>
+                      <Button
+                        onClick={() => setSelectedProgram('incubator')}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 group-hover:scale-105 transition-transform"
+                      >
+                        Start Application →
+                      </Button>
+                      </div>
+                    </div>
+                    <div className="absolute -top-4 left-4">
+                      <span className="bg-gradient-to-r from-cyan-400 to-purple-400 text-slate-900 px-4 py-1 rounded-full text-xs font-bold">
+                        MOST POPULAR
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Comparison Section */}
-              <div className="mt-20 pt-12 border-t border-slate-700">
+              <div className="mt-20 pt-12 border-t border-slate-200">
                 <h2 className="text-3xl font-bold text-center mb-12">Program Comparison</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-slate-700">
+                      <tr className="border-b border-slate-200">
                         <th className="text-left py-4 px-4 font-semibold">Feature</th>
                         <th className="text-center py-4 px-4 font-semibold">Pre-Incubator</th>
                         <th className="text-center py-4 px-4 font-semibold">Incubator</th>
@@ -219,8 +221,8 @@ export default function ProgramsPage() {
                     </thead>
                     <tbody>
                       {[
-                        ['Duration', '3 months', '6 months'],
-                        ['Cost', 'Free', '$0 for 2% equity'],
+                        ['Duration', '1 year', '1 year'],
+                        ['Cost', '₹6,500', '₹60,000 - ₹1,20,000'],
                         ['Founder Assessment', 'Comprehensive questionnaire', 'Continuous evaluation'],
                         ['Business Validation', 'Core focus', 'Execution focus'],
                         ['Mentorship', 'Weekly 1:1 sessions', 'Bi-weekly + intensive'],
@@ -238,12 +240,12 @@ export default function ProgramsPage() {
                         ['Series A Prep', 'Not included', 'Full preparation'],
                         ['Success Metric Focus', 'Problem-solution fit', 'Revenue & growth']
                       ].map((row, idx) => (
-                        <tr key={idx} className="border-b border-slate-700 hover:bg-slate-800/50 transition">
+                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-100 transition">
                           <td className="py-4 px-4 font-medium">{row[0]}</td>
                           <td className="py-4 px-4 text-center">
                             {row[1] === 'Yes' || row[1] === 'No' ? (
                               row[1] === 'Yes' ? (
-                                <CheckCircle className="w-5 h-5 text-green-400 mx-auto" />
+                                <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
                               ) : (
                                 <div className="w-5 h-5 border-2 border-slate-500 rounded-full mx-auto"></div>
                               )
@@ -254,7 +256,7 @@ export default function ProgramsPage() {
                           <td className="py-4 px-4 text-center">
                             {row[2] === 'Yes' || row[2] === 'No' ? (
                               row[2] === 'Yes' ? (
-                                <CheckCircle className="w-5 h-5 text-green-400 mx-auto" />
+                                <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
                               ) : (
                                 <div className="w-5 h-5 border-2 border-slate-500 rounded-full mx-auto"></div>
                               )
@@ -274,17 +276,14 @@ export default function ProgramsPage() {
               {/* Selected Program Detail */}
               <div className="max-w-3xl mx-auto">
                 <button
-                  onClick={() => {
-                    setSelectedProgram(null);
-                    setShowForm(false);
-                  }}
-                  className="mb-8 flex items-center gap-2 text-slate-400 hover:text-blue-400 transition"
+                  onClick={() => setSelectedProgram(null)}
+                  className="mb-8 flex items-center gap-2 text-slate-500 hover:text-blue-600 transition"
                 >
                   <ArrowLeft className="w-5 h-5" />
                   Back to Programs
                 </button>
 
-                <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                   {/* Header */}
                   <div className={`bg-gradient-to-r ${selected!.color} p-8 text-slate-900`}>
                     <h1 className="text-4xl font-bold mb-2">{selected!.title}</h1>
@@ -293,31 +292,31 @@ export default function ProgramsPage() {
 
                   {/* Content */}
                   <div className="p-8">
-                    <p className="text-lg text-slate-300 mb-8">{selected!.description}</p>
+                    <p className="text-lg text-slate-600 mb-8">{selected!.description}</p>
 
                     {/* Key Info */}
-                    <div className="grid md:grid-cols-3 gap-6 mb-12 pb-12 border-b border-slate-700">
+                    <div className="grid md:grid-cols-3 gap-6 mb-12 pb-12 border-b border-slate-200">
                       <div>
-                        <p className="text-sm text-slate-400 mb-2">Duration</p>
+                        <p className="text-sm text-slate-500 mb-2">Duration</p>
                         <p className="text-2xl font-bold">{selected!.duration}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-slate-400 mb-2">Investment</p>
-                        <p className="text-2xl font-bold text-green-400">{selected!.investment}</p>
+                        <p className="text-sm text-slate-500 mb-2">Investment</p>
+                        <p className="text-2xl font-bold text-green-600">{selected!.investment}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-slate-400 mb-2">Cohort Size</p>
+                        <p className="text-sm text-slate-500 mb-2">Cohort Size</p>
                         <p className="text-2xl font-bold">15-20 startups</p>
                       </div>
                     </div>
 
                     {/* Features */}
-                    <div className="mb-12 pb-12 border-b border-slate-700">
+                    <div className="mb-12 pb-12 border-b border-slate-200">
                       <h2 className="text-2xl font-bold mb-6">What's Included</h2>
                       <div className="grid md:grid-cols-2 gap-4">
                         {selected!.features.map((feature, idx) => (
                           <div key={idx} className="flex items-start gap-3">
-                            <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                             <span>{feature}</span>
                           </div>
                         ))}
@@ -329,7 +328,7 @@ export default function ProgramsPage() {
                       <h2 className="text-2xl font-bold mb-6">Ideal For</h2>
                       <div className="grid md:grid-cols-2 gap-4">
                         {selected!.ideal.map((item, idx) => (
-                          <div key={idx} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                          <div key={idx} className="p-4 bg-white rounded-lg border border-slate-300">
                             {item}
                           </div>
                         ))}
@@ -337,9 +336,8 @@ export default function ProgramsPage() {
                     </div>
 
                     {/* CTA */}
-                    {!showForm ? (
+                    <Link href={selectedProgram === 'pre-incubator' ? '/programs/preincubator' : '/programs/incubator'} className="block">
                       <Button
-                        onClick={() => setShowForm(true)}
                         className={`w-full py-6 text-lg font-semibold ${
                           selectedProgram === 'pre-incubator'
                             ? 'bg-blue-500 hover:bg-blue-600'
@@ -348,9 +346,7 @@ export default function ProgramsPage() {
                       >
                         Apply Now
                       </Button>
-                    ) : (
-                      <ApplicationForm program={selectedProgram!} />
-                    )}
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -360,8 +356,8 @@ export default function ProgramsPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-slate-700 py-12 px-4 bg-slate-900 mt-20">
-        <div className="max-w-6xl mx-auto text-center text-slate-400">
+      <footer className="border-t border-slate-200 py-12 px-4 bg-white mt-20">
+        <div className="max-w-6xl mx-auto text-center text-slate-500">
           <p>&copy; 2026 Incubator Platform. All rights reserved.</p>
         </div>
       </footer>
@@ -369,94 +365,3 @@ export default function ProgramsPage() {
   );
 }
 
-function ApplicationForm({ program }: { program: 'pre-incubator' | 'incubator' }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    idea: '',
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission here
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ name: '', email: '', company: '', idea: '' });
-    }, 3000);
-  };
-
-  if (submitted) {
-    return (
-      <div className="mt-8 p-8 bg-green-500/10 border border-green-400/50 rounded-lg text-center">
-        <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-green-400 mb-2">Application Submitted!</h3>
-        <p className="text-slate-300">
-          Thank you for applying to our {program === 'pre-incubator' ? 'Pre-Incubator' : 'Incubator'} program. We'll review your application and get back to you within 5 business days.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">Full Name *</label>
-          <input
-            type="text"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:border-blue-400 focus:outline-none text-white placeholder-slate-500"
-            placeholder="John Doe"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-2">Email *</label>
-          <input
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:border-blue-400 focus:outline-none text-white placeholder-slate-500"
-            placeholder="john@example.com"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Company/Startup Name *</label>
-        <input
-          type="text"
-          required
-          value={formData.company}
-          onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-          className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:border-blue-400 focus:outline-none text-white placeholder-slate-500"
-          placeholder="Your Company Name"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Describe Your Idea/Business *</label>
-        <textarea
-          required
-          rows={4}
-          value={formData.idea}
-          onChange={(e) => setFormData({ ...formData, idea: e.target.value })}
-          className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:border-blue-400 focus:outline-none text-white placeholder-slate-500 resize-none"
-          placeholder="Tell us about your startup idea or business..."
-        />
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 py-6 text-lg font-semibold"
-      >
-        Submit Application
-      </Button>
-    </form>
-  );
-}

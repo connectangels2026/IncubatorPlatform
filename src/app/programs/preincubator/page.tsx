@@ -463,7 +463,7 @@ export default function PreIncubatorForm() {
 
       case 11:
         if (!formData.nurtureCaveGoals) {
-          newErrors.nurtureCaveGoals = "Please tell us your goals for Nurture Cave";
+          newErrors.nurtureCaveGoals = "Please tell us your goals for ARBA Accelerator";
         } else if (formData.nurtureCaveGoals.length < 20) {
           newErrors.nurtureCaveGoals = "Goals must be at least 20 characters";
         } else if (formData.nurtureCaveGoals.length > 1000) {
@@ -564,14 +564,14 @@ export default function PreIncubatorForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 text-slate-900">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/programs" className="flex items-center gap-2 hover:opacity-80 transition">
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-xl font-bold">Nurture Cave</span>
+            <span className="text-xl font-bold">ARBA Accelerator</span>
           </Link>
-          <div className="text-sm text-slate-400">Section {currentStep} of 14</div>
+          <div className="text-sm text-slate-500">Section {currentStep} of 14</div>
         </div>
       </nav>
 
@@ -580,9 +580,9 @@ export default function PreIncubatorForm() {
           <div className="mb-12">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-3xl font-bold">{getSectionTitle(currentStep)}</h2>
-              <div className="text-sm text-slate-400">{Math.round((currentStep / 14) * 100)}%</div>
+              <div className="text-sm text-slate-500">{Math.round((currentStep / 14) * 100)}%</div>
             </div>
-            <div className="w-full bg-slate-700/50 rounded-full h-2">
+            <div className="w-full bg-white rounded-full h-2">
               <div
                 className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentStep / 14) * 100}%` }}
@@ -590,7 +590,7 @@ export default function PreIncubatorForm() {
             </div>
           </div>
 
-          <div className="bg-slate-800 rounded-xl border border-slate-700 p-8">
+          <div className="bg-white rounded-xl border border-slate-200 p-8">
             {renderFormSection(currentStep, formData, setFormData, errors)}
           </div>
 
@@ -598,7 +598,7 @@ export default function PreIncubatorForm() {
             <Button
               onClick={handlePrev}
               disabled={currentStep === 1}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
@@ -625,19 +625,19 @@ export default function PreIncubatorForm() {
 
           {Object.keys(errors).length > 0 && (
             <div className="mt-6 p-4 bg-amber-500/10 border border-amber-400/50 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-amber-400">Please fill in the required details</p>
-                <p className="text-sm text-amber-300 mt-1">We noticed some fields are incomplete. Please review and complete all required information before proceeding to the next section.</p>
+                <p className="font-semibold text-amber-700">Please fill in the required details</p>
+                <p className="text-sm text-amber-700 mt-1">We noticed some fields are incomplete. Please review and complete all required information before proceeding to the next section.</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      <footer className="border-t border-slate-700 py-8 px-4 bg-slate-900 mt-20">
-        <div className="max-w-4xl mx-auto text-center text-slate-400 text-sm">
-          <p>Nurture Cave - Founder & Business Incubation Prerequisite Questionnaire</p>
+      <footer className="border-t border-slate-200 py-8 px-4 bg-white mt-20">
+        <div className="max-w-4xl mx-auto text-center text-slate-500 text-sm">
+          <p>ARBA Accelerator - Founder & Business Incubation Prerequisite Questionnaire</p>
           <p className="mt-2">Estimated completion time: 15-20 minutes | Section {currentStep} of 14</p>
         </div>
       </footer>
@@ -716,18 +716,18 @@ function FormInput({
     <div>
       {label && (
         <label className="block text-sm font-medium mb-2">
-          {label} {required && <span className="text-red-400">*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <input
         {...props}
-        className={`w-full px-4 py-2 bg-slate-700/50 border rounded-lg focus:outline-none transition ${
+        className={`w-full px-4 py-2 bg-white border rounded-lg focus:outline-none transition ${
           error
             ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
-            : "border-slate-600 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/50"
-        } text-white placeholder-slate-500`}
+            : "border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/50"
+        } text-slate-900 placeholder-slate-400`}
       />
-      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 }
@@ -742,18 +742,18 @@ function FormTextarea({
     <div>
       {label && (
         <label className="block text-sm font-medium mb-2">
-          {label} {required && <span className="text-red-400">*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <textarea
         {...props}
-        className={`w-full px-4 py-2 bg-slate-700/50 border rounded-lg focus:outline-none transition resize-none ${
+        className={`w-full px-4 py-2 bg-white border rounded-lg focus:outline-none transition resize-none ${
           error
             ? "border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
-            : "border-slate-600 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/50"
-        } text-white placeholder-slate-500`}
+            : "border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-500/50"
+        } text-slate-900 placeholder-slate-400`}
       />
-      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 }
@@ -769,14 +769,14 @@ function FormSelect({
     <div>
       {label && (
         <label className="block text-sm font-medium mb-2">
-          {label} {required && <span className="text-red-400">*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <select
         {...props}
-        className={`w-full px-4 py-2 bg-slate-700/50 border rounded-lg focus:outline-none transition ${
-          error ? "border-red-400 focus:border-red-500" : "border-slate-600 focus:border-blue-400"
-        } text-white`}
+        className={`w-full px-4 py-2 bg-white border rounded-lg focus:outline-none transition ${
+          error ? "border-red-400 focus:border-red-500" : "border-slate-300 focus:border-blue-400"
+        } text-slate-900`}
       >
         <option value="">Select an option</option>
         {options.map((opt) => (
@@ -785,7 +785,7 @@ function FormSelect({
           </option>
         ))}
       </select>
-      {error && <p className="text-red-400 text-sm mt-1">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
   );
 }
@@ -820,8 +820,8 @@ function FormCheckboxGroup({
     <div>
       {label && (
         <label className="block text-sm font-medium mb-3">
-          {label} {required && <span className="text-red-400">*</span>}
-          {max && <span className="text-slate-400 font-normal"> (Select up to {max})</span>}
+          {label} {required && <span className="text-red-500">*</span>}
+          {max && <span className="text-slate-500 font-normal"> (Select up to {max})</span>}
         </label>
       )}
       <div className="space-y-2">
@@ -832,13 +832,13 @@ function FormCheckboxGroup({
               checked={value.includes(opt.value)}
               onChange={() => handleChange(opt.value)}
               disabled={!!(max && value.length >= max && !value.includes(opt.value))}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-700/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-4 h-4 rounded border-slate-300 bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <span>{opt.label}</span>
           </label>
         ))}
       </div>
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
     </div>
   );
 }
@@ -862,7 +862,7 @@ function FormRadioGroup({
     <div>
       {label && (
         <label className="block text-sm font-medium mb-3">
-          {label} {required && <span className="text-red-400">*</span>}
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <div className="space-y-2">
@@ -873,13 +873,13 @@ function FormRadioGroup({
               name={label}
               checked={value === opt.value}
               onChange={() => onChange(opt.value)}
-              className="w-4 h-4 rounded-full border-slate-600 bg-slate-700/50 cursor-pointer"
+              className="w-4 h-4 rounded-full border-slate-300 bg-white cursor-pointer"
             />
             <span>{opt.label}</span>
           </label>
         ))}
       </div>
-      {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
     </div>
   );
 }
@@ -969,7 +969,7 @@ function Section1({ formData, setFormData, errors }: any) {
       />
 
       <FormCheckboxGroup
-        label="What is your primary reason for joining Nurture Cave?"
+        label="What is your primary reason for joining ARBA Accelerator?"
         error={errors.reasonsForJoining}
         value={formData.reasonsForJoining}
         onChange={(val) => setFormData({ ...formData, reasonsForJoining: val })}
@@ -1531,8 +1531,8 @@ function Section8({ formData, setFormData, errors }: any) {
 
       <div>
         <label className="block text-sm font-medium mb-3">
-          How committed are you to building this business over the next 12 months? <span className="text-red-400">*</span>
-          <span className="text-slate-400 font-normal block text-xs mt-1">Rate 1-10 (1 = Not very committed, 10 = Extremely committed)</span>
+          How committed are you to building this business over the next 12 months? <span className="text-red-500">*</span>
+          <span className="text-slate-500 font-normal block text-xs mt-1">Rate 1-10 (1 = Not very committed, 10 = Extremely committed)</span>
         </label>
         <input
           type="range"
@@ -1542,16 +1542,16 @@ function Section8({ formData, setFormData, errors }: any) {
           onChange={(e) => setFormData({ ...formData, commitment: e.target.value })}
           className="w-full"
         />
-        <div className="text-center text-lg font-semibold mt-2 text-blue-400">
+        <div className="text-center text-lg font-semibold mt-2 text-blue-600">
           {formData.commitment ? `${formData.commitment}/10` : "Not selected"}
         </div>
-        {errors.commitment && <p className="text-red-400 text-sm mt-2">{errors.commitment}</p>}
+        {errors.commitment && <p className="text-red-500 text-sm mt-2">{errors.commitment}</p>}
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-3">
-          How comfortable are you with uncertainty and risk? <span className="text-red-400">*</span>
-          <span className="text-slate-400 font-normal block text-xs mt-1">Rate 1-10 (1 = Very uncomfortable, 10 = Very comfortable)</span>
+          How comfortable are you with uncertainty and risk? <span className="text-red-500">*</span>
+          <span className="text-slate-500 font-normal block text-xs mt-1">Rate 1-10 (1 = Very uncomfortable, 10 = Very comfortable)</span>
         </label>
         <input
           type="range"
@@ -1561,16 +1561,16 @@ function Section8({ formData, setFormData, errors }: any) {
           onChange={(e) => setFormData({ ...formData, uncertaintyComfort: e.target.value })}
           className="w-full"
         />
-        <div className="text-center text-lg font-semibold mt-2 text-blue-400">
+        <div className="text-center text-lg font-semibold mt-2 text-blue-600">
           {formData.uncertaintyComfort ? `${formData.uncertaintyComfort}/10` : "Not selected"}
         </div>
-        {errors.uncertaintyComfort && <p className="text-red-400 text-sm mt-2">{errors.uncertaintyComfort}</p>}
+        {errors.uncertaintyComfort && <p className="text-red-500 text-sm mt-2">{errors.uncertaintyComfort}</p>}
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-3">
-          How willing are you to change your original idea based on market feedback? <span className="text-red-400">*</span>
-          <span className="text-slate-400 font-normal block text-xs mt-1">Rate 1-10 (1 = Not willing, 10 = Very willing)</span>
+          How willing are you to change your original idea based on market feedback? <span className="text-red-500">*</span>
+          <span className="text-slate-500 font-normal block text-xs mt-1">Rate 1-10 (1 = Not willing, 10 = Very willing)</span>
         </label>
         <input
           type="range"
@@ -1580,10 +1580,10 @@ function Section8({ formData, setFormData, errors }: any) {
           onChange={(e) => setFormData({ ...formData, feedbackWillingness: e.target.value })}
           className="w-full"
         />
-        <div className="text-center text-lg font-semibold mt-2 text-blue-400">
+        <div className="text-center text-lg font-semibold mt-2 text-blue-600">
           {formData.feedbackWillingness ? `${formData.feedbackWillingness}/10` : "Not selected"}
         </div>
-        {errors.feedbackWillingness && <p className="text-red-400 text-sm mt-2">{errors.feedbackWillingness}</p>}
+        {errors.feedbackWillingness && <p className="text-red-500 text-sm mt-2">{errors.feedbackWillingness}</p>}
       </div>
 
       <FormRadioGroup
@@ -1766,7 +1766,7 @@ function Section11({ formData, setFormData, errors }: any) {
   return (
     <div className="space-y-6">
       <FormTextarea
-        label="What are the top 3 things you want Nurture Cave to help you achieve?"
+        label="What are the top 3 things you want ARBA Accelerator to help you achieve?"
         rows={3}
         value={formData.nurtureCaveGoals}
         onChange={(e) => setFormData({ ...formData, nurtureCaveGoals: e.target.value })}
@@ -1822,7 +1822,7 @@ function Section11({ formData, setFormData, errors }: any) {
       />
 
       <FormTextarea
-        label="If Nurture Cave could solve one problem for your business, what should it be?"
+        label="If ARBA Accelerator could solve one problem for your business, what should it be?"
         rows={3}
         value={formData.keyProblem}
         onChange={(e) => setFormData({ ...formData, keyProblem: e.target.value })}
@@ -1846,7 +1846,7 @@ function Section12({ formData, setFormData, errors }: any) {
   return (
     <div className="space-y-8">
       <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mb-4">
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-600">
           Rate each statement on a scale of 1-5 (1 = Strongly Disagree, 5 = Strongly Agree)
         </p>
       </div>
@@ -1947,7 +1947,7 @@ function Section13({ formData, setFormData, errors }: any) {
   return (
     <div className="space-y-6">
       <div className="bg-amber-500/10 border border-amber-400/30 rounded-lg p-4 mb-4">
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-600">
           These questions help us understand your self-awareness and resilience. Be honest.
         </p>
       </div>
@@ -2007,7 +2007,7 @@ function Section13({ formData, setFormData, errors }: any) {
       />
 
       <FormTextarea
-        label="Why should Nurture Cave select you?"
+        label="Why should ARBA Accelerator select you?"
         rows={3}
         value={formData.whySelectUs}
         onChange={(e) => setFormData({ ...formData, whySelectUs: e.target.value })}
@@ -2039,10 +2039,10 @@ function Section14({ formData, setFormData, errors }: any) {
         placeholder="Share your motivation and passion..."
         error={errors.whyBuildBusiness}
       />
-      <p className="text-xs text-slate-400">{formData.whyBuildBusiness.length}/100 words recommended</p>
+      <p className="text-xs text-slate-500">{formData.whyBuildBusiness.length}/100 words recommended</p>
 
       <FormInput
-        label="In one sentence: What do you want Nurture Cave to help you become?"
+        label="In one sentence: What do you want ARBA Accelerator to help you become?"
         value={formData.futureVision}
         onChange={(e) => setFormData({ ...formData, futureVision: e.target.value })}
         placeholder="e.g., A sustainable fashion brand that empowers 1000+ artisans"
@@ -2050,7 +2050,7 @@ function Section14({ formData, setFormData, errors }: any) {
       />
 
       <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4">
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-600">
           Check mark - You have completed all 14 sections! Review your answers and submit your application.
         </p>
       </div>
@@ -2061,7 +2061,7 @@ function Section14({ formData, setFormData, errors }: any) {
 // Submission Success Component
 function SubmissionSuccess() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 text-slate-900 flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center">
         <div className="mb-6">
           <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto">
@@ -2073,18 +2073,18 @@ function SubmissionSuccess() {
           Application Submitted Successfully!
         </h1>
 
-        <p className="text-xl text-slate-300 mb-8">
-          Thank you for completing the Nurture Cave Pre-Incubator Prerequisite Questionnaire.
+        <p className="text-xl text-slate-600 mb-8">
+          Thank you for completing the ARBA Accelerator Pre-Incubator Prerequisite Questionnaire.
         </p>
 
-        <div className="bg-slate-800 rounded-lg border border-slate-700 p-8 mb-8">
-          <p className="text-slate-300 mb-4">
+        <div className="bg-white rounded-lg border border-slate-200 p-8 mb-8">
+          <p className="text-slate-600 mb-4">
             Our team will review your application and assess your readiness for the pre-incubation program.
           </p>
-          <p className="text-slate-300 mb-4">
+          <p className="text-slate-600 mb-4">
             <strong>Next Steps:</strong>
           </p>
-          <ul className="text-left space-y-2 text-slate-300 max-w-md mx-auto">
+          <ul className="text-left space-y-2 text-slate-600 max-w-md mx-auto">
             <li>Check - We will evaluate your founder readiness score</li>
             <li>Check - You will receive our assessment within 7 business days</li>
             <li>Check - If selected, we will contact you to discuss the program</li>
@@ -2093,7 +2093,7 @@ function SubmissionSuccess() {
         </div>
 
         <div className="space-y-3">
-          <p className="text-slate-400">
+          <p className="text-slate-500">
             In the meantime, check your email for updates or follow us on social media.
           </p>
           <Link href="/">
@@ -2104,7 +2104,7 @@ function SubmissionSuccess() {
         </div>
 
         <p className="text-xs text-slate-500 mt-8">
-          Nurture Cave - Building Tomorrows Leaders Today
+          ARBA Accelerator - Building Tomorrows Leaders Today
         </p>
       </div>
     </div>
