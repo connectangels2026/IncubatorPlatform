@@ -16,10 +16,15 @@ export default function Home() {
           <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
             Incubator
           </div>
-          <div className="hidden md:flex gap-8">
+          <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="hover:text-blue-600 transition">Features</a>
             <a href="#programs" className="hover:text-blue-600 transition">Programs</a>
             <a href="#cta" className="hover:text-blue-600 transition">Get Started</a>
+            <Link href="/dashboard">
+              <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold">
+                Dashboard
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -158,27 +163,27 @@ export default function Home() {
             <div className="relative group">
               <div className="relative bg-white p-8 rounded-lg border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-300 transition">
                 <div className="relative">
-                <div className="text-3xl font-bold text-blue-600 mb-2">Pre-Incubator</div>
-                <div className="text-slate-500 mb-6">For early-stage ideas</div>
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Idea validation workshops</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Market research support</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>1-year program</span>
-                  </li>
-                </ul>
-                <Link href="/programs">
-                  <Button className="w-full bg-blue-500 hover:bg-blue-600">
-                    Join Pre-Incubator
-                  </Button>
-                </Link>
+                  <div className="text-3xl font-bold text-blue-600 mb-2">Pre-Incubator</div>
+                  <div className="text-slate-500 mb-6">For early-stage ideas</div>
+                  <ul className="space-y-3 mb-8">
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>Idea validation workshops</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>Market research support</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>1-year program</span>
+                    </li>
+                  </ul>
+                  <Link href="/programs">
+                    <Button className="w-full bg-blue-500 hover:bg-blue-600">
+                      Join Pre-Incubator
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -187,37 +192,37 @@ export default function Home() {
             <div className="relative group">
               <div className="relative bg-white p-8 rounded-lg border border-slate-200 lg:scale-105 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-300 transition">
                 <div className="relative">
-                <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
-                  Incubator
-                </div>
-                <div className="text-slate-500 mb-6">For validated startups</div>
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>All Pre-Incubator benefits</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Seed funding up to $250K</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Investor connections</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>1-year program</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span>Legal & compliance support</span>
-                  </li>
-                </ul>
-                <Link href="/programs">
-                  <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600">
-                    Join Incubator
-                  </Button>
-                </Link>
+                  <div className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-2">
+                    Incubator
+                  </div>
+                  <div className="text-slate-500 mb-6">For validated startups</div>
+                  <ul className="space-y-3 mb-8">
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>All Pre-Incubator benefits</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>Seed funding up to $250K</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>Investor connections</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>1-year program</span>
+                    </li>
+                    <li className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>Legal & compliance support</span>
+                    </li>
+                  </ul>
+                  <Link href="/programs">
+                    <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600">
+                      Join Incubator
+                    </Button>
+                  </Link>
                 </div>
               </div>
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">

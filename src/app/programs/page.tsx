@@ -101,6 +101,11 @@ export default function ProgramsPage() {
               Incubator
             </span>
           </Link>
+          <Link href="/dashboard">
+            <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold">
+              Dashboard
+            </Button>
+          </Link>
         </div>
       </nav>
 
