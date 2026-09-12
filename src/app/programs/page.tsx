@@ -98,7 +98,7 @@ export default function ProgramsPage() {
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Incubator
+              Arba Incubator
             </span>
           </Link>
           <Link href="/dashboard">
