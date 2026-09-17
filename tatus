@@ -1,0 +1,18 @@
+* [33m7b884c1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m branch made of test
+[31m|[m * [33m2aaecc6[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #1 from shadmanchhapekar03/test
+[31m|[m[31m/[m[33m|[m 
+[31m|[m * [33m9c5c4a4[m[33m ([m[1;31morigin/test[m[33m)[m  added the login pagae for the super_admin and added the dashboard for the superadmin
+[31m|[m[31m/[m  
+* [33m7ca991e[m[33m ([m[1;32mtest[m[33m)[m Database files and Types had been added and also the admin dashboard
+*   [33m45af55e[m Merge branch 'main' of https://github.com/shadmanchhapekar03/Incubator-WebApp
+[34m|[m[35m\[m  
+[34m|[m * [33m0647ff2[m Rename 'Incubator' to 'Arba Incubator'
+[34m|[m * [33m66dbe4a[m Rename 'Incubator' to 'Arba Incubator' in header
+[34m|[m * [33m5451b2c[m Revise README for ARBA Accelerator project
+* [35m|[m [33m3e0b2df[m i had made one dashboard
+[35m|[m[35m/[m  
+* [33me646d5d[m changes had been made like scroll and light mode and all
+* [33mc75a679[m done some changes and made it in light mode
+* [33m6b0e9fc[m commiting the existing files
+* [33mb62f5c2[m Remove generated files
+* [33m04fc907[m Initial commit from Create Next App
