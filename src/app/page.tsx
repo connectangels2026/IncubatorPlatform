@@ -20,8 +20,16 @@ export default function Home() {
             <a href="#features" className="hover:text-blue-600 transition">Features</a>
             <a href="#programs" className="hover:text-blue-600 transition">Programs</a>
             <a href="#cta" className="hover:text-blue-600 transition">Get Started</a>
-            <Link href="/dashboard">
+            <Link href="/login" className="hover:text-blue-600 transition font-medium">
+              Login
+            </Link>
+            <Link href="/signup">
               <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold">
+                Sign Up
+              </Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400">
                 Dashboard
               </Button>
             </Link>
