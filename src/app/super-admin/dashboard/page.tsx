@@ -19,7 +19,10 @@ import {
   X,
   CheckCircle2,
   Send,
+  Download,
 } from 'lucide-react';
+
+import SuperAdminSidebar from '@/components/super-admin/Sidebar';
 
 export default function SuperAdminDashboard() {
   const [activeFilter, setActiveFilter] = useState<'month' | 'quarter' | 'year'>('month');
@@ -45,26 +48,16 @@ export default function SuperAdminDashboard() {
   const areaPath = `${linePath} L 680,210 L 50,210 Z`;
 
   return (
-    <div className="min-h-screen bg-[#f3f5f8] text-slate-800 font-sans select-none antialiased">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
-        <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
-          {/* Logo & Cluster Pill */}
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white font-black text-lg shadow-sm">
-                A
-              </div>
-              <span className="text-xl font-bold tracking-tight text-slate-900">
-                Arba Incubator
-              </span>
-            </Link>
+    <div className="min-h-screen bg-[#f3f5f8] text-slate-800 font-sans select-none antialiased flex">
+      {/* Left Navigation Sidebar */}
+      <SuperAdminSidebar />
 
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Production Cluster • Live</span>
-            </div>
-          </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Top Navbar */}
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+        <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
+          {/* Page Title */}
+          <h1 className="text-base font-bold text-slate-900">Dashboard Overview</h1>
 
           {/* Search Bar */}
           <div className="hidden md:flex items-center relative w-96">
@@ -150,6 +143,15 @@ export default function SuperAdminDashboard() {
               This Year
             </button>
           </div>
+
+          {/* Export Report Button */}
+          <button
+            onClick={() => alert('Platform summary report exported successfully.')}
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export Report</span>
+          </button>
         </div>
 
         {/* 5 KPI Cards Grid */}
@@ -610,6 +612,7 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
