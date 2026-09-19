@@ -20,13 +20,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: error.status || 401 });
     }
 
+    const response = NextResponse.json({ user: data.user, session: data.session }, { status: 200 });
+
     if (data.session) {
-      // Store active token in session management
-      await storeActiveToken(data.user.id, data.session.access_token);
+      const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+      const userAgent = req.headers.get('user-agent') || 'Unknown';
+
+      // Step 4: Create active session record
+      await storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent);
       await logAuthEvent('login', data.user.id);
+
+      // Step 2: Set httpOnly refresh cookie
+      response.cookies.set('refresh_token', data.session.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/',
+      });
     }
 
-    return NextResponse.json({ user: data.user, session: data.session }, { status: 200 });
+    return response;
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

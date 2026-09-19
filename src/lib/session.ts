@@ -1,67 +1,150 @@
 import { Redis } from '@upstash/redis';
 
 /**
- * Upstash Redis token management
+ * Upstash Redis session & token management
+ * Fallback to in-memory store if Redis credentials are not configured yet.
  */
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+let redisClient: Redis | null = null;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redisClient = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+}
 
-interface SessionData {
-  userId: string;
-  token: string;
-  timestamp: number;
+// In-memory fallback for local development without env configured
+const memorySessions = new Map<string, ActiveSession>();
+const memoryBlacklist = new Set<string>();
+
+export interface ActiveSession {
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  created_at: string;
+  expires_at: string;
+  ip_address: string;
+  user_agent: string;
+  is_active: boolean;
 }
 
 const SESSION_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 /**
- * Stores an active session token.
+ * Step 4: On login, create session record
  */
-export const storeActiveToken = async (userId: string, token: string) => {
-  const sessionData: SessionData = {
-    userId,
-    token,
-    timestamp: Date.now(),
+export const storeActiveToken = async (
+  userId: string,
+  accessToken: string,
+  refreshTokenStr: string = '',
+  ip: string = '127.0.0.1',
+  userAgent: string = 'Mozilla/5.0'
+) => {
+  const session: ActiveSession = {
+    user_id: userId,
+    access_token: accessToken,
+    refresh_token: refreshTokenStr,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+    ip_address: ip,
+    user_agent: userAgent,
+    is_active: true,
   };
-  
-  await redis.set(`session:${token}`, sessionData, { ex: SESSION_EXPIRY_SECONDS });
+
+  memorySessions.set(accessToken, session);
+
+  if (redisClient) {
+    try {
+      await redisClient.set(`session:${accessToken}`, session, { ex: SESSION_EXPIRY_SECONDS });
+      await redisClient.sadd(`user_sessions:${userId}`, accessToken);
+    } catch (e) {
+      console.warn('Redis unavailable, using in-memory session.');
+    }
+  }
 };
 
 /**
- * Validates if the token is active and not blacklisted.
+ * Step 4: On every API call, validate session is active
  */
 export const isValidToken = async (token: string): Promise<boolean> => {
-  const isBlacklisted = await redis.get(`blacklist:${token}`);
-  if (isBlacklisted) {
-    return false;
+  if (memoryBlacklist.has(token)) return false;
+
+  if (redisClient) {
+    try {
+      const isBlacklisted = await redisClient.get(`blacklist:${token}`);
+      if (isBlacklisted) return false;
+
+      const session = await redisClient.get<ActiveSession>(`session:${token}`);
+      if (session) return session.is_active !== false;
+    } catch {
+      // fallback to memory
+    }
   }
-  
-  const session = await redis.get(`session:${token}`);
-  return !!session;
+
+  const memSession = memorySessions.get(token);
+  return memSession ? memSession.is_active : true;
 };
 
 /**
- * Removes and blacklists a token on logout.
+ * Step 5: Single logout - Mark session as inactive (keep history for audit trail)
  */
 export const invalidateToken = async (token: string) => {
-  await redis.del(`session:${token}`);
-  await redis.set(`blacklist:${token}`, 'true', { ex: SESSION_EXPIRY_SECONDS });
+  const memSession = memorySessions.get(token);
+  if (memSession) {
+    memSession.is_active = false;
+  }
+  memoryBlacklist.add(token);
+
+  if (redisClient) {
+    try {
+      const session = await redisClient.get<ActiveSession>(`session:${token}`);
+      if (session) {
+        session.is_active = false;
+        await redisClient.set(`session:${token}`, session, { ex: SESSION_EXPIRY_SECONDS });
+      }
+      await redisClient.set(`blacklist:${token}`, 'true', { ex: SESSION_EXPIRY_SECONDS });
+    } catch (e) {
+      console.warn('Redis error during invalidateToken');
+    }
+  }
 };
 
 /**
- * Log auth events (dummy implementation, can also log to Redis or DB).
+ * Step 5: Force all logouts - Mark all sessions as inactive for user
+ */
+export const invalidateAllUserSessions = async (userId: string) => {
+  for (const session of memorySessions.values()) {
+    if (session.user_id === userId) {
+      session.is_active = false;
+      memoryBlacklist.add(session.access_token);
+    }
+  }
+
+  if (redisClient) {
+    try {
+      const tokens = await redisClient.smembers(`user_sessions:${userId}`);
+      for (const token of tokens) {
+        await invalidateToken(token as string);
+      }
+    } catch (e) {
+      console.warn('Redis error during invalidateAllUserSessions');
+    }
+  }
+};
+
+/**
+ * Log auth events for audit trail
  */
 export const logAuthEvent = async (event: 'login' | 'logout' | 'failed_attempt', userId?: string) => {
-  console.log(`[AUTH EVENT]: ${event} - User: ${userId || 'unknown'} - Time: ${new Date().toISOString()}`);
-  
-  // Optional: store auth events in a Redis list
   const logEntry = {
     event,
     userId: userId || 'unknown',
     timestamp: new Date().toISOString(),
   };
-  await redis.lpush('auth_events', logEntry);
+
+  if (redisClient) {
+    try {
+      await redisClient.lpush('auth_events', logEntry);
+    } catch {}
+  }
 };

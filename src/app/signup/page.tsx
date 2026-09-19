@@ -14,6 +14,8 @@ import {
   Star,
   Check,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { signInWithGoogle } from '@/services/auth';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -23,14 +25,32 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { signup } = useAuth();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreed) {
+      setError('Please accept terms & privacy policy to continue.');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      router.push('/dashboard');
-    }, 600);
+    setError(null);
+    const res = await signup(email, password);
+    if (res.success) {
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+    } else {
+      setError(res.error || 'Failed to create account');
+    }
+    setIsLoading(false);
+  };
+
+  const handleGoogleSignup = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message || 'Google signup failed');
+    }
   };
 
   const avatars = [
@@ -152,6 +172,7 @@ export default function SignupPage() {
             <div className="mb-4">
               <button
                 type="button"
+                onClick={handleGoogleSignup}
                 className="w-full flex items-center justify-center gap-2.5 h-11 px-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition text-xs font-semibold text-slate-700"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -181,6 +202,12 @@ export default function SignupPage() {
               <div className="w-full border-t border-slate-200" />
               <span className="absolute px-2.5 bg-white text-[11px] text-slate-400">or</span>
             </div>
+
+            {error && (
+              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                {error}
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSignup} className="space-y-3.5">

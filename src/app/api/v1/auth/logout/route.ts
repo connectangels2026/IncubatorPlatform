@@ -4,7 +4,6 @@ import { invalidateToken, logAuthEvent } from '@/lib/session';
 
 export async function POST(req: Request) {
   try {
-    // We expect the client to send the access token to invalidate
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
@@ -20,7 +19,12 @@ export async function POST(req: Request) {
 
     await logAuthEvent('logout');
 
-    return NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
+    const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
+
+    // Step 2 & 5: Clear refresh token cookie on logout
+    response.cookies.delete('refresh_token');
+
+    return response;
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
