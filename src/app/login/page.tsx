@@ -12,6 +12,8 @@ import {
   Star,
   Check,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { signInWithGoogle } from '@/services/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,14 +22,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { login } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError(null);
+    const res = await login(email, password);
+    if (res.success) {
       router.push('/dashboard');
-    }, 600);
+    } else {
+      setError(res.error || 'Invalid credentials');
+    }
+    setIsLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      setError(err.message || 'Google sign in failed');
+    }
   };
 
   const avatars = [
@@ -158,6 +174,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-3 mb-5">
               <button
                 type="button"
+                onClick={handleGoogleLogin}
                 className="flex items-center justify-center gap-2 h-11 px-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition text-xs font-semibold text-slate-700"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -199,6 +216,12 @@ export default function LoginPage() {
                 Or continue with work email
               </span>
             </div>
+
+            {error && (
+              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                {error}
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleLogin} className="space-y-4">
@@ -252,9 +275,9 @@ export default function LoginPage() {
                   />
                   <span>Keep me logged in</span>
                 </label>
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-700 transition">
+                <Link href="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-700 transition">
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit CTA Button */}
