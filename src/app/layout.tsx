@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: "Launch your startup with our pre-incubator and incubator programs. Get mentorship, funding, and support to turn your ideas into reality.",
 };
 
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/frontend/context/AuthContext";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

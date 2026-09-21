@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { signUp } from '@/services/auth';
-import { logAuthEvent } from '@/lib/session';
+import { signUp } from '@/backend/services/auth';
+import { logAuthEvent } from '@/backend/lib/session';
 
 export async function POST(req: Request) {
   try {

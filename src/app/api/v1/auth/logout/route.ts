@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { signOut } from '@/services/auth';
-import { invalidateToken, logAuthEvent } from '@/lib/session';
+import { signOut } from '@/backend/services/auth';
+import { invalidateToken, logAuthEvent } from '@/backend/lib/session';
 
 export async function POST(req: Request) {
   try {

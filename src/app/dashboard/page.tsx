@@ -24,8 +24,8 @@ import {
   Boxes,
   Target,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { Button } from '@/frontend/components/ui/button';
+import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 
 const PERIODS = ['This Month', 'This Quarter', 'This Year'];
 

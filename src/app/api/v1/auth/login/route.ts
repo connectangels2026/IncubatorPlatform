@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { signIn } from '@/services/auth';
-import { storeActiveToken, logAuthEvent } from '@/lib/session';
+import { signIn } from '@/backend/services/auth';
+import { storeActiveToken, logAuthEvent } from '@/backend/lib/session';
 
 export async function POST(req: Request) {
   try {

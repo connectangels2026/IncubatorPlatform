@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Zap, Users, TrendingUp, CheckCircle, Lightbulb, Target } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/frontend/components/ui/button';
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);

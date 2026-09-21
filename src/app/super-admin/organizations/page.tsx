@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import SuperAdminSidebar from '@/components/super-admin/Sidebar';
+import SuperAdminSidebar from '@/frontend/components/super-admin/Sidebar';
 import {
   Search,
   Bell,

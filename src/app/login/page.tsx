@@ -12,8 +12,8 @@ import {
   Star,
   Check,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { signInWithGoogle } from '@/services/auth';
+import { useAuth } from '@/frontend/context/AuthContext';
+import { signInWithGoogle } from '@/backend/services/auth';
 
 export default function LoginPage() {
   const router = useRouter();

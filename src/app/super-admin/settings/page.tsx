@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Sidebar from '@/components/super-admin/Sidebar';
+import Sidebar from '@/frontend/components/super-admin/Sidebar';
 import {
   User,
   Key,

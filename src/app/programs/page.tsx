@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Zap, Users, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/frontend/components/ui/button';
 
 type Program = 'pre-incubator' | 'incubator' | null;
 

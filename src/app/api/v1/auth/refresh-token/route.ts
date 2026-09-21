@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { refreshToken } from '@/services/auth';
-import { storeActiveToken } from '@/lib/session';
+import { refreshToken } from '@/backend/services/auth';
+import { storeActiveToken } from '@/backend/lib/session';
 
 export async function POST(req: Request) {
   try {

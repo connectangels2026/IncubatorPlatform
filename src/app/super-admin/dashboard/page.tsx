@@ -22,7 +22,7 @@ import {
   Download,
 } from 'lucide-react';
 
-import SuperAdminSidebar from '@/components/super-admin/Sidebar';
+import SuperAdminSidebar from '@/frontend/components/super-admin/Sidebar';
 
 export default function SuperAdminDashboard() {
   const [activeFilter, setActiveFilter] = useState<'month' | 'quarter' | 'year'>('month');

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Sidebar from '@/components/super-admin/Sidebar';
+import Sidebar from '@/frontend/components/super-admin/Sidebar';
 
 interface Invoice {
   id: string;

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidToken } from './lib/session';
+import { isValidToken } from '@/backend/lib/session';
 
 // Setup supabase client for middleware
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

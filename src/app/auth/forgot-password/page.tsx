@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { KeyRound, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
-import { resetPassword } from '@/services/auth';
+import { resetPassword } from '@/backend/services/auth';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
