@@ -4,34 +4,36 @@ import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { CollaboratorService } from '@/modules/collaborators/services';
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
 
-    const list = await CollaboratorService.getAll(orgId!);
-    return NextResponse.json({ success: true, organization_id: orgId, total: list.length, data: list });
+    const collab = await CollaboratorService.getById(id, orgId!);
+    if (!collab) return NextResponse.json({ error: 'Collaborator not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: collab });
   } catch (err) {
     return handleApiError(err);
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
 
     const body = await req.json();
-    if (!body.name) {
-      return NextResponse.json({ error: 'Validation Error: name is required' }, { status: 400 });
-    }
+    const updated = await CollaboratorService.update(id, orgId!, body);
+    if (!updated) return NextResponse.json({ error: 'Collaborator not found' }, { status: 404 });
 
-    const created = await CollaboratorService.create({ ...body, organization_id: orgId! });
-    return NextResponse.json({ success: true, data: created }, { status: 201 });
+    return NextResponse.json({ success: true, data: updated });
   } catch (err) {
     return handleApiError(err);
   }

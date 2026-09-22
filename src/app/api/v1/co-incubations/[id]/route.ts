@@ -2,36 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
-import { CollaboratorService } from '@/modules/collaborators/services';
+import { CoIncubationService } from '@/modules/co_incubations/services';
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
 
-    const list = await CollaboratorService.getAll(orgId!);
-    return NextResponse.json({ success: true, organization_id: orgId, total: list.length, data: list });
+    const coinc = await CoIncubationService.getById(id, orgId!);
+    if (!coinc) return NextResponse.json({ error: 'Co-incubation program not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: coinc });
   } catch (err) {
     return handleApiError(err);
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
 
     const body = await req.json();
-    if (!body.name) {
-      return NextResponse.json({ error: 'Validation Error: name is required' }, { status: 400 });
-    }
+    const updated = await CoIncubationService.update(id, orgId!, body);
+    if (!updated) return NextResponse.json({ error: 'Co-incubation program not found' }, { status: 404 });
 
-    const created = await CollaboratorService.create({ ...body, organization_id: orgId! });
-    return NextResponse.json({ success: true, data: created }, { status: 201 });
+    return NextResponse.json({ success: true, data: updated });
   } catch (err) {
     return handleApiError(err);
   }
