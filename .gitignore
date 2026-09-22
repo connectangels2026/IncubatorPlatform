@@ -20,3 +20,7 @@ Thumbs.db
 
 # Claude settings (optional)
 .claude/
+
+# supabase local tooling
+supabase/.temp/
+.netlify/

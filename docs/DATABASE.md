@@ -6,7 +6,7 @@
 |---------|-------|
 | Project Name | arba-incubator |
 | Organization | incubator-platform |
-| Project URL | https://knucyiahztcpqgsftiyc.supabase.co |
+| Project URL | https://[YOUR-PROJECT-ID].supabase.co |
 | Region | ap-northeast-2 |
 | Database | postgres |
 
