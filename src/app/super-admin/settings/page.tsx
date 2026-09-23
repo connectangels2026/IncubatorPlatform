@@ -188,14 +188,14 @@ Arba Incubator Platform`
             </button>
           </div>
 
-          {/* 3-Column Responsive Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          {/* Responsive Layout: 3-column when 'all', max-w-4xl focused when single tab */}
+          <div className={activeTab === 'all' ? 'grid grid-cols-1 lg:grid-cols-3 gap-6 items-start' : 'w-full max-w-4xl space-y-6'}>
             {/* COLUMN 1: Profile & Credentials + API Keys */}
             {(activeTab === 'all' || activeTab === 'profile' || activeTab === 'api') && (
               <div className="space-y-6 flex flex-col justify-between">
                 {/* Admin Profile & Master Credentials */}
                 {(activeTab === 'all' || activeTab === 'profile') && (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-hidden">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
@@ -217,7 +217,7 @@ Arba Incubator Platform`
                     </div>
 
                     <div className="space-y-3 text-xs">
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
                           <label className="block text-slate-600 font-medium mb-1">
                             Full Name
@@ -264,7 +264,7 @@ Arba Incubator Platform`
                               {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                             </button>
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <input
                               type={showPassword ? 'text' : 'password'}
                               value={newPassword}
@@ -323,7 +323,7 @@ Arba Incubator Platform`
 
                 {/* Master Developer API Keys */}
                 {(activeTab === 'all' || activeTab === 'api') && (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3 mb-3">
                       <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
                         <Key className="w-4 h-4" />
@@ -337,31 +337,41 @@ Arba Incubator Platform`
                     </div>
 
                     <div className="text-xs space-y-3">
-                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase">
-                          <span>Label</span>
-                          <span>Key</span>
-                          <span>Created</span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs pt-1">
-                          <span className="font-semibold text-slate-700">Production Master</span>
-                          <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-0.5 rounded font-mono text-[11px] text-slate-600">
-                            <span>{showApiKey ? fullApiKey.substring(0, 18) + '...' : maskedApiKey}</span>
-                            <button
-                              onClick={() => setShowApiKey(!showApiKey)}
-                              className="text-slate-400 hover:text-slate-600"
-                              title={showApiKey ? 'Hide Key' : 'Reveal Key'}
-                            >
-                              {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                            </button>
-                            <button onClick={handleCopyKey} className="text-slate-400 hover:text-slate-600">
-                              {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                            </button>
+                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 overflow-x-auto">
+                        <div className="min-w-[360px] space-y-1.5">
+                          <div className="grid grid-cols-12 gap-2 text-[11px] text-slate-400 font-semibold uppercase">
+                            <span className="col-span-4">Label</span>
+                            <span className="col-span-5">Key</span>
+                            <span className="col-span-3 text-right">Created</span>
                           </div>
-                          <span className="text-[11px] text-slate-400 text-right">
-                            Aug 15, 2026<br />2 mins ago
-                          </span>
+
+                          <div className="grid grid-cols-12 gap-2 items-center text-xs pt-1">
+                            <span className="col-span-4 font-semibold text-slate-700 truncate">Production Master</span>
+                            <div className="col-span-5 flex items-center justify-between gap-1 bg-white border border-slate-200 px-2 py-0.5 rounded font-mono text-[11px] text-slate-600 min-w-0">
+                              <span className="truncate">{showApiKey ? fullApiKey.substring(0, 18) + '...' : maskedApiKey}</span>
+                              <div className="flex items-center shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowApiKey(!showApiKey)}
+                                  className="text-slate-400 hover:text-slate-600 p-0.5"
+                                  title={showApiKey ? 'Hide Key' : 'Reveal Key'}
+                                >
+                                  {showApiKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCopyKey}
+                                  className="text-slate-400 hover:text-slate-600 p-0.5"
+                                  title="Copy Key"
+                                >
+                                  {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                </button>
+                              </div>
+                            </div>
+                            <span className="col-span-3 text-[11px] text-slate-400 text-right leading-tight">
+                              Aug 15, 2026<br />2 mins ago
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -389,7 +399,7 @@ Arba Incubator Platform`
 
             {/* COLUMN 2: Notification Email Templates */}
             {(activeTab === 'all' || activeTab === 'email') && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between overflow-hidden">
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                     <div className="flex items-center gap-2.5">
@@ -498,7 +508,7 @@ Arba Incubator Platform`
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-slate-100">
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-4 mt-4 border-t border-slate-100">
                   <button
                     onClick={handleSendTest}
                     disabled={sendingTestEmail}
@@ -524,7 +534,7 @@ Arba Incubator Platform`
               <div className="space-y-6 flex flex-col justify-between">
                 {/* Webhooks & Integrations */}
                 {(activeTab === 'all' || activeTab === 'webhooks') && (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3 mb-4">
                       <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
                         <Webhook className="w-4 h-4" />
@@ -544,23 +554,29 @@ Arba Incubator Platform`
                           <span>Secret Token</span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <input
                             type="text"
                             readOnly
                             value="https://api.internal.com/webhooks/incubator"
-                            className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 bg-slate-50 font-mono truncate"
+                            className="flex-1 min-w-0 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 bg-slate-50 font-mono truncate"
                           />
-                          <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1.5 rounded-lg text-slate-600 font-mono text-[11px]">
+                          <div className="flex items-center justify-between sm:justify-start gap-1 bg-white border border-slate-200 px-2 py-1.5 rounded-lg text-slate-600 font-mono text-[11px] shrink-0">
                             <span>{showWebhookSecret ? 'whsec_8923...' : '••••••••'}</span>
                             <button
+                              type="button"
                               onClick={() => setShowWebhookSecret(!showWebhookSecret)}
                               className="text-slate-400 hover:text-slate-600"
                               title={showWebhookSecret ? 'Hide Secret' : 'Reveal Secret'}
                             >
                               {showWebhookSecret ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                             </button>
-                            <button onClick={handleCopyWebhook} className="text-slate-400 hover:text-slate-600">
+                            <button
+                              type="button"
+                              onClick={handleCopyWebhook}
+                              className="text-slate-400 hover:text-slate-600"
+                              title="Copy Secret"
+                            >
                               {copiedWebhook ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                             </button>
                           </div>
@@ -585,7 +601,7 @@ Arba Incubator Platform`
                         </div>
                       </div>
 
-                      <div className="pt-2 flex gap-2">
+                      <div className="pt-2 flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() => showToast('Ping sent! Webhook responded: 200 OK (38ms)')}
                           className="flex-1 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg text-xs transition"
@@ -605,7 +621,7 @@ Arba Incubator Platform`
 
                 {/* Active Sessions & Device Security */}
                 {(activeTab === 'all' || activeTab === 'sessions') && (
-                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3 mb-4">
                       <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                         <Laptop className="w-4 h-4" />
@@ -624,9 +640,9 @@ Arba Incubator Platform`
                       </div>
 
                       {/* Device 1 (Current) */}
-                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800">
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 truncate">
                             Chrome on macOS • IP: 192.168.1.42
                           </p>
                           <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
@@ -641,9 +657,9 @@ Arba Incubator Platform`
                       </div>
 
                       {/* Device 2 */}
-                      <div className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800">
+                      <div className="p-2.5 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 truncate">
                             Firefox on Windows • IP: 104.28.19.12
                           </p>
                           <p className="text-[11px] text-slate-500 mt-0.5">
@@ -652,7 +668,7 @@ Arba Incubator Platform`
                         </div>
                         <button
                           onClick={() => showToast('Session revoked.')}
-                          className="px-2.5 py-1 text-xs font-bold text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg transition"
+                          className="px-2.5 py-1 text-xs font-bold text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg transition shrink-0 self-start sm:self-auto"
                         >
                           Revoke
                         </button>
