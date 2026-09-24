@@ -35,6 +35,8 @@ import {
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
+import Logo from '@/frontend/components/ui/Logo';
+import { Sidebar } from '@/frontend/components/layouts/Sidebar';
 
 interface ApplicationItem {
   id: string;
@@ -527,7 +529,7 @@ export default function ApplicationsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Arba_Incubator_Applications_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Arba360_Applications_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -570,8 +572,8 @@ export default function ApplicationsPage() {
     setDecisionType(initialDecision);
     setDecisionFeedback(
       initialDecision === 'admitted'
-        ? `Dear ${app.founderName},\n\nWe are pleased to inform you that ${app.startupName} has been accepted into the Arba Incubator cohort. Our evaluation committee was impressed by your proposal.`
-        : `Dear ${app.founderName},\n\nThank you for applying to Arba Incubator with ${app.startupName}. After careful review, we regret to inform you that we are unable to advance your application at this time.`
+        ? `Dear ${app.founderName},\n\nWe are pleased to inform you that ${app.startupName} has been accepted into the Arba360 cohort. Our evaluation committee was impressed by your proposal.`
+        : `Dear ${app.founderName},\n\nThank you for applying to Arba360 with ${app.startupName}. After careful review, we regret to inform you that we are unable to advance your application at this time.`
     );
   };
 
@@ -594,93 +596,12 @@ export default function ApplicationsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
-        {/* Mobile Backdrop */}
-        {sidebarOpen && (
-          <div
-            onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs md:hidden"
-          />
-        )}
-
-        {/* Sidebar */}
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col justify-between transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-        >
-          <div>
-            {/* Brand Logo */}
-            <div className="h-16 px-6 border-b border-slate-100 flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-base shadow-xs">
-                  A
-                </div>
-                <span className="font-bold text-base tracking-tight text-slate-900">
-                  Arba <span className="text-blue-600">Incubator</span>
-                </span>
-              </Link>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 md:hidden"
-                aria-label="Close sidebar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Sidebar Navigation */}
-            <div className="p-4 space-y-1">
-              <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Navigation
-              </div>
-
-              {/* Home */}
-              <Link
-                href="/dashboard"
-                onClick={() => setSidebarOpen(false)}
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                  <span>Home</span>
-                </div>
-              </Link>
-
-              {/* Applications */}
-              <Link
-                href="/dashboard/applications"
-                onClick={() => setSidebarOpen(false)}
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-600 shadow-2xs transition"
-              >
-                <div className="flex items-center gap-3">
-                  <ClipboardCheck className="w-4 h-4 text-blue-600" />
-                  <span>Applications</span>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">
-                  {applications.length}
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Sidebar Footer */}
-          <div className="p-4 border-t border-slate-100 space-y-1">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition"
-            >
-              <ArrowLeft className="w-4 h-4 text-slate-400" />
-              <span>Back to Website</span>
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition"
-            >
-              <LogOut className="w-4 h-4 text-slate-400" />
-              <span>Log Out</span>
-            </button>
-          </div>
-        </aside>
+        {/* Sidebar Component with hover animation and icon-only logo */}
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
+          onLogout={handleLogout}
+        />
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
@@ -737,7 +658,7 @@ export default function ApplicationsPage() {
                   Applications Management
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                  Review applicant submissions, score rubric metrics, and admit startups to Arba Incubator.
+                  Review applicant submissions, score rubric metrics, and admit startups to Arba360.
                 </p>
               </div>
 
@@ -1233,7 +1154,7 @@ export default function ApplicationsPage() {
 
               <div className="p-5 space-y-4 text-xs">
                 <p className="text-slate-500">
-                  Adjust evaluation metrics below. Total score recalculates in real-time according to Arba Incubator weighting.
+                  Adjust evaluation metrics below. Total score recalculates in real-time according to Arba360 weighting.
                 </p>
 
                 <div className="space-y-3">
@@ -1355,7 +1276,7 @@ export default function ApplicationsPage() {
                       type="button"
                       onClick={() => {
                         setDecisionType('admitted');
-                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nWe are pleased to inform you that ${decisionModalApp.startupName} has been accepted into the Arba Incubator cohort.`);
+                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nWe are pleased to inform you that ${decisionModalApp.startupName} has been accepted into the Arba360 cohort.`);
                       }}
                       className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
                         decisionType === 'admitted'
@@ -1371,7 +1292,7 @@ export default function ApplicationsPage() {
                       type="button"
                       onClick={() => {
                         setDecisionType('rejected');
-                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nThank you for applying to Arba Incubator with ${decisionModalApp.startupName}. After careful review, we regret to inform you that we are unable to advance your application.`);
+                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nThank you for applying to Arba360 with ${decisionModalApp.startupName}. After careful review, we regret to inform you that we are unable to advance your application.`);
                       }}
                       className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
                         decisionType === 'rejected'
