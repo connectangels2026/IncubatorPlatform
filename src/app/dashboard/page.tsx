@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -23,13 +24,17 @@ import {
   Award,
   Boxes,
   Target,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
+import { useAuth } from '@/frontend/context/AuthContext';
 
 const PERIODS = ['This Month', 'This Quarter', 'This Year'];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { logout } = useAuth();
   const [period, setPeriod] = useState(PERIODS[1]);
 
   const stats = [
@@ -200,6 +205,18 @@ export default function DashboardPage() {
                 Home
               </Button>
             </Link>
+            <Button
+              onClick={async () => {
+                await logout();
+                router.push('/login');
+              }}
+              variant="outline"
+              className="border-slate-300 text-slate-700 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 gap-1.5 transition"
+              title="Log Out"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Log Out</span>
+            </Button>
           </div>
         </div>
       </nav>

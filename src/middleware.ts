@@ -18,15 +18,15 @@ export async function middleware(req: NextRequest) {
     !req.nextUrl.pathname.includes('/auth/google-callback');
 
   if (isProtectedApiRoute) {
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     
     if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401 });
     }
     
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
     }
     
     // 1. Check Token against our Redis Active Sessions (Step 4 & 5 Requirement)
