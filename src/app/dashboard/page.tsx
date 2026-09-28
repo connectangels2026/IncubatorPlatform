@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -24,6 +24,8 @@ import {
   Clock,
   LayoutDashboard,
   Menu,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
@@ -68,6 +70,24 @@ export default function DashboardPage() {
   const [currentFilter, setCurrentFilter] = useState<string>('all');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
 
+  // Data Loading & API State
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState({
+    totalStartups: 128,
+    totalStartupsGrowth: '+12%',
+    applicationsReceived: 42,
+    applicationsGrowth: '+8%',
+    pendingEvaluation: 18,
+    activeStartups: 38,
+    admittedStartups: 24,
+    graduatedStartups: 66,
+    fundingRaised: '$14.2M',
+    fundingGrowth: '+$2.1M',
+    jobsCreated: '850+',
+    jobsGrowth: '+45 this mo',
+  });
+
   const [applications, setApplications] = useState<ApplicationItem[]>([
     { id: 'APP-1042', name: 'NexHealth AI', sector: 'Biotech', type: 'Incubator', score: 88, status: 'submitted', date: 'Sep 24, 2026', email: 'sarah@nexhealth.ai' },
     { id: 'APP-1041', name: 'PayFlow Finance', sector: 'Fintech', type: 'Pre-Incubator', score: 64, status: 'under_review', date: 'Sep 23, 2026', email: 'alex@payflow.co' },
@@ -75,18 +95,40 @@ export default function DashboardPage() {
     { id: 'APP-1039', name: 'UrbanFarms', sector: 'AgriTech', type: 'Pre-Incubator', score: 45, status: 'rejected', date: 'Sep 19, 2026', email: 'dan@urbanfarms.org' },
     { id: 'APP-1038', name: 'CloudScale OS', sector: 'SaaS', type: 'Incubator', score: 79, status: 'under_review', date: 'Sep 18, 2026', email: 'team@cloudscale.io' },
   ]);
-
   const [pendingDecisions, setPendingDecisions] = useState<PendingDecision[]>([
     { id: 'APP-1041', name: 'PayFlow Finance', score: 64, type: 'Pre-Incubator', recommendation: 'Borderline - Requires interview' },
     { id: 'APP-1038', name: 'CloudScale OS', score: 79, type: 'Incubator', recommendation: 'Recommended for Admission' },
     { id: 'APP-1042', name: 'NexHealth AI', score: 88, type: 'Incubator', recommendation: 'High Priority Admission' },
   ]);
-
   const [mentorshipSessions, setMentorshipSessions] = useState<MentorshipSession[]>([
     { mentor: 'Dr. Marcus Vance', role: 'Fintech Specialist', startup: 'PayFlow Finance', time: 'Today, 3:00 PM', link: 'https://meet.google.com' },
     { mentor: 'Elena Rostova', role: 'AI Advisor', startup: 'NexHealth AI', time: 'Tomorrow, 10:00 AM', link: 'https://meet.google.com' },
     { mentor: 'David Chen', role: 'Venture Partner', startup: 'NeuroMed Tech', time: 'Sep 28, 2:30 PM', link: 'https://meet.google.com' },
   ]);
+
+  // Fetch dashboard report analytics from GET /api/v1/reports/dashboard
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/v1/reports/dashboard');
+      if (!res.ok) throw new Error('Unable to load dashboard data.');
+      const json = await res.json();
+      const payload = json?.data || json;
+      if (payload.metrics) setMetrics(payload.metrics);
+      if (payload.applications && payload.applications.length > 0) setApplications(payload.applications);
+      if (payload.pendingDecisions && payload.pendingDecisions.length > 0) setPendingDecisions(payload.pendingDecisions);
+      if (payload.mentorshipSessions && payload.mentorshipSessions.length > 0) setMentorshipSessions(payload.mentorshipSessions);
+    } catch (err: any) {
+      setError(err?.message || 'Unable to load dashboard data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   // Modals state
   const [evalModalOpen, setEvalModalOpen] = useState(false);
@@ -257,8 +299,17 @@ export default function DashboardPage() {
             {/* Primary Quick Actions Bar */}
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={fetchDashboardData}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs disabled:opacity-50 transition"
+                title="Refresh dashboard data"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
+              </button>
+              <button
                 onClick={() => openEval(applications[0])}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition"
+                disabled={applications.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs disabled:opacity-50 transition"
               >
                 <ClipboardCheck className="w-4 h-4" /> Review Applications
               </button>
@@ -269,8 +320,9 @@ export default function DashboardPage() {
                 <CalendarPlus className="w-4 h-4 text-blue-600" /> Schedule Mentor
               </button>
               <button
-                onClick={() => openEval(applications[1])}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs transition"
+                onClick={() => applications[1] && openEval(applications[1])}
+                disabled={applications.length < 2}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs disabled:opacity-50 transition"
               >
                 <FileEdit className="w-4 h-4 text-amber-500" /> Startup Review
               </button>
@@ -283,94 +335,128 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-rose-900">{error}</p>
+                  <p className="text-[11px] text-rose-600">Failed to load real-time cohort and analytics reports from /api/v1/reports/dashboard.</p>
+                </div>
+              </div>
+              <button
+                onClick={fetchDashboardData}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Retry
+              </button>
+            </div>
+          )}
+
           {/* 5 Key Metric KPI Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* KPI 1: Total Startups */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Total Startups</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
-                  <Rocket className="w-4 h-4" />
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs animate-pulse space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="w-24 h-3.5 bg-slate-200 rounded" />
+                    <div className="w-8 h-8 rounded-lg bg-slate-100" />
+                  </div>
+                  <div className="w-20 h-7 bg-slate-200 rounded" />
+                  <div className="w-28 h-3 bg-slate-100 rounded" />
                 </div>
-              </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-slate-900">128</span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                  <ArrowUp className="w-3 h-3" /> 12%
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">vs previous cohort</p>
+              ))}
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* KPI 1: Total Startups */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Total Startups</span>
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+                    <Rocket className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-2xl font-bold text-slate-900">{metrics.totalStartups}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    <ArrowUp className="w-3 h-3" /> {metrics.totalStartupsGrowth}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">vs previous cohort</p>
+              </div>
 
-            {/* KPI 2: Applications Received */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Applications (This Mo)</span>
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
-                  <FolderOpen className="w-4 h-4" />
+              {/* KPI 2: Applications Received */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Applications (This Mo)</span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
+                    <FolderOpen className="w-4 h-4" />
+                  </div>
                 </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-2xl font-bold text-slate-900">{metrics.applicationsReceived}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    <ArrowUp className="w-3 h-3" /> {metrics.applicationsGrowth}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">{metrics.pendingEvaluation} pending evaluation</p>
               </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-slate-900">42</span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                  <ArrowUp className="w-3 h-3" /> 8%
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">18 pending evaluation</p>
-            </div>
 
-            {/* KPI 3: Pipeline Breakdown */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Active / Admitted / Grad</span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
-                  <GraduationCap className="w-4 h-4" />
+              {/* KPI 3: Pipeline Breakdown */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Active / Admitted / Grad</span>
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
                 </div>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-blue-600">{metrics.activeStartups}</span>
+                  <span className="text-xs text-slate-400">/</span>
+                  <span className="text-lg font-bold text-emerald-600">{metrics.admittedStartups}</span>
+                  <span className="text-xs text-slate-400">/</span>
+                  <span className="text-lg font-bold text-slate-700">{metrics.graduatedStartups}</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Active | Admitted | Graduated</p>
               </div>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-lg font-bold text-blue-600">38</span>
-                <span className="text-xs text-slate-400">/</span>
-                <span className="text-lg font-bold text-emerald-600">24</span>
-                <span className="text-xs text-slate-400">/</span>
-                <span className="text-lg font-bold text-slate-700">66</span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">Active | Admitted | Graduated</p>
-            </div>
 
-            {/* KPI 4: Funding Raised */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Funding Raised</span>
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
-                  <Coins className="w-4 h-4" />
+              {/* KPI 4: Funding Raised */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Funding Raised</span>
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
+                    <Coins className="w-4 h-4" />
+                  </div>
                 </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-2xl font-bold text-slate-900">{metrics.fundingRaised}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                    {metrics.fundingGrowth}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">across all startups</p>
               </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-slate-900">$14.2M</span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                  +$2.1M
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">across all startups</p>
-            </div>
 
-            {/* KPI 5: Jobs Created */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">Jobs Created</span>
-                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
-                  <Briefcase className="w-4 h-4" />
+              {/* KPI 5: Jobs Created */}
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">Jobs Created</span>
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
                 </div>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-2xl font-bold text-slate-900">{metrics.jobsCreated}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+                    {metrics.jobsGrowth}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Direct & indirect workforce</p>
               </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <span className="text-2xl font-bold text-slate-900">850+</span>
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                  +45 this mo
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1">Direct & indirect workforce</p>
             </div>
-          </div>
+          )}
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -436,7 +522,26 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {filteredApplications.length === 0 ? (
+                      {isLoading ? (
+                        [1, 2, 3, 4, 5].map((i) => (
+                          <tr key={i} className="animate-pulse">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-slate-200 rounded-md" />
+                                <div className="space-y-1">
+                                  <div className="w-24 h-3 bg-slate-200 rounded" />
+                                  <div className="w-16 h-2 bg-slate-100 rounded" />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4"><div className="w-16 h-3 bg-slate-200 rounded" /></td>
+                            <td className="py-3 px-4"><div className="w-12 h-4 bg-slate-200 rounded" /></td>
+                            <td className="py-3 px-4"><div className="w-16 h-4 bg-slate-200 rounded-full" /></td>
+                            <td className="py-3 px-4"><div className="w-16 h-3 bg-slate-200 rounded" /></td>
+                            <td className="py-3 px-4 text-right"><div className="w-12 h-6 bg-slate-200 rounded ml-auto" /></td>
+                          </tr>
+                        ))
+                      ) : filteredApplications.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="text-center py-6 text-slate-400">
                             No applications found matching criteria.
@@ -531,7 +636,20 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {pendingDecisions.length === 0 ? (
+                  {isLoading ? (
+                    [1, 2].map((i) => (
+                      <div key={i} className="p-3 bg-slate-50 rounded-lg border border-slate-200 animate-pulse flex items-center justify-between">
+                        <div className="space-y-1.5">
+                          <div className="w-24 h-3 bg-slate-200 rounded" />
+                          <div className="w-44 h-2.5 bg-slate-100 rounded" />
+                        </div>
+                        <div className="flex gap-1.5">
+                          <div className="w-12 h-6 bg-slate-200 rounded" />
+                          <div className="w-12 h-6 bg-slate-200 rounded" />
+                        </div>
+                      </div>
+                    ))
+                  ) : pendingDecisions.length === 0 ? (
                     <p className="text-xs text-slate-400 py-2">No pending decisions remaining.</p>
                   ) : (
                     pendingDecisions.map((item) => (
@@ -586,35 +704,55 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-3.5">
-                  {mentorshipSessions.map((session, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                          {session.mentor.charAt(0)}
+                  {isLoading ? (
+                    [1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 animate-pulse"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-slate-200" />
+                          <div className="space-y-1">
+                            <div className="w-24 h-3 bg-slate-200 rounded" />
+                            <div className="w-20 h-2 bg-slate-100 rounded" />
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-xs text-slate-900">{session.mentor}</p>
-                          <p className="text-[10px] text-slate-500">
-                            Startup: <strong className="text-slate-700">{session.startup}</strong>
-                          </p>
+                        <div className="w-14 h-3 bg-slate-200 rounded" />
+                      </div>
+                    ))
+                  ) : mentorshipSessions.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-2">No mentorship sessions scheduled.</p>
+                  ) : (
+                    mentorshipSessions.map((session, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                            {session.mentor.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-xs text-slate-900">{session.mentor}</p>
+                            <p className="text-[10px] text-slate-500">
+                              Startup: <strong className="text-slate-700">{session.startup}</strong>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] block font-medium text-slate-600">{session.time}</span>
+                          <a
+                            href={session.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-semibold mt-0.5"
+                          >
+                            <Video className="w-3 h-3" /> Join Call
+                          </a>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[10px] block font-medium text-slate-600">{session.time}</span>
-                        <a
-                          href={session.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-semibold mt-0.5"
-                        >
-                          <Video className="w-3 h-3" /> Join Call
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 

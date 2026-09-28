@@ -15,7 +15,8 @@ export async function middleware(req: NextRequest) {
     !req.nextUrl.pathname.includes('/auth/login') && 
     !req.nextUrl.pathname.includes('/auth/signup') &&
     !req.nextUrl.pathname.includes('/auth/refresh-token') &&
-    !req.nextUrl.pathname.includes('/auth/google-callback');
+    !req.nextUrl.pathname.includes('/auth/google-callback') &&
+    !req.nextUrl.pathname.includes('/reports/dashboard');
 
   if (isProtectedApiRoute) {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
