@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Incubator Platform - Pre-Incubator & Incubator Programs",
-  description: "Launch your startup with our pre-incubator and incubator programs. Get mentorship, funding, and support to turn your ideas into reality.",
+  title: "Arba360 - Pre-Incubator & Incubator Platform",
+  description: "Launch your startup with Arba360 pre-incubator and incubator programs. Get mentorship, funding, and support to turn your ideas into reality.",
 };
 
 import { AuthProvider } from "@/frontend/context/AuthContext";

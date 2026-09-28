@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { signInWithGoogle } from '@/backend/services/auth';
+import Logo from '@/frontend/components/ui/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -80,29 +81,13 @@ export default function SignupPage() {
         {/* Left Side: Brand Showcase matching image */}
         <div className="lg:col-span-6 xl:col-span-7 space-y-7">
           {/* Logo */}
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
-              <path
-                d="M16 4L4 26C3.5 27 4.2 28 5.3 28H10L16 16L22 28H26.7C27.8 28 28.5 27 28 26L16 4Z"
-                fill="url(#arbaGradSignup)"
-              />
-              <defs>
-                <linearGradient id="arbaGradSignup" x1="4" y1="28" x2="28" y2="4" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#2563eb" />
-                  <stop offset="1" stopColor="#06b6d4" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="text-[22px] font-bold tracking-tight text-slate-900">
-              Arba Incubator
-            </span>
-          </Link>
+          <Logo size="lg" href="/" />
 
           {/* Headline - Exact 3-line quote formatting */}
           <h1 className="text-[34px] sm:text-[40px] lg:text-[44px] font-extrabold tracking-tight text-slate-900 leading-[1.18]">
             &lsquo;Accelerate Your<br />
             Startup Journey with<br />
-            <span className="text-[#2563eb]">Arba Incubator</span>&rsquo;
+            <span className="text-[#2563eb]">Arba360</span>&rsquo;
           </h1>
 
           {/* Feature Bullets with matching circular checkmark */}
