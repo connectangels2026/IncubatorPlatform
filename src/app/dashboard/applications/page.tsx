@@ -31,6 +31,8 @@ import {
   ArrowLeft,
   LogOut,
   Menu,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
@@ -363,8 +365,31 @@ export default function ApplicationsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Applications Data State
-  const [applications, setApplications] = useState<ApplicationItem[]>(INITIAL_APPLICATIONS);
+  const [applications, setApplications] = useState<ApplicationItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isModalLoading, setIsModalLoading] = useState(false);
+
+  // Fetch applications with loading and error states
+  const fetchApplications = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Simulated API fetch delay
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      setApplications(INITIAL_APPLICATIONS);
+    } catch {
+      setError("Unable to load applications.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchApplications();
+  }, []);
 
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
@@ -484,14 +509,23 @@ export default function ApplicationsPage() {
     paginatedApplications.length > 0 &&
     paginatedApplications.every((app) => selectedIds.includes(app.id));
 
-  const handleBatchStatusUpdate = (newStatus: 'admitted' | 'rejected') => {
-    setApplications((prev) =>
-      prev.map((app) =>
-        selectedIds.includes(app.id) ? { ...app, status: newStatus } : app
-      )
-    );
-    showToast(`Updated status for ${selectedIds.length} applications to '${newStatus.replace('_', ' ')}'`);
-    setSelectedIds([]);
+  const handleBatchStatusUpdate = async (newStatus: 'admitted' | 'rejected') => {
+    if (selectedIds.length === 0 || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      setApplications((prev) =>
+        prev.map((app) =>
+          selectedIds.includes(app.id) ? { ...app, status: newStatus } : app
+        )
+      );
+      showToast(`Updated status for ${selectedIds.length} applications to '${newStatus.replace('_', ' ')}'`);
+      setSelectedIds([]);
+    } catch {
+      showToast('Failed to perform bulk update. Please try again.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleResetFilters = () => {
@@ -536,35 +570,51 @@ export default function ApplicationsPage() {
     showToast(`Downloaded CSV with ${filteredApplications.length} records`);
   };
 
+  const openDetailsModal = (app: ApplicationItem) => {
+    setDetailsModalApp(app);
+    setIsModalLoading(true);
+    setTimeout(() => setIsModalLoading(false), 250);
+  };
+
   const openScoreModal = (app: ApplicationItem) => {
     setScoreModalApp(app);
     setRubricScores(app.scores || { team: 75, market: 75, innovation: 75, traction: 75 });
+    setIsModalLoading(true);
+    setTimeout(() => setIsModalLoading(false), 250);
   };
 
-  const handleSaveScores = () => {
-    if (!scoreModalApp) return;
-    const calculatedTotal = Math.round(
-      rubricScores.team * 0.3 +
-      rubricScores.market * 0.25 +
-      rubricScores.innovation * 0.25 +
-      rubricScores.traction * 0.2
-    );
+  const handleSaveScores = async () => {
+    if (!scoreModalApp || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const calculatedTotal = Math.round(
+        rubricScores.team * 0.3 +
+        rubricScores.market * 0.25 +
+        rubricScores.innovation * 0.25 +
+        rubricScores.traction * 0.2
+      );
 
-    setApplications((prev) =>
-      prev.map((app) => {
-        if (app.id === scoreModalApp.id) {
-          return {
-            ...app,
-            score: calculatedTotal,
-            scores: { ...rubricScores }
-          };
-        }
-        return app;
-      })
-    );
+      setApplications((prev) =>
+        prev.map((app) => {
+          if (app.id === scoreModalApp.id) {
+            return {
+              ...app,
+              score: calculatedTotal,
+              scores: { ...rubricScores }
+            };
+          }
+          return app;
+        })
+      );
 
-    showToast(`Saved score ${calculatedTotal}/100 for ${scoreModalApp.startupName}`);
-    setScoreModalApp(null);
+      showToast(`Saved score ${calculatedTotal}/100 for ${scoreModalApp.startupName}`);
+      setScoreModalApp(null);
+    } catch {
+      showToast('Failed to save evaluation scores. Please try again.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const openDecisionModal = (app: ApplicationItem, initialDecision: 'admitted' | 'rejected' = 'admitted') => {
@@ -575,22 +625,32 @@ export default function ApplicationsPage() {
         ? `Dear ${app.founderName},\n\nWe are pleased to inform you that ${app.startupName} has been accepted into the Arba360 cohort. Our evaluation committee was impressed by your proposal.`
         : `Dear ${app.founderName},\n\nThank you for applying to Arba360 with ${app.startupName}. After careful review, we regret to inform you that we are unable to advance your application at this time.`
     );
+    setIsModalLoading(true);
+    setTimeout(() => setIsModalLoading(false), 250);
   };
 
-  const handleSaveDecision = () => {
-    if (!decisionModalApp) return;
-    setApplications((prev) =>
-      prev.map((app) => {
-        if (app.id === decisionModalApp.id) {
-          return { ...app, status: decisionType };
-        }
-        return app;
-      })
-    );
+  const handleSaveDecision = async () => {
+    if (!decisionModalApp || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      setApplications((prev) =>
+        prev.map((app) => {
+          if (app.id === decisionModalApp.id) {
+            return { ...app, status: decisionType };
+          }
+          return app;
+        })
+      );
 
-    const emailNote = sendEmailNotification ? " Notification email dispatched." : "";
-    showToast(`Application marked as ${decisionType}.${emailNote}`);
-    setDecisionModalApp(null);
+      const emailNote = sendEmailNotification ? " Notification email dispatched." : "";
+      showToast(`Application marked as ${decisionType}.${emailNote}`);
+      setDecisionModalApp(null);
+    } catch {
+      showToast('Failed to record cohort decision. Please try again.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -664,8 +724,18 @@ export default function ApplicationsPage() {
 
               <div className="flex items-center gap-3">
                 <button
+                  onClick={fetchApplications}
+                  disabled={isLoading || isProcessing}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition"
+                  title="Refresh applications"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-xs transition"
+                  disabled={isLoading || isProcessing || filteredApplications.length === 0}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition"
                 >
                   <Download className="w-4 h-4 text-slate-500" />
                   Download CSV
@@ -803,8 +873,57 @@ export default function ApplicationsPage() {
               </div>
             </div>
 
-            {/* Empty State */}
-            {filteredApplications.length === 0 ? (
+            {/* Loading State: Table Skeleton */}
+            {isLoading ? (
+              <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden p-6 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                    <span className="text-xs font-semibold text-slate-700">Loading applications...</span>
+                  </div>
+                  <div className="w-24 h-4 bg-slate-200 rounded animate-pulse" />
+                </div>
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 animate-pulse gap-4">
+                      <div className="w-8 h-4 bg-slate-200 rounded" />
+                      <div className="w-16 h-4 bg-slate-200 rounded" />
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 bg-slate-200 rounded-lg shrink-0" />
+                        <div className="space-y-1.5 w-40">
+                          <div className="w-28 h-3.5 bg-slate-200 rounded" />
+                          <div className="w-16 h-2.5 bg-slate-100 rounded" />
+                        </div>
+                      </div>
+                      <div className="w-32 h-3.5 bg-slate-200 rounded hidden sm:block" />
+                      <div className="w-20 h-5 bg-slate-200 rounded-md" />
+                      <div className="w-20 h-5 bg-slate-200 rounded-full" />
+                      <div className="w-16 h-4 bg-slate-200 rounded" />
+                      <div className="w-20 h-4 bg-slate-200 rounded" />
+                      <div className="w-16 h-7 bg-slate-200 rounded-lg" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : error ? (
+              /* Error State */
+              <div className="bg-white rounded-xl border border-rose-200 p-10 text-center shadow-2xs my-4">
+                <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3 border border-rose-100">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 mb-1">{error}</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto mb-5">
+                  An error occurred while fetching application records. Please check your connection and retry.
+                </p>
+                <button
+                  onClick={fetchApplications}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-xs hover:bg-blue-700 shadow-xs transition"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Retry
+                </button>
+              </div>
+            ) : filteredApplications.length === 0 ? (
+              /* Empty State */
               <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-2xs my-4">
                 <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
                   <Search className="w-6 h-6" />
@@ -878,7 +997,7 @@ export default function ApplicationsPage() {
                                 <div>
                                   <div
                                     className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer"
-                                    onClick={() => setDetailsModalApp(app)}
+                                    onClick={() => openDetailsModal(app)}
                                   >
                                     {app.startupName}
                                   </div>
@@ -921,22 +1040,25 @@ export default function ApplicationsPage() {
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => openScoreModal(app)}
+                                  disabled={isProcessing}
                                   title="Evaluate Score"
-                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
                                 >
                                   <Award className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => setDetailsModalApp(app)}
+                                  onClick={() => openDetailsModal(app)}
+                                  disabled={isProcessing}
                                   title="View Pitch Details"
-                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                                  className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => openDecisionModal(app, 'admitted')}
+                                  disabled={isProcessing}
                                   title="Admit / Reject Decision"
-                                  className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                                  className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
                                 </button>
@@ -1007,21 +1129,24 @@ export default function ApplicationsPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => handleBatchStatusUpdate('admitted')}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                disabled={isProcessing}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                {isProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 Batch Admit
               </button>
               <button
                 onClick={() => handleBatchStatusUpdate('rejected')}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
+                disabled={isProcessing}
+                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
               >
-                <XCircle className="w-3.5 h-3.5" />
+                {isProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
                 Batch Reject
               </button>
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition"
+                disabled={isProcessing}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 rounded-lg text-xs font-medium transition"
               >
                 Clear
               </button>
@@ -1050,81 +1175,98 @@ export default function ApplicationsPage() {
                 </button>
               </div>
 
-              <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto text-slate-700 text-xs">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                  <div>
-                    <div className="text-slate-400">Founder</div>
-                    <div className="font-semibold text-slate-900 mt-0.5">{detailsModalApp.founderName}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400">Funding Ask</div>
-                    <div className="font-semibold text-emerald-600 mt-0.5">{detailsModalApp.fundingAsk}</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400">Team Size</div>
-                    <div className="font-semibold text-slate-900 mt-0.5">{detailsModalApp.teamSize} members</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-400">Score</div>
-                    <div className="font-semibold text-blue-600 mt-0.5">{detailsModalApp.score}/100</div>
-                  </div>
+              {isModalLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3">
+                  <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
+                  <p className="text-xs text-slate-500 font-medium">Loading application details...</p>
                 </div>
+              ) : (
+                <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto text-slate-700 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <div>
+                      <div className="text-slate-400">Founder</div>
+                      <div className="font-semibold text-slate-900 mt-0.5">{detailsModalApp.founderName}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Funding Ask</div>
+                      <div className="font-semibold text-emerald-600 mt-0.5">{detailsModalApp.fundingAsk}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Team Size</div>
+                      <div className="font-semibold text-slate-900 mt-0.5">{detailsModalApp.teamSize} members</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-400">Score</div>
+                      <div className="font-semibold text-blue-600 mt-0.5">{detailsModalApp.score}/100</div>
+                    </div>
+                  </div>
 
-                <div>
-                  <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-blue-600" /> Pitch Summary
-                  </h4>
-                  <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
-                    {detailsModalApp.pitchSummary}
-                  </p>
-                </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-blue-600" /> Pitch Summary
+                    </h4>
+                    <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
+                      {detailsModalApp.pitchSummary}
+                    </p>
+                  </div>
 
-                <div>
-                  <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5 text-blue-600" /> Target Market
-                  </h4>
-                  <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
-                    {detailsModalApp.marketDescription}
-                  </p>
-                </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-600" /> Target Market
+                    </h4>
+                    <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
+                      {detailsModalApp.marketDescription}
+                    </p>
+                  </div>
 
-                <div>
-                  <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-blue-600" /> Contact Info
-                  </h4>
-                  <div className="text-slate-600 space-y-0.5">
-                    <p><span className="font-medium text-slate-800">Email:</span> {detailsModalApp.founderEmail}</p>
-                    <p><span className="font-medium text-slate-800">Submitted:</span> {detailsModalApp.submittedDate}</p>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-blue-600" /> Contact Info
+                    </h4>
+                    <div className="text-slate-600 space-y-0.5">
+                      <p><span className="font-medium text-slate-800">Email:</span> {detailsModalApp.founderEmail}</p>
+                      <p><span className="font-medium text-slate-800">Submitted:</span> {detailsModalApp.submittedDate}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200">
+                    <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                      Update Status
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(['submitted', 'under_review', 'admitted', 'rejected'] as const).map((statusVal) => (
+                        <button
+                          key={statusVal}
+                          disabled={isProcessing}
+                          onClick={async () => {
+                            if (isProcessing) return;
+                            setIsProcessing(true);
+                            try {
+                              await new Promise((r) => setTimeout(r, 300));
+                              setApplications((prev) =>
+                                prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: statusVal } : a))
+                              );
+                              setDetailsModalApp((prev) => (prev ? { ...prev, status: statusVal } : null));
+                              showToast(`Status updated to ${statusVal.replace('_', ' ')}`);
+                            } catch {
+                              showToast('Failed to update status. Please try again.', 'error');
+                            } finally {
+                              setIsProcessing(false);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg font-semibold capitalize border transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                            detailsModalApp.status === statusVal
+                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                          }`}
+                        >
+                          {statusVal.replace('_', ' ')}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-slate-200">
-                  <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                    Update Status
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {(['submitted', 'under_review', 'admitted', 'rejected'] as const).map((statusVal) => (
-                      <button
-                        key={statusVal}
-                        onClick={() => {
-                          setApplications((prev) =>
-                            prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: statusVal } : a))
-                          );
-                          setDetailsModalApp((prev) => (prev ? { ...prev, status: statusVal } : null));
-                          showToast(`Status updated to ${statusVal.replace('_', ' ')}`);
-                        }}
-                        className={`px-3 py-1.5 rounded-lg font-semibold capitalize border transition ${
-                          detailsModalApp.status === statusVal
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                        }`}
-                      >
-                        {statusVal.replace('_', ' ')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
                 <button
@@ -1152,101 +1294,111 @@ export default function ApplicationsPage() {
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 text-xs">
-                <p className="text-slate-500">
-                  Adjust evaluation metrics below. Total score recalculates in real-time according to Arba360 weighting.
-                </p>
+              {isModalLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3">
+                  <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
+                  <p className="text-xs text-slate-500 font-medium">Loading evaluation rubric...</p>
+                </div>
+              ) : (
+                <div className="p-5 space-y-4 text-xs">
+                  <p className="text-slate-500">
+                    Adjust evaluation metrics below. Total score recalculates in real-time according to Arba360 weighting.
+                  </p>
 
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between items-center font-medium mb-1">
-                      <span className="text-slate-700">Team & Founders (30%)</span>
-                      <span className="font-bold text-blue-600">{rubricScores.team}/100</span>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex justify-between items-center font-medium mb-1">
+                        <span className="text-slate-700">Team & Founders (30%)</span>
+                        <span className="font-bold text-blue-600">{rubricScores.team}/100</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={rubricScores.team}
+                        onChange={(e) => setRubricScores({ ...rubricScores, team: Number(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={rubricScores.team}
-                      onChange={(e) => setRubricScores({ ...rubricScores, team: Number(e.target.value) })}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
+
+                    <div>
+                      <div className="flex justify-between items-center font-medium mb-1">
+                        <span className="text-slate-700">Market Potential (25%)</span>
+                        <span className="font-bold text-blue-600">{rubricScores.market}/100</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={rubricScores.market}
+                        onChange={(e) => setRubricScores({ ...rubricScores, market: Number(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center font-medium mb-1">
+                        <span className="text-slate-700">Innovation & Technology (25%)</span>
+                        <span className="font-bold text-blue-600">{rubricScores.innovation}/100</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={rubricScores.innovation}
+                        onChange={(e) => setRubricScores({ ...rubricScores, innovation: Number(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center font-medium mb-1">
+                        <span className="text-slate-700">Traction & Growth (20%)</span>
+                        <span className="font-bold text-blue-600">{rubricScores.traction}/100</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={rubricScores.traction}
+                        onChange={(e) => setRubricScores({ ...rubricScores, traction: Number(e.target.value) })}
+                        className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between items-center font-medium mb-1">
-                      <span className="text-slate-700">Market Potential (25%)</span>
-                      <span className="font-bold text-blue-600">{rubricScores.market}/100</span>
+                  <div className="bg-slate-900 text-white rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-400">Total Score</div>
+                      <div className="text-[10px] text-slate-400">Weighted sum of 4 evaluation pillars</div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={rubricScores.market}
-                      onChange={(e) => setRubricScores({ ...rubricScores, market: Number(e.target.value) })}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center font-medium mb-1">
-                      <span className="text-slate-700">Innovation & Technology (25%)</span>
-                      <span className="font-bold text-blue-600">{rubricScores.innovation}/100</span>
+                    <div className="text-xl font-extrabold text-emerald-400">
+                      {Math.round(
+                        rubricScores.team * 0.3 +
+                        rubricScores.market * 0.25 +
+                        rubricScores.innovation * 0.25 +
+                        rubricScores.traction * 0.2
+                      )}
+                      <span className="text-xs text-slate-400 font-normal"> / 100</span>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={rubricScores.innovation}
-                      onChange={(e) => setRubricScores({ ...rubricScores, innovation: Number(e.target.value) })}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center font-medium mb-1">
-                      <span className="text-slate-700">Traction & Growth (20%)</span>
-                      <span className="font-bold text-blue-600">{rubricScores.traction}/100</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={rubricScores.traction}
-                      onChange={(e) => setRubricScores({ ...rubricScores, traction: Number(e.target.value) })}
-                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                    />
                   </div>
                 </div>
-
-                <div className="bg-slate-900 text-white rounded-xl p-3.5 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-slate-400">Total Score</div>
-                    <div className="text-[10px] text-slate-400">Weighted sum of 4 evaluation pillars</div>
-                  </div>
-                  <div className="text-xl font-extrabold text-emerald-400">
-                    {Math.round(
-                      rubricScores.team * 0.3 +
-                      rubricScores.market * 0.25 +
-                      rubricScores.innovation * 0.25 +
-                      rubricScores.traction * 0.2
-                    )}
-                    <span className="text-xs text-slate-400 font-normal"> / 100</span>
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 text-xs">
                 <button
                   onClick={() => setScoreModalApp(null)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 font-medium"
+                  disabled={isProcessing}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 disabled:opacity-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveScores}
-                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                  disabled={isProcessing || isModalLoading}
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 transition"
                 >
+                  {isProcessing && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   Save Score
                 </button>
               </div>
@@ -1268,68 +1420,95 @@ export default function ApplicationsPage() {
                 </button>
               </div>
 
-              <div className="p-5 space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">Final Outcome</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDecisionType('admitted');
-                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nWe are pleased to inform you that ${decisionModalApp.startupName} has been accepted into the Arba360 cohort.`);
-                      }}
-                      className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
-                        decisionType === 'admitted'
-                          ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-2 ring-emerald-500/20'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      Admit to Cohort
-                    </button>
+              {isModalLoading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-3">
+                  <RefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
+                  <p className="text-xs text-slate-500 font-medium">Loading cohort decision form...</p>
+                </div>
+              ) : (
+                <div className="p-5 space-y-4 text-xs">
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">Final Outcome</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDecisionType('admitted');
+                          setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nWe are pleased to inform you that ${decisionModalApp.startupName} has been accepted into the Arba360 cohort.`);
+                        }}
+                        className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
+                          decisionType === 'admitted'
+                            ? 'bg-emerald-50 border-emerald-500 text-emerald-800 ring-2 ring-emerald-500/20'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        Admit to Cohort
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDecisionType('rejected');
-                        setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nThank you for applying to Arba360 with ${decisionModalApp.startupName}. After careful review, we regret to inform you that we are unable to advance your application.`);
-                      }}
-                      className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
-                        decisionType === 'rejected'
-                          ? 'bg-rose-50 border-rose-500 text-rose-800 ring-2 ring-rose-500/20'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <XCircle className="w-4 h-4 text-rose-600" />
-                      Reject Application
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDecisionType('rejected');
+                          setDecisionFeedback(`Dear ${decisionModalApp.founderName},\n\nThank you for applying to Arba360 with ${decisionModalApp.startupName}. After careful review, we regret to inform you that we are unable to advance your application.`);
+                        }}
+                        className={`py-2.5 px-3 rounded-xl border font-semibold flex items-center justify-center gap-1.5 transition ${
+                          decisionType === 'rejected'
+                            ? 'bg-rose-50 border-rose-500 text-rose-800 ring-2 ring-rose-500/20'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <XCircle className="w-4 h-4 text-rose-600" />
+                        Reject Application
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Applicant Feedback Message
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={decisionFeedback}
+                      onChange={(e) => setDecisionFeedback(e.target.value)}
+                      className="w-full p-2.5 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="sendEmail"
+                      checked={sendEmailNotification}
+                      onChange={(e) => setSendEmailNotification(e.target.checked)}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
+                    />
+                    <label htmlFor="sendEmail" className="text-slate-600 font-medium">
+                      Send notification email to <span className="font-mono text-slate-800">{decisionModalApp.founderEmail}</span>
+                    </label>
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Applicant Feedback Message
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={decisionFeedback}
-                    onChange={(e) => setDecisionFeedback(e.target.value)}
-                    className="w-full p-2.5 border border-slate-300 rounded-lg text-xs bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="sendEmail"
-                    checked={sendEmailNotification}
-                    onChange={(e) => setSendEmailNotification(e.target.checked)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                  />
-                  <label htmlFor="sendEmail" className="text-slate-600 font-medium">
-                    Send notification email to <span className="font-mono text-slate-800">{decisionModalApp.founderEmail}</span>
-                  </label>
-                </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 text-xs">
+                <button
+                  onClick={() => setDecisionModalApp(null)}
+                  disabled={isProcessing}
+                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 disabled:opacity-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveDecision}
+                  disabled={isProcessing || isModalLoading}
+                  className={`px-4 py-1.5 text-white rounded-lg font-semibold flex items-center gap-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                    decisionType === 'admitted' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                  }`}
+                >
+                  {isProcessing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Confirm Decision
+                </button>
               </div>
 
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 text-xs">

@@ -2,7 +2,7 @@
 
 **Incubator & Pre-Incubator Platform**
 
-> 🚀 Live site: [https://arbaincubators.netlify.app/](https://arbaincubators.netlify.app/)
+> 🚀 Live site: [https://incubationplatform.netlify.app/](https://incubationplatform.netlify.app/)
 
 ---
 
