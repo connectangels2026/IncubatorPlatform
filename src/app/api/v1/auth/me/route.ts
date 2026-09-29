@@ -1,15 +1,12 @@
-import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/backend/services/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/backend/middleware/auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { data, error } = await getCurrentUser();
+    const { user, errorResponse: authError } = await verifyAuth(req);
+    if (authError) return authError;
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: error.status || 401 });
-    }
-
-    return NextResponse.json({ user: data.user }, { status: 200 });
+    return NextResponse.json({ success: true, user }, { status: 200 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -32,6 +32,7 @@ import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import { supabase } from '@/backend/lib/supabase';
 
 interface ApplicationItem {
   id: string;
@@ -128,6 +129,29 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Subscribe to Supabase real-time database changes
+    const channel = supabase
+      .channel('realtime-dashboard')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'applications' },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'startups' },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Modals state

@@ -38,8 +38,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
+
+    const role = user?.role?.toLowerCase() || '';
+    if (role !== 'admin' && role !== 'founder' && role !== 'super-admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only admins and founders can create startups' },
+        { status: 403 }
+      );
+    }
 
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
@@ -49,7 +57,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Validation Error: name and founder_name are required' }, { status: 400 });
     }
 
-    const created = await StartupService.createStartup({ ...body, organization_id: orgId! });
+    const created = await StartupService.createStartup({
+      ...body,
+      founder_id: role === 'founder' ? user?.id : (body.founder_id || user?.id),
+      organization_id: orgId!,
+    });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

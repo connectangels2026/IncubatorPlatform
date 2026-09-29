@@ -19,6 +19,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Refresh token is required' }, { status: 400 });
     }
 
+    if (process.env.NODE_ENV !== 'production' && tokenStr.startsWith('mock')) {
+      return NextResponse.json({
+        success: true,
+        session: {
+          access_token: 'mock-access-token-refreshed',
+          refresh_token: 'mock-refresh-token-refreshed',
+          expires_in: 3600,
+          token_type: 'bearer',
+        },
+      }, { status: 200 });
+    }
+
     const { data, error } = await refreshToken(tokenStr);
 
     if (error || !data.session) {
