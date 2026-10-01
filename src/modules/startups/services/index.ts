@@ -362,8 +362,38 @@ export class StartupService {
   // Mentors and Investors stubs
   static async getMentors(startupId: string): Promise<MentorAllocation[]> { return []; }
   static async allocateMentor(startupId: string, mentorId: string, mentorType: any): Promise<any> { return {}; }
+  static async updateMentorAllocation(startupId: string, mentorId: string, mentorType: 'Lead' | 'Domain' | 'Peer'): Promise<MentorAllocation | null> {
+    return {
+      id: 'mentor_alloc_' + Date.now(),
+      startup_id: startupId,
+      mentor_id: mentorId,
+      mentor_type: mentorType,
+      assigned_at: new Date().toISOString(),
+    };
+  }
   static async deallocateMentor(startupId: string, mentorId: string): Promise<boolean> { return true; }
   static async getInvestors(startupId: string): Promise<InvestorAllocation[]> { return []; }
   static async allocateInvestor(startupId: string, investorId: string, interestLevel: any): Promise<any> { return {}; }
+  static async updateInvestorAllocation(startupId: string, investorId: string, interestLevel: 'High' | 'Medium' | 'Low'): Promise<InvestorAllocation | null> {
+    return {
+      id: 'inv_alloc_' + Date.now(),
+      startup_id: startupId,
+      investor_id: investorId,
+      interest_level: interestLevel,
+      allocated_at: new Date().toISOString(),
+    };
+  }
   static async deallocateInvestor(startupId: string, investorId: string): Promise<boolean> { return true; }
+
+  // Co-incubations
+  static async getCoIncubations(startupId: string): Promise<any[]> {
+    if (isValidUUID(startupId)) {
+      const { data } = await supabaseAdmin
+        .from('co_incubations')
+        .select('*')
+        .eq('startup_id', startupId);
+      if (data && data.length > 0) return data;
+    }
+    return [];
+  }
 }
