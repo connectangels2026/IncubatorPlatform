@@ -8,7 +8,15 @@ const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 const resolveOrg = (id: string | null) => (id && isValidUUID(id) ? id : DEFAULT_ORG_ID);
 
+export async function GET(req: NextRequest) {
+  return handleReminders(req);
+}
+
 export async function POST(req: NextRequest) {
+  return handleReminders(req);
+}
+
+async function handleReminders(req: NextRequest) {
   try {
     const { errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
@@ -17,10 +25,16 @@ export async function POST(req: NextRequest) {
 
     const realOrgId = resolveOrg(orgId);
 
-    // Calculate tomorrow's date (1 day before session)
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    // Calculate default tomorrow's date (1 day before session), or use custom query param
+    const searchParams = req.nextUrl.searchParams;
+    const targetDateParam = searchParams.get('date');
+    let targetDateStr = targetDateParam;
+
+    if (!targetDateStr) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      targetDateStr = tomorrow.toISOString().split('T')[0];
+    }
 
     const { data: upcomingSessions, error } = await supabaseAdmin
       .from('mentorship_sessions')
@@ -34,34 +48,75 @@ export async function POST(req: NextRequest) {
         status,
         mentor:mentors (
           id,
-          user:users (first_name, last_name, email)
+          user:users (id, first_name, last_name, email)
         ),
-        startup:startups (id, name, founder_email)
+        startup:startups (id, name, founder_id, founder_email)
       `)
       .eq('organization_id', realOrgId)
       .eq('status', 'scheduled')
-      .eq('scheduled_date', tomorrowStr);
+      .eq('scheduled_date', targetDateStr);
 
     if (error) throw error;
 
+    const notificationsToInsert: any[] = [];
     const remindersDispatched = (upcomingSessions || []).map((s: any) => {
       const mentorUser = Array.isArray(s.mentor?.user) ? s.mentor?.user[0] : s.mentor?.user;
+      const mentorEmail = mentorUser?.email || 'mentor@example.com';
+      const startupEmail = s.startup?.founder_email || 'founder@example.com';
+
+      // Stage notification rows for in-app & email
+      if (mentorUser?.id && isValidUUID(mentorUser.id)) {
+        notificationsToInsert.push({
+          organization_id: realOrgId,
+          recipient_id: mentorUser.id,
+          title: `Reminder: Mentorship Session Tomorrow`,
+          message: `Reminder: Your mentorship session "${s.session_title}" is scheduled for tomorrow (${s.scheduled_date}) at ${s.start_time}. Meeting Link: ${s.meeting_link || 'online'}`,
+          notification_type: 'mentorship_reminder',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'mentorship_session',
+          related_entity_id: s.id,
+        });
+      }
+
+      if (s.startup?.founder_id && isValidUUID(s.startup.founder_id)) {
+        notificationsToInsert.push({
+          organization_id: realOrgId,
+          recipient_id: s.startup.founder_id,
+          title: `Reminder: Mentorship Session Tomorrow`,
+          message: `Reminder: Your mentorship session "${s.session_title}" is scheduled for tomorrow (${s.scheduled_date}) at ${s.start_time}. Meeting Link: ${s.meeting_link || 'online'}`,
+          notification_type: 'mentorship_reminder',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'mentorship_session',
+          related_entity_id: s.id,
+        });
+      }
+
       return {
         session_id: s.id,
         session_title: s.session_title,
         scheduled_at: `${s.scheduled_date} ${s.start_time} - ${s.end_time}`,
         recipients: [
-          { role: 'mentor', email: mentorUser?.email || 'mentor@example.com' },
-          { role: 'startup', email: s.startup?.founder_email || 'founder@example.com' },
+          { role: 'mentor', email: mentorEmail },
+          { role: 'startup', email: startupEmail },
         ],
         reminder_sent: true,
       };
     });
 
+    if (notificationsToInsert.length > 0) {
+      try {
+        await supabaseAdmin.from('notifications').insert(notificationsToInsert);
+      } catch (notifErr) {
+        console.warn('Failed to insert reminder notification records:', notifErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Automated reminders processed for sessions on ${tomorrowStr}`,
-      target_date: tomorrowStr,
+      message: `Automated reminders processed for sessions on ${targetDateStr}`,
+      target_date: targetDateStr,
       total_reminders_sent: remindersDispatched.length,
       dispatched: remindersDispatched,
     });

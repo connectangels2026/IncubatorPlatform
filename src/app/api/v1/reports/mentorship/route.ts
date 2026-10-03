@@ -29,10 +29,17 @@ export async function GET(req: NextRequest) {
     const totalMinutes = completedSessions.reduce((sum, s) => sum + (Number(s.duration_minutes) || 60), 0);
     const totalHours = Number((totalMinutes / 60).toFixed(1));
 
-    const ratedSessions = all.filter((s) => s.feedback_score !== null && s.feedback_score !== undefined);
+    const ratedSessions = all.filter(
+      (s) => (s.startup_rating ?? s.feedback_score) !== null && (s.startup_rating ?? s.feedback_score) !== undefined
+    );
     const avgRating =
       ratedSessions.length > 0
-        ? Number((ratedSessions.reduce((sum, s) => sum + Number(s.feedback_score), 0) / ratedSessions.length).toFixed(1))
+        ? Number(
+            (
+              ratedSessions.reduce((sum, s) => sum + Number(s.startup_rating ?? s.feedback_score), 0) /
+              ratedSessions.length
+            ).toFixed(1)
+          )
         : 0;
 
     const statusCounts: Record<string, number> = {};
