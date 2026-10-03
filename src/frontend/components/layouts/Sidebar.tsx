@@ -27,6 +27,11 @@ export interface NavItem {
 export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
   { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Applications', href: '/dashboard/applications', icon: ClipboardCheck, count: 42 },
+  { label: 'Startups', href: '/dashboard/startups', icon: Building2 },
+  { label: 'Mentors', href: '/dashboard/mentors', icon: Users },
+  { label: 'Collaborators', href: '/dashboard/collaborators', icon: Users },
+  { label: 'Co-Incubations', href: '/dashboard/co-incubations', icon: GraduationCap },
+  { label: 'Events', href: '/dashboard/events', icon: Calendar },
 ];
 
 interface SidebarProps {
