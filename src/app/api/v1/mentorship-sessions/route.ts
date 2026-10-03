@@ -8,6 +8,14 @@ const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 const resolveOrg = (id: string | null) => (id && isValidUUID(id) ? id : DEFAULT_ORG_ID);
 
+function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const hours = parseInt(parts[0], 10) || 0;
+  const minutes = parseInt(parts[1], 10) || 0;
+  return hours * 60 + minutes;
+}
+
 function getDayName(dateStr: string): string {
   const date = new Date(dateStr);
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -104,12 +112,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (start_time >= end_time) {
+    const reqStartMin = timeToMinutes(start_time);
+    const reqEndMin = timeToMinutes(end_time);
+
+    if (reqStartMin >= reqEndMin) {
       return NextResponse.json(
         { error: 'start_time must be earlier than end_time' },
         { status: 400 }
       );
     }
+
+    const durationMinutes = Math.max(0, reqEndMin - reqStartMin);
 
     // 2. Fetch mentor & check availability settings
     const { data: mentor, error: mentorErr } = await supabaseAdmin
@@ -140,19 +153,31 @@ export async function POST(req: NextRequest) {
     }
 
     // Check mentor weekly availability window if defined
-    const dayOfWeek = getDayName(scheduled_date);
-    const availMap = (mentor.availability_json || {}) as Record<string, string[]>;
-    if (availMap[dayOfWeek] && Array.isArray(availMap[dayOfWeek]) && availMap[dayOfWeek].length > 0) {
-      const slots = availMap[dayOfWeek];
-      const fallsWithinSlot = slots.some((slot) => {
-        const [slotStart, slotEnd] = slot.split('-');
-        if (!slotStart || !slotEnd) return false;
-        return start_time >= slotStart.trim() && end_time <= slotEnd.trim();
+    const dayOfWeek = getDayName(scheduled_date).toLowerCase();
+    const availMap = (mentor.availability_json || {}) as Record<string, any>;
+    const slots =
+      availMap[dayOfWeek] ||
+      availMap[dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)] ||
+      availMap[dayOfWeek.slice(0, 3)] ||
+      availMap[dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1, 3)];
+
+    if (Array.isArray(slots) && slots.length > 0) {
+      const fallsWithinSlot = slots.some((slot: any) => {
+        if (typeof slot === 'string') {
+          const [slotStart, slotEnd] = slot.split('-');
+          if (!slotStart || !slotEnd) return false;
+          return reqStartMin >= timeToMinutes(slotStart) && reqEndMin <= timeToMinutes(slotEnd);
+        } else if (slot && typeof slot === 'object' && slot.start && slot.end) {
+          return reqStartMin >= timeToMinutes(slot.start) && reqEndMin <= timeToMinutes(slot.end);
+        }
+        return false;
       });
+
       if (!fallsWithinSlot) {
+        const slotDesc = slots.map((s: any) => (typeof s === 'string' ? s : `${s.start}-${s.end}`)).join(', ');
         return NextResponse.json(
           {
-            error: `Session time (${start_time} - ${end_time}) falls outside mentor availability for ${dayOfWeek} (${slots.join(', ')})`,
+            error: `Session time (${start_time} - ${end_time}) falls outside mentor availability for ${dayOfWeek} (${slotDesc})`,
             available_slots: slots,
           },
           { status: 400 }
@@ -163,7 +188,7 @@ export async function POST(req: NextRequest) {
     // 3. Fetch startup
     const { data: startup, error: startupErr } = await supabaseAdmin
       .from('startups')
-      .select('id, name, founder_email')
+      .select('id, name, founder_id, founder_email')
       .eq('id', startup_id)
       .eq('organization_id', realOrgId)
       .single();
@@ -183,8 +208,10 @@ export async function POST(req: NextRequest) {
     if (conflictErr) throw conflictErr;
 
     const hasConflict = (existingSessions || []).some((s) => {
-      // Overlap: newStart < s.end && newEnd > s.start
-      return start_time < s.end_time && end_time > s.start_time;
+      const sStartMin = timeToMinutes(s.start_time);
+      const sEndMin = timeToMinutes(s.end_time);
+      // Overlap: reqStart < sEnd && reqEnd > sStart
+      return reqStartMin < sEndMin && reqEndMin > sStartMin;
     });
 
     if (hasConflict) {
@@ -219,6 +246,7 @@ export async function POST(req: NextRequest) {
       scheduled_date,
       start_time,
       end_time,
+      duration_minutes: durationMinutes,
       session_title: session_title || `Mentorship Session: ${startup.name}`,
       description: description || null,
       meeting_mode: meeting_mode || 'online',
@@ -249,6 +277,42 @@ export async function POST(req: NextRequest) {
     const mentorUser = Array.isArray(mentor.user) ? mentor.user[0] : mentor.user;
     const mentorEmail = mentorUser?.email || 'mentor@example.com';
     const startupEmail = startup.founder_email || 'founder@example.com';
+
+    // Store in-app / email notifications
+    try {
+      const notificationsToInsert = [];
+      if (mentorUser?.id && isValidUUID(mentorUser.id)) {
+        notificationsToInsert.push({
+          organization_id: realOrgId,
+          recipient_id: mentorUser.id,
+          title: `Mentorship Session Booked: ${payload.session_title}`,
+          message: `You have a confirmed mentorship session with ${startup.name} on ${scheduled_date} from ${start_time} to ${end_time}.`,
+          notification_type: 'mentorship_booking',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'mentorship_session',
+          related_entity_id: session.id,
+        });
+      }
+      if (startup.founder_id && isValidUUID(startup.founder_id)) {
+        notificationsToInsert.push({
+          organization_id: realOrgId,
+          recipient_id: startup.founder_id,
+          title: `Mentorship Session Confirmed: ${payload.session_title}`,
+          message: `Your mentorship session with ${mentorUser?.first_name || 'your mentor'} is scheduled for ${scheduled_date} from ${start_time} to ${end_time}.`,
+          notification_type: 'mentorship_booking',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'mentorship_session',
+          related_entity_id: session.id,
+        });
+      }
+      if (notificationsToInsert.length > 0) {
+        await supabaseAdmin.from('notifications').insert(notificationsToInsert);
+      }
+    } catch (notifErr) {
+      console.warn('Failed to insert booking notification records:', notifErr);
+    }
 
     return NextResponse.json(
       {

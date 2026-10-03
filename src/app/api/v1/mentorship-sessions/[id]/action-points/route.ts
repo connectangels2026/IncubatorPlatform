@@ -47,3 +47,56 @@ export async function GET(req: NextRequest, { params }: Params) {
     return handleApiError(err);
   }
 }
+
+export async function POST(req: NextRequest, { params }: Params) {
+  try {
+    const { errorResponse: authError } = await verifyAuth(req);
+    if (authError) return authError;
+    const { orgId, errorResponse: tenantError } = requireOrg(req);
+    if (tenantError) return tenantError;
+
+    const { id } = await params;
+    const realOrgId = resolveOrg(orgId);
+    const body = await req.json();
+
+    const { data: session, error: fetchErr } = await supabaseAdmin
+      .from('mentorship_sessions')
+      .select('id, action_points')
+      .eq('id', id)
+      .eq('organization_id', realOrgId)
+      .single();
+
+    if (fetchErr || !session) {
+      return NextResponse.json({ error: 'Mentorship session not found' }, { status: 404 });
+    }
+
+    let existingPoints = Array.isArray(session.action_points) ? session.action_points : [];
+    let updatedPoints = existingPoints;
+
+    if (Array.isArray(body.action_points)) {
+      updatedPoints = body.action_points;
+    } else if (body.action_point) {
+      updatedPoints = [...existingPoints, body.action_point];
+    }
+
+    const { data: updatedSession, error: updateErr } = await supabaseAdmin
+      .from('mentorship_sessions')
+      .update({
+        action_points: updatedPoints,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('id, action_points')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    return NextResponse.json({
+      success: true,
+      message: 'Action points updated successfully',
+      data: updatedSession,
+    });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
