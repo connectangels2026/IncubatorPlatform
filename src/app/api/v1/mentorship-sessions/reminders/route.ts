@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -58,17 +59,21 @@ async function handleReminders(req: NextRequest) {
 
     if (error) throw error;
 
-    const notificationsToInsert: any[] = [];
-    const remindersDispatched = (upcomingSessions || []).map((s: any) => {
-      const mentorUser = Array.isArray(s.mentor?.user) ? s.mentor?.user[0] : s.mentor?.user;
+    const remindersDispatched = [];
+    for (const s of (upcomingSessions as any[]) || []) {
+      const startupObj = Array.isArray(s.startup) ? s.startup[0] : s.startup;
+      const mentorObj = Array.isArray(s.mentor) ? s.mentor[0] : s.mentor;
+      const mentorUser = Array.isArray(mentorObj?.user) ? mentorObj?.user[0] : mentorObj?.user;
       const mentorEmail = mentorUser?.email || 'mentor@example.com';
-      const startupEmail = s.startup?.founder_email || 'founder@example.com';
+      const startupEmail = startupObj?.founder_email || 'founder@example.com';
 
-      // Stage notification rows for in-app & email
+      // Dispatch via NotificationService
       if (mentorUser?.id && isValidUUID(mentorUser.id)) {
-        notificationsToInsert.push({
+        await NotificationService.createNotification({
           organization_id: realOrgId,
           recipient_id: mentorUser.id,
+          recipient_name: mentorUser.first_name || 'Mentor',
+          recipient_email: mentorEmail,
           title: `Reminder: Mentorship Session Tomorrow`,
           message: `Reminder: Your mentorship session "${s.session_title}" is scheduled for tomorrow (${s.scheduled_date}) at ${s.start_time}. Meeting Link: ${s.meeting_link || 'online'}`,
           notification_type: 'mentorship_reminder',
@@ -76,13 +81,21 @@ async function handleReminders(req: NextRequest) {
           send_in_app: true,
           related_entity_type: 'mentorship_session',
           related_entity_id: s.id,
+          metadata: {
+            partner_name: startupObj?.name || 'Startup',
+            date: s.scheduled_date,
+            time: `${s.start_time} - ${s.end_time}`,
+            meeting_link: s.meeting_link,
+          },
         });
       }
 
-      if (s.startup?.founder_id && isValidUUID(s.startup.founder_id)) {
-        notificationsToInsert.push({
+      if (startupObj?.founder_id && isValidUUID(startupObj.founder_id)) {
+        await NotificationService.createNotification({
           organization_id: realOrgId,
-          recipient_id: s.startup.founder_id,
+          recipient_id: startupObj.founder_id,
+          recipient_name: 'Founder',
+          recipient_email: startupEmail,
           title: `Reminder: Mentorship Session Tomorrow`,
           message: `Reminder: Your mentorship session "${s.session_title}" is scheduled for tomorrow (${s.scheduled_date}) at ${s.start_time}. Meeting Link: ${s.meeting_link || 'online'}`,
           notification_type: 'mentorship_reminder',
@@ -90,10 +103,16 @@ async function handleReminders(req: NextRequest) {
           send_in_app: true,
           related_entity_type: 'mentorship_session',
           related_entity_id: s.id,
+          metadata: {
+            partner_name: mentorUser?.first_name || 'Mentor',
+            date: s.scheduled_date,
+            time: `${s.start_time} - ${s.end_time}`,
+            meeting_link: s.meeting_link,
+          },
         });
       }
 
-      return {
+      remindersDispatched.push({
         session_id: s.id,
         session_title: s.session_title,
         scheduled_at: `${s.scheduled_date} ${s.start_time} - ${s.end_time}`,
@@ -102,15 +121,7 @@ async function handleReminders(req: NextRequest) {
           { role: 'startup', email: startupEmail },
         ],
         reminder_sent: true,
-      };
-    });
-
-    if (notificationsToInsert.length > 0) {
-      try {
-        await supabaseAdmin.from('notifications').insert(notificationsToInsert);
-      } catch (notifErr) {
-        console.warn('Failed to insert reminder notification records:', notifErr);
-      }
+      });
     }
 
     return NextResponse.json({

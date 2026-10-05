@@ -26,6 +26,9 @@ import {
   Menu,
   RefreshCw,
   AlertTriangle,
+  Bell,
+  Check,
+  CheckCheck,
 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
@@ -33,6 +36,7 @@ import { useAuth } from '@/frontend/context/AuthContext';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
 import { supabase } from '@/backend/lib/supabase';
+import { apiClient } from '@/services/apiClient';
 
 interface ApplicationItem {
   id: string;
@@ -112,23 +116,109 @@ export default function DashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/v1/reports/dashboard');
-      if (!res.ok) throw new Error('Unable to load dashboard data.');
-      const json = await res.json();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ? `Bearer ${session.access_token}` : 'Bearer mock-admin';
+      const res = await apiClient.get('/reports/dashboard', {
+        headers: {
+          Authorization: token,
+          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+        },
+      });
+      const json = res.data;
       const payload = json?.data || json;
-      if (payload.metrics) setMetrics(payload.metrics);
+      if (payload.metrics) {
+        setMetrics(payload.metrics);
+      } else if (payload.summary) {
+        setMetrics((prev) => ({
+          ...prev,
+          totalStartups: payload.summary.total_startups ?? prev.totalStartups,
+          applicationsReceived: payload.summary.total_applications ?? prev.applicationsReceived,
+          fundingRaised: payload.summary.total_funding_raised
+            ? `$${(payload.summary.total_funding_raised / 1000000).toFixed(1)}M`
+            : prev.fundingRaised,
+          jobsCreated: payload.summary.total_jobs_created
+            ? `${payload.summary.total_jobs_created}+`
+            : prev.jobsCreated,
+        }));
+      }
       if (payload.applications && payload.applications.length > 0) setApplications(payload.applications);
       if (payload.pendingDecisions && payload.pendingDecisions.length > 0) setPendingDecisions(payload.pendingDecisions);
       if (payload.mentorshipSessions && payload.mentorshipSessions.length > 0) setMentorshipSessions(payload.mentorshipSessions);
     } catch (err: any) {
-      setError(err?.message || 'Unable to load dashboard data.');
+      setError(err?.response?.data?.error || err?.message || 'Unable to load dashboard data.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Notification center state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchLiveNotifications = async () => {
+    try {
+      const res = await apiClient.get('/notifications?limit=30', {
+        headers: {
+          'Authorization': 'Bearer mock-admin',
+          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+        },
+      });
+      if (res.data?.data) {
+        // Deduplicate notifications by ID and title::message signature
+        const seen = new Set<string>();
+        const unique = (res.data.data as any[]).filter((n) => {
+          const key = `${n.title}::${n.message}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setLiveNotifications(unique);
+        setUnreadCount(unique.filter((n) => !n.is_read).length);
+      }
+    } catch {
+      // Fallback
+    }
+  };
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      await apiClient.put(`/notifications/${id}/read`, { is_read: true }, {
+        headers: {
+          'Authorization': 'Bearer mock-admin',
+          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+        },
+      });
+      setLiveNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      // Fallback
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const unread = liveNotifications.filter((n) => !n.is_read);
+      await Promise.all(
+        unread.map((n) =>
+          apiClient.put(`/notifications/${n.id}/read`, { is_read: true }, {
+            headers: {
+              'Authorization': 'Bearer mock-admin',
+              'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+            },
+          })
+        )
+      );
+      setLiveNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch {
+      // Fallback
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
+    fetchLiveNotifications();
 
     // Subscribe to Supabase real-time database changes
     const channel = supabase
@@ -145,6 +235,13 @@ export default function DashboardPage() {
         { event: '*', schema: 'public', table: 'startups' },
         () => {
           fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => {
+          fetchLiveNotifications();
         }
       )
       .subscribe();
@@ -197,7 +294,7 @@ export default function DashboardPage() {
     setEvalModalOpen(true);
   };
 
-  const handleEvalSubmit = (e: React.FormEvent) => {
+  const handleEvalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!evalApp) return;
 
@@ -209,19 +306,76 @@ export default function DashboardPage() {
     setPendingDecisions((prev) => prev.filter((p) => p.id !== evalApp.id));
     setEvalModalOpen(false);
     showToast(`Updated evaluation & decision for ${evalApp.name}.`, 'success');
+
+    // Create persistent in-app notification
+    try {
+      const res = await apiClient.post(
+        '/notifications',
+        {
+          title: `Application Decision: ${evalDecision.toUpperCase()}`,
+          message: `Evaluation submitted for ${evalApp.name}: Status is now ${evalDecision.toUpperCase()} with total score of ${total}/100.`,
+          notification_type: 'application_decision',
+          send_in_app: true,
+          send_email: true,
+        },
+        {
+          headers: {
+            Authorization: 'Bearer mock-admin',
+            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+          },
+        }
+      );
+      const newNotif = res.data?.data || res.data?.notification;
+      if (newNotif) {
+        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+        setUnreadCount((prev) => prev + 1);
+      }
+      fetchLiveNotifications();
+    } catch (err) {
+      console.warn('Failed to dispatch evaluation notification:', err);
+    }
   };
 
-  const quickDecision = (id: string, decision: 'admitted' | 'rejected') => {
+  const quickDecision = async (id: string, decision: 'admitted' | 'rejected') => {
+    const targetApp = applications.find((a) => a.id === id);
     setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status: decision } : a)));
     setPendingDecisions((prev) => prev.filter((p) => p.id !== id));
     showToast(`Application ${decision === 'admitted' ? 'Admitted' : 'Rejected'} successfully!`, 'info');
+
+    try {
+      const res = await apiClient.post(
+        '/notifications',
+        {
+          title: `Application Decision: ${decision.toUpperCase()}`,
+          message: `Application for ${targetApp?.name || 'Startup'} was ${decision.toUpperCase()}.`,
+          notification_type: 'application_decision',
+          send_in_app: true,
+          send_email: true,
+        },
+        {
+          headers: {
+            Authorization: 'Bearer mock-admin',
+            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+          },
+        }
+      );
+      const newNotif = res.data?.data || res.data?.notification;
+      if (newNotif) {
+        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+        setUnreadCount((prev) => prev + 1);
+      }
+      fetchLiveNotifications();
+    } catch (err) {
+      console.warn('Failed to dispatch quick decision notification:', err);
+    }
   };
 
-  const handleScheduleSubmit = (e: React.FormEvent) => {
+  const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const mentorName = scheduleMentor.split('(')[0].trim();
     setMentorshipSessions((prev) => [
       {
-        mentor: scheduleMentor.split('(')[0].trim(),
+        mentor: mentorName,
         role: 'Advisor',
         startup: scheduleStartup,
         time: `${scheduleDate} at ${scheduleTime}`,
@@ -231,6 +385,34 @@ export default function DashboardPage() {
     ]);
     setScheduleModalOpen(false);
     showToast(`Mentorship session scheduled with ${scheduleStartup}!`, 'success');
+
+    // Create persistent in-app notification
+    try {
+      const res = await apiClient.post(
+        '/notifications',
+        {
+          title: `Mentorship Session Booked: ${scheduleStartup}`,
+          message: `Confirmed mentorship session with ${mentorName} for ${scheduleStartup} on ${scheduleDate} at ${scheduleTime}.`,
+          notification_type: 'mentorship_booking',
+          send_in_app: true,
+          send_email: true,
+        },
+        {
+          headers: {
+            Authorization: 'Bearer mock-admin',
+            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+          },
+        }
+      );
+      const newNotif = res.data?.data || res.data?.notification;
+      if (newNotif) {
+        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+        setUnreadCount((prev) => prev + 1);
+      }
+      fetchLiveNotifications();
+    } catch (err) {
+      console.warn('Failed to dispatch schedule notification:', err);
+    }
   };
 
   const downloadReports = () => {
@@ -285,6 +467,104 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
+                {/* Notifications Bell Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setNotificationsOpen(!notificationsOpen);
+                      if (!notificationsOpen) fetchLiveNotifications();
+                    }}
+                    className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition relative"
+                    aria-label="View notifications"
+                    title="Notifications"
+                  >
+                    <Bell className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 absolute top-1.5 right-1.5 ring-2 ring-white" />
+                    )}
+                  </button>
+
+                  {notificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in zoom-in-95">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Notifications</h4>
+                          {unreadCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600">
+                              {unreadCount} new
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={markAllNotificationsAsRead}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 transition"
+                              title="Mark all as read"
+                            >
+                              <CheckCheck className="w-3 h-3" />
+                              <span>Mark all read</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setNotificationsOpen(false)}
+                            className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md hover:bg-slate-100 transition"
+                            title="Close"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto mt-2">
+                        {liveNotifications.length === 0 ? (
+                          <div className="py-8 text-center text-xs text-slate-400">
+                            No notifications yet
+                          </div>
+                        ) : (
+                          liveNotifications.map((n) => (
+                            <div
+                              key={n.id}
+                              className={`py-3 px-2.5 rounded-xl transition flex items-start justify-between gap-3 ${
+                                !n.is_read ? 'bg-blue-50/60 border border-blue-100/50' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-semibold text-slate-900 truncate">{n.title}</p>
+                                  {!n.is_read && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
+                                <span className="text-[10px] text-slate-400 mt-1 block">
+                                  {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <div className="shrink-0 pt-0.5">
+                                {!n.is_read ? (
+                                  <button
+                                    onClick={() => markNotificationAsRead(n.id)}
+                                    className="p-1.5 rounded-lg text-blue-600 hover:text-emerald-600 hover:bg-emerald-50 bg-white border border-slate-200 hover:border-emerald-300 shadow-2xs transition group"
+                                    title="Mark as read"
+                                    aria-label="Mark as read"
+                                  >
+                                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                  </button>
+                                ) : (
+                                  <span className="p-1.5 block text-slate-300" title="Read">
+                                    <CheckCheck className="w-3.5 h-3.5 text-slate-300" />
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <Link href="/programs">
                   <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs">
                     Programs

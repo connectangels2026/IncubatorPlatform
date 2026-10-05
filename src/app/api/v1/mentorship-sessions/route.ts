@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -280,11 +281,12 @@ export async function POST(req: NextRequest) {
 
     // Store in-app / email notifications
     try {
-      const notificationsToInsert = [];
       if (mentorUser?.id && isValidUUID(mentorUser.id)) {
-        notificationsToInsert.push({
+        await NotificationService.createNotification({
           organization_id: realOrgId,
           recipient_id: mentorUser.id,
+          recipient_name: `${mentorUser.first_name || 'Mentor'}`,
+          recipient_email: mentorEmail,
           title: `Mentorship Session Booked: ${payload.session_title}`,
           message: `You have a confirmed mentorship session with ${startup.name} on ${scheduled_date} from ${start_time} to ${end_time}.`,
           notification_type: 'mentorship_booking',
@@ -292,12 +294,20 @@ export async function POST(req: NextRequest) {
           send_in_app: true,
           related_entity_type: 'mentorship_session',
           related_entity_id: session.id,
+          metadata: {
+            partner_name: startup.name,
+            date: scheduled_date,
+            time: `${start_time} - ${end_time}`,
+            meeting_link: session.meeting_link,
+          },
         });
       }
       if (startup.founder_id && isValidUUID(startup.founder_id)) {
-        notificationsToInsert.push({
+        await NotificationService.createNotification({
           organization_id: realOrgId,
           recipient_id: startup.founder_id,
+          recipient_name: 'Founder',
+          recipient_email: startupEmail,
           title: `Mentorship Session Confirmed: ${payload.session_title}`,
           message: `Your mentorship session with ${mentorUser?.first_name || 'your mentor'} is scheduled for ${scheduled_date} from ${start_time} to ${end_time}.`,
           notification_type: 'mentorship_booking',
@@ -305,13 +315,16 @@ export async function POST(req: NextRequest) {
           send_in_app: true,
           related_entity_type: 'mentorship_session',
           related_entity_id: session.id,
+          metadata: {
+            partner_name: mentorUser?.first_name || 'Mentor',
+            date: scheduled_date,
+            time: `${start_time} - ${end_time}`,
+            meeting_link: session.meeting_link,
+          },
         });
       }
-      if (notificationsToInsert.length > 0) {
-        await supabaseAdmin.from('notifications').insert(notificationsToInsert);
-      }
     } catch (notifErr) {
-      console.warn('Failed to insert booking notification records:', notifErr);
+      console.warn('Failed to dispatch booking notification records:', notifErr);
     }
 
     return NextResponse.json(
