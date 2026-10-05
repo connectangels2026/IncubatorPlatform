@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   submitted: ['under_review', 'rejected'],
@@ -91,6 +92,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       .single();
 
     if (updateError) throw updateError;
+
+    // Trigger application decision notification & email if status changed
+    if (newStatus && updated) {
+      try {
+        const startupName = updated.form_data?.startup_name || updated.form_data?.name || updated.applicant_name;
+        const recipientId = updated.created_by || 'c9ab009d-110b-4f79-bfc1-171c5c718cd0';
+        await NotificationService.createNotification({
+          organization_id: updated.organization_id,
+          recipient_id: recipientId,
+          recipient_name: updated.applicant_name,
+          recipient_email: updated.applicant_email,
+          title: `Application Decision: ${newStatus.toUpperCase()}`,
+          message: `Your application for ${startupName} status has been updated to ${newStatus}.`,
+          notification_type: 'application_decision',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'application',
+          related_entity_id: updated.id,
+          metadata: {
+            startup_name: startupName,
+            decision: newStatus,
+            comments: updated.reviewer_comments,
+          },
+        });
+      } catch (notifErr) {
+        console.warn('Failed to dispatch application decision notification:', notifErr);
+      }
+    }
 
     return NextResponse.json({ success: true, data: updated });
   } catch (err) {

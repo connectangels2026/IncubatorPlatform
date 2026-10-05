@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -99,6 +100,31 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Trigger application submission notification & confirmation email
+    try {
+      const recipientId = user?.id && isValidUUID(user.id) ? user.id : 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
+      const startupName = body.form_data?.startup_name || body.form_data?.name || body.applicant_name;
+      await NotificationService.createNotification({
+        organization_id: realOrgId,
+        recipient_id: recipientId,
+        recipient_name: body.applicant_name,
+        recipient_email: body.applicant_email,
+        title: 'Application Received Successfully',
+        message: `Thank you for submitting your application for ${startupName}. Our review committee has received your submission.`,
+        notification_type: 'application_submission',
+        send_email: true,
+        send_in_app: true,
+        related_entity_type: 'application',
+        related_entity_id: data.id,
+        metadata: {
+          startup_name: startupName,
+          cohort: data.cohort_name,
+        },
+      });
+    } catch (notifErr) {
+      console.warn('Failed to dispatch application submission notification:', notifErr);
+    }
 
     return NextResponse.json({
       success: true,
