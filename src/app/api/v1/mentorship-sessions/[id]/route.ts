@@ -8,6 +8,14 @@ const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 const resolveOrg = (id: string | null) => (id && isValidUUID(id) ? id : DEFAULT_ORG_ID);
 
+function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const parts = timeStr.trim().split(':');
+  const hours = parseInt(parts[0], 10) || 0;
+  const minutes = parseInt(parts[1], 10) || 0;
+  return hours * 60 + minutes;
+}
+
 interface Params {
   params: Promise<{ id: string }>;
 }
@@ -81,6 +89,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (body.meeting_mode !== undefined) updates.meeting_mode = body.meeting_mode;
     if (body.agenda !== undefined) updates.agenda = body.agenda;
     if (body.status !== undefined) updates.status = body.status;
+    if (body.attended !== undefined) updates.attended = Boolean(body.attended);
     if (body.session_notes !== undefined) updates.session_notes = body.session_notes;
     if (body.action_points !== undefined) updates.action_points = body.action_points;
 
@@ -90,7 +99,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const newEnd = body.end_time || existing.end_time;
 
     if (body.scheduled_date || body.start_time || body.end_time) {
-      if (newStart >= newEnd) {
+      const newStartMin = timeToMinutes(newStart);
+      const newEndMin = timeToMinutes(newEnd);
+
+      if (newStartMin >= newEndMin) {
         return NextResponse.json({ error: 'start_time must be earlier than end_time' }, { status: 400 });
       }
 
@@ -102,7 +114,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
         .neq('id', id)
         .neq('status', 'cancelled');
 
-      const hasConflict = (conflicts || []).some((s) => newStart < s.end_time && newEnd > s.start_time);
+      const hasConflict = (conflicts || []).some((s) => {
+        const sStartMin = timeToMinutes(s.start_time);
+        const sEndMin = timeToMinutes(s.end_time);
+        return newStartMin < sEndMin && newEndMin > sStartMin;
+      });
+
       if (hasConflict) {
         return NextResponse.json(
           { error: 'Cannot reschedule: Overlapping session exists for mentor on this date/time' },
@@ -113,6 +130,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       updates.scheduled_date = newDate;
       updates.start_time = newStart;
       updates.end_time = newEnd;
+      updates.duration_minutes = Math.max(0, newEndMin - newStartMin);
     }
 
     const { data: updated, error: updateErr } = await supabaseAdmin

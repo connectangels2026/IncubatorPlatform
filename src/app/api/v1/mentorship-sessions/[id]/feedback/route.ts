@@ -23,15 +23,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     const realOrgId = resolveOrg(orgId);
     const body = await req.json();
 
-    const { rating, feedback, type } = body;
+    const { rating, feedback_score, score, feedback, type } = body;
+    const rawRating = rating !== undefined ? rating : feedback_score !== undefined ? feedback_score : score;
 
     // Validate feedback rating: 1 to 5
-    if (rating === undefined || rating === null) {
-      return NextResponse.json({ error: 'Validation Error: rating is required' }, { status: 400 });
+    if (rawRating === undefined || rawRating === null) {
+      return NextResponse.json({ error: 'Validation Error: rating is required (1-5)' }, { status: 400 });
     }
 
-    const numericRating = Number(rating);
-    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5) {
+    const numericRating = Number(rawRating);
+    if (isNaN(numericRating) || !Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
       return NextResponse.json(
         { error: 'Validation Error: rating must be an integer between 1 and 5' },
         { status: 400 }
@@ -64,7 +65,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({
       success: true,
       message: 'Feedback submitted successfully',
-      data: updatedSession,
+      data: {
+        ...updatedSession,
+        feedback_score: updatedSession.startup_rating,
+      },
     });
   } catch (err) {
     return handleApiError(err);
