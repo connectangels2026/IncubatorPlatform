@@ -669,36 +669,106 @@ export default function MentorsHubPage() {
             </div>
           </header>
 
-          {/* Table Container */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Advisors</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                    {filterCounts.all}
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">{filterCounts.available} Available</div>
+                <p className="text-xs text-slate-400 mt-1">Open for booking this week</p>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Sessions Conducted</span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">
+                  {mentors.reduce((acc, m) => acc + (m.sessionsCount || 0), 0)}
+                </div>
+                <p className="text-xs text-slate-400 mt-1">Total completed hours</p>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Avg Founder Rating</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold text-xs">
+                    <Star className="w-4 h-4 fill-amber-400" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">4.9 ★</div>
+                <p className="text-xs text-slate-400 mt-1">Across 150+ startup reviews</p>
+              </div>
+
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Match Velocity</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold text-slate-900 tracking-tight">92%</div>
+                <p className="text-xs text-slate-400 mt-1">Startups paired with lead mentors</p>
+              </div>
+            </div>
+
+            {/* Skeleton Loading State (CLS < 0.1) */}
             {isLoading && (
-              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                <p className="text-xs font-semibold text-slate-500">Loading mentor network & advisory records...</p>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden p-6 space-y-4 animate-pulse">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-200" />
+                      <div className="space-y-1.5">
+                        <div className="w-32 h-4 bg-slate-200 rounded" />
+                        <div className="w-44 h-3 bg-slate-100 rounded" />
+                      </div>
+                    </div>
+                    <div className="hidden sm:flex gap-1.5">
+                      <div className="w-16 h-5 bg-slate-200 rounded-md" />
+                      <div className="w-16 h-5 bg-slate-200 rounded-md" />
+                    </div>
+                    <div className="w-16 h-4 bg-slate-200 rounded" />
+                    <div className="w-24 h-6 bg-slate-200 rounded-full" />
+                    <div className="w-24 h-6 bg-slate-200 rounded-lg" />
+                  </div>
+                ))}
               </div>
             )}
 
+            {/* Empty State */}
             {!isLoading && filteredMentors.length === 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-md mx-auto my-8">
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-4">
-                  <Search className="w-6 h-6" />
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-10 sm:p-14 text-center max-w-md mx-auto my-8 shadow-xs">
+                <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100/80 shadow-2xs">
+                  <Search className="w-7 h-7" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 mb-1">No Mentors Found</h3>
-                <p className="text-xs text-slate-500 mb-4">
+                <h3 className="text-base font-bold text-slate-900 mb-1.5">No mentors found</h3>
+                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                   No advisors match your search query &ldquo;{searchQuery}&rdquo; under the &ldquo;{currentFilter}&rdquo; filter.
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     setSearchQuery('');
                     setCurrentFilter('all');
                   }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold transition"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs hover:shadow-md transition-all active:scale-95 cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:outline-none"
                 >
-                  Clear Filters
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Clear All Filters</span>
                 </button>
               </div>
             )}
 
+            {/* Table */}
             {!isLoading && filteredMentors.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
