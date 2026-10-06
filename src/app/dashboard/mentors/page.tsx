@@ -43,6 +43,9 @@ export interface MentorItem {
   handle: string;
   email: string;
   avatar: string;
+  mentorType?: 'General' | 'SME' | string;
+  primaryExpertise?: string;
+  specializationDetails?: string;
   expertise: MentorExpertise[];
   rating: number;
   reviewsCount: number;
@@ -196,6 +199,7 @@ export default function MentorsHubPage() {
 
   // Filters & Search
   const [currentFilter, setCurrentFilter] = useState<'all' | 'Available' | 'Booked' | 'Deactivated'>('all');
+  const [mentorTypeFilter, setMentorTypeFilter] = useState<'ALL' | 'General' | 'SME'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals & Drawer State
@@ -210,6 +214,9 @@ export default function MentorsHubPage() {
     email: 'marcus.vance@stripe.com',
     role: 'VP of Product',
     company: 'Stripe',
+    mentorType: 'General' as 'General' | 'SME',
+    primaryExpertise: 'FinTech',
+    specializationDetails: '',
     selectedExpertise: ['Tech', 'Finance'],
     maxHours: 6,
     linkedin: 'https://linkedin.com/in/marcusvance',
@@ -222,6 +229,9 @@ export default function MentorsHubPage() {
     role: '',
     company: '',
     email: '',
+    mentorType: 'General' as 'General' | 'SME',
+    primaryExpertise: '',
+    specializationDetails: '',
     selectedExpertise: [] as string[],
     maxHours: 6,
     linkedin: '',
@@ -266,6 +276,9 @@ export default function MentorsHubPage() {
           const isActive = item.is_active !== undefined ? Boolean(item.is_active) : fallback.active;
           const isAvail = item.is_available !== undefined ? Boolean(item.is_available) : fallback.availStatus === 'Available';
 
+          const rawType = item.mentor_type || item.type;
+          const resolvedType = rawType === 'subject_matter_expert' || rawType === 'sme' || rawType === 'SME' ? 'SME' : 'General';
+
           return {
             id: item.id || `m-${idx}`,
             name: userName,
@@ -274,6 +287,9 @@ export default function MentorsHubPage() {
             handle: `@${userName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
             email: userEmail,
             avatar: userAvatar,
+            mentorType: resolvedType,
+            primaryExpertise: item.primary_expertise,
+            specializationDetails: item.specialization_details,
             expertise: expArray,
             rating: typeof item.average_rating === 'number' ? item.average_rating : fallback.rating,
             reviewsCount: item.total_reviews || fallback.reviewsCount,
@@ -312,12 +328,17 @@ export default function MentorsHubPage() {
         m.name.toLowerCase().includes(query) ||
         m.company.toLowerCase().includes(query) ||
         m.role.toLowerCase().includes(query) ||
+        (m.primaryExpertise && m.primaryExpertise.toLowerCase().includes(query)) ||
         m.expertise.some((e) => e.name.toLowerCase().includes(query));
 
-      const matchesFilter = currentFilter === 'all' || m.availStatus === currentFilter;
-      return matchesSearch && matchesFilter;
+      const matchesStatus = currentFilter === 'all' || m.availStatus === currentFilter;
+      const matchesType =
+        mentorTypeFilter === 'ALL' ||
+        (mentorTypeFilter === 'SME' ? m.mentorType === 'SME' : m.mentorType !== 'SME');
+
+      return matchesSearch && matchesStatus && matchesType;
     });
-  }, [mentors, currentFilter, searchQuery]);
+  }, [mentors, currentFilter, mentorTypeFilter, searchQuery]);
 
   // Aggregate Counts for Filter Chips
   const filterCounts = useMemo(() => {
@@ -388,6 +409,9 @@ export default function MentorsHubPage() {
       role: mentor.role,
       company: mentor.company,
       email: mentor.email,
+      mentorType: (mentor.mentorType === 'SME' ? 'SME' : 'General') as 'General' | 'SME',
+      primaryExpertise: mentor.primaryExpertise || mentor.expertise[0]?.name || '',
+      specializationDetails: mentor.specializationDetails || '',
       selectedExpertise: mentor.expertise.map((e) => e.name),
       maxHours: mentor.maxHoursPerMonth || 6,
       linkedin: mentor.linkedinUrl || '',
@@ -414,7 +438,12 @@ export default function MentorsHubPage() {
       handle: `@${newName.toLowerCase().replace(/\s+/g, '_')}`,
       email: addForm.email,
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      expertise: addForm.selectedExpertise.map((name) => ({ name, type: 'blue' })),
+      mentorType: addForm.mentorType,
+      primaryExpertise: addForm.primaryExpertise,
+      specializationDetails: addForm.specializationDetails,
+      expertise: addForm.mentorType === 'SME' && addForm.primaryExpertise
+        ? [{ name: addForm.primaryExpertise, type: 'purple' }, ...addForm.selectedExpertise.map((name) => ({ name, type: 'blue' as const }))]
+        : addForm.selectedExpertise.map((name) => ({ name, type: 'blue' as const })),
       rating: 5.0,
       reviewsCount: 0,
       sessions: '0 sessions this month',
@@ -433,6 +462,9 @@ export default function MentorsHubPage() {
         email: addForm.email,
         title: addForm.role,
         company: addForm.company,
+        mentor_type: addForm.mentorType === 'SME' ? 'subject_matter_expert' : 'general',
+        primary_expertise: addForm.primaryExpertise,
+        specialization_details: addForm.specializationDetails,
         expertise_areas: addForm.selectedExpertise,
         max_hours_per_month: addForm.maxHours,
         linkedin_url: addForm.linkedin,
@@ -455,6 +487,9 @@ export default function MentorsHubPage() {
       await apiClient.put(`/mentors/${editForm.id}`, {
         title: editForm.role,
         company: editForm.company,
+        mentor_type: editForm.mentorType === 'SME' ? 'subject_matter_expert' : 'general',
+        primary_expertise: editForm.primaryExpertise,
+        specialization_details: editForm.specializationDetails,
         expertise_areas: editForm.selectedExpertise,
         max_hours_per_month: editForm.maxHours,
         linkedin_url: editForm.linkedin,
@@ -472,7 +507,12 @@ export default function MentorsHubPage() {
                 role: editForm.role,
                 company: editForm.company,
                 email: editForm.email,
-                expertise: editForm.selectedExpertise.map((name) => ({ name, type: 'blue' })),
+                mentorType: editForm.mentorType,
+                primaryExpertise: editForm.primaryExpertise,
+                specializationDetails: editForm.specializationDetails,
+                expertise: editForm.mentorType === 'SME' && editForm.primaryExpertise
+                  ? [{ name: editForm.primaryExpertise, type: 'purple' }, ...editForm.selectedExpertise.map((name) => ({ name, type: 'blue' as const }))]
+                  : editForm.selectedExpertise.map((name) => ({ name, type: 'blue' as const })),
                 maxHoursPerMonth: editForm.maxHours,
                 linkedinUrl: editForm.linkedin,
               }
@@ -588,8 +628,22 @@ export default function MentorsHubPage() {
 
             {/* Filter Chips & Search Bar */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100">
-              {/* Filter Chips */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+              {/* Filter Chips & Type Dropdown */}
+              <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:pb-0 flex-wrap">
+                {/* Filter by Type Dropdown */}
+                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                  <span className="text-xs font-semibold text-slate-500">Filter by Type:</span>
+                  <select
+                    value={mentorTypeFilter}
+                    onChange={(e) => setMentorTypeFilter(e.target.value as 'ALL' | 'General' | 'SME')}
+                    className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                  >
+                    <option value="ALL">All Types</option>
+                    <option value="General">General</option>
+                    <option value="SME">SME</option>
+                  </select>
+                </div>
+
                 <button
                   onClick={() => setCurrentFilter('all')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
@@ -598,7 +652,7 @@ export default function MentorsHubPage() {
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span>All Mentors</span>
+                  <span>All Status</span>
                   <span className="bg-blue-200/60 text-blue-800 px-1.5 py-0.2 rounded-md text-[10px]">
                     {filterCounts.all}
                   </span>
@@ -612,7 +666,7 @@ export default function MentorsHubPage() {
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span>Available This Week</span>
+                  <span>Available</span>
                   <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-md text-[10px]">
                     {filterCounts.available}
                   </span>
@@ -776,6 +830,7 @@ export default function MentorsHubPage() {
                     <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       <tr>
                         <th className="py-3.5 px-6">Name &amp; Organization</th>
+                        <th className="py-3.5 px-4">Mentor Type</th>
                         <th className="py-3.5 px-4">Core Domain Expertise</th>
                         <th className="py-3.5 px-4">Performance</th>
                         <th className="py-3.5 px-4">Mentorship Sessions</th>
@@ -801,8 +856,8 @@ export default function MentorsHubPage() {
                                 alt={m.name}
                               />
                               <div>
-                                <div className="font-bold text-slate-900 flex items-center gap-1">
-                                  {m.name}
+                                <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                                  <span>{m.name}</span>
                                   {m.active && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 inline" />}
                                 </div>
                                 <div className="text-[11px] text-slate-500 font-medium">
@@ -811,6 +866,19 @@ export default function MentorsHubPage() {
                                 </div>
                               </div>
                             </div>
+                          </td>
+
+                          {/* Mentor Type Column Badge */}
+                          <td className="py-3.5 px-4">
+                            {m.mentorType === 'SME' ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                SME
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                General
+                              </span>
+                            )}
                           </td>
 
                           {/* Expertise Tags */}
@@ -989,38 +1057,121 @@ export default function MentorsHubPage() {
                 </div>
               </div>
 
-              {/* 3. Expertise Pills */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  3. Expertise Areas (JSONB)
+              {/* 2. Mentor Type Radio Buttons */}
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  2. Mentor Classification *
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {EXPERTISE_OPTIONS.map((tag) => {
-                    const isSelected = addForm.selectedExpertise.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => {
-                          setAddForm((prev) => ({
-                            ...prev,
-                            selectedExpertise: isSelected
-                              ? prev.selectedExpertise.filter((t) => t !== tag)
-                              : [...prev.selectedExpertise, tag],
-                          }));
-                        }}
-                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
-                          isSelected
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
+                    <input
+                      type="radio"
+                      name="add_mentor_type"
+                      checked={addForm.mentorType === 'General'}
+                      onChange={() => setAddForm({ ...addForm, mentorType: 'General' })}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>General Mentor</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
+                    <input
+                      type="radio"
+                      name="add_mentor_type"
+                      checked={addForm.mentorType === 'SME'}
+                      onChange={() => setAddForm({ ...addForm, mentorType: 'SME' })}
+                      className="text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <span>Subject Matter Expert (SME)</span>
+                  </label>
                 </div>
               </div>
+
+              {/* 3. Conditional Fields based on Mentor Type */}
+              {addForm.mentorType === 'General' ? (
+                /* General Mentor: Expertise Areas Checkboxes */
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    3. Expertise Areas (Checkboxes)
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {['Product', 'Marketing', 'Fundraising', 'Tech', 'Operations', 'Legal', 'HR', 'Finance'].map((area) => {
+                      const isChecked = addForm.selectedExpertise.includes(area);
+                      return (
+                        <label
+                          key={area}
+                          className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer transition ${
+                            isChecked
+                              ? 'bg-blue-50 border-blue-300 text-blue-800 font-semibold'
+                              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAddForm((prev) => ({
+                                  ...prev,
+                                  selectedExpertise: [...prev.selectedExpertise, area],
+                                }));
+                              } else {
+                                setAddForm((prev) => ({
+                                  ...prev,
+                                  selectedExpertise: prev.selectedExpertise.filter((a) => a !== area),
+                                }));
+                              }
+                            }}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span>{area}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* SME Mentor: Primary Expertise Dropdown & Specialization Details */
+                <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-900 uppercase tracking-wider mb-1">
+                      Primary Expertise (Single Select) *
+                    </label>
+                    <select
+                      value={addForm.primaryExpertise}
+                      onChange={(e) => setAddForm({ ...addForm, primaryExpertise: e.target.value })}
+                      className="w-full bg-white border border-emerald-300 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                    >
+                      {[
+                        'Product Development',
+                        'Fundraising',
+                        'Go-to-Market',
+                        'Operations',
+                        'Tech Leadership',
+                        'Legal',
+                        'Finance',
+                        'HR',
+                      ].map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-emerald-900 uppercase tracking-wider mb-1">
+                      Specialization Details *
+                    </label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={addForm.specializationDetails}
+                      onChange={(e) => setAddForm({ ...addForm, specializationDetails: e.target.value })}
+                      placeholder="e.g. Seed stage fundraising, Pitch deck expertise, Investor relations"
+                      className="w-full bg-white border border-emerald-300 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* 4. Max Monthly Hours Slider */}
               <div>
@@ -1096,6 +1247,37 @@ export default function MentorsHubPage() {
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 text-xs">
+              {/* Mentor Type Switcher (General <-> SME) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Mentor Classification
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((prev) => ({ ...prev, mentorType: 'General' }))}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold text-center transition cursor-pointer ${
+                      editForm.mentorType === 'General'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    General Mentor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditForm((prev) => ({ ...prev, mentorType: 'SME' }))}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold text-center transition cursor-pointer ${
+                      editForm.mentorType === 'SME'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-500/20'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Subject Matter Expert (SME)
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -1150,9 +1332,40 @@ export default function MentorsHubPage() {
                 </div>
               </div>
 
+              {/* SME-Specific Dynamic Fields */}
+              {editForm.mentorType === 'SME' && (
+                <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200/80 space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider mb-1">
+                      Primary SME Expertise *
+                    </label>
+                    <input
+                      type="text"
+                      required={editForm.mentorType === 'SME'}
+                      value={editForm.primaryExpertise}
+                      onChange={(e) => setEditForm({ ...editForm, primaryExpertise: e.target.value })}
+                      placeholder="e.g. FDA Clinical Regulatory, LLM Fine-Tuning, Patent Defense"
+                      className="w-full bg-white border border-purple-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider mb-1">
+                      Specialization Details &amp; Niche
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={editForm.specializationDetails}
+                      onChange={(e) => setEditForm({ ...editForm, specializationDetails: e.target.value })}
+                      placeholder="Specific frameworks, lab protocols, or market jurisdictions..."
+                      className="w-full bg-white border border-purple-200 rounded-xl p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Expertise Areas
+                  {editForm.mentorType === 'SME' ? 'Secondary / Domain Tags' : 'Expertise Areas'}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {EXPERTISE_OPTIONS.map((tag) => {

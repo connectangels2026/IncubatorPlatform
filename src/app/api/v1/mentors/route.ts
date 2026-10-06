@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const expertise = searchParams.get('expertise')?.trim().toLowerCase();
     const isAvailableParam = searchParams.get('is_available');
     const search = searchParams.get('search')?.trim().toLowerCase();
+    const typeParam = searchParams.get('type')?.trim().toLowerCase();
 
     let query = supabaseAdmin
       .from('mentors')
@@ -40,6 +41,15 @@ export async function GET(req: NextRequest) {
 
     if (isAvailableParam !== null) {
       query = query.eq('is_available', isAvailableParam === 'true');
+    }
+
+    // Filter by mentor type (general / subject_matter_expert / sme)
+    if (typeParam) {
+      if (typeParam === 'sme' || typeParam === 'subject_matter_expert') {
+        query = query.in('mentor_type', ['subject_matter_expert', 'sme', 'SME']);
+      } else if (typeParam === 'general') {
+        query = query.in('mentor_type', ['general', 'General']);
+      }
     }
 
     const { data, error } = await query;
@@ -106,7 +116,17 @@ export async function POST(req: NextRequest) {
     const realOrgId = resolveOrg(orgId);
     const body = await req.json();
 
-    const { user_id, expertise_areas, bio, company_background, years_of_experience, availability_hours_per_month } = body;
+    const {
+      user_id,
+      mentor_type,
+      expertise_areas,
+      primary_expertise,
+      specialization_details,
+      bio,
+      company_background,
+      years_of_experience,
+      availability_hours_per_month,
+    } = body;
 
     if (!user_id) {
       return NextResponse.json({ error: 'Validation Error: user_id is required' }, { status: 400 });
@@ -150,14 +170,19 @@ export async function POST(req: NextRequest) {
       : [];
 
     const hoursCapacity = availability_hours_per_month !== undefined ? Number(availability_hours_per_month) : 10;
+    const resolvedType = mentor_type === 'subject_matter_expert' || mentor_type === 'sme' || mentor_type === 'SME'
+      ? 'subject_matter_expert'
+      : 'general';
 
     const { data: mentor, error: insertError } = await supabaseAdmin
       .from('mentors')
       .insert({
         organization_id: realOrgId,
         user_id,
+        mentor_type: resolvedType,
         expertise_areas: formattedExpertise,
-        primary_expertise: formattedExpertise[0] || body.primary_expertise || null,
+        primary_expertise: primary_expertise || formattedExpertise[0] || null,
+        specialization_details: specialization_details || null,
         bio: bio || null,
         company_background: company_background || null,
         years_of_experience: years_of_experience ? Number(years_of_experience) : null,
