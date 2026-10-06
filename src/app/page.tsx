@@ -86,73 +86,92 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Right — Navy Visual */}
-              <div className="lg:col-span-6 relative flex items-center justify-center p-6 sm:p-10 lg:p-12 overflow-hidden min-h-[500px]" style={{ backgroundColor: '#1A2151' }}>
-                <div className="absolute inset-0 hero-pattern opacity-40" />
-                <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(37,99,235,0.2)' }} />
-                <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(6,182,212,0.2)' }} />
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 600" fill="none" stroke="rgba(255,255,255,0.1)">
-                  <circle cx="300" cy="300" r="120" strokeDasharray="4 4" />
-                  <circle cx="300" cy="300" r="200" strokeDasharray="6 6" />
-                  <circle cx="300" cy="300" r="280" opacity="0.5" />
+              {/* Right — Light Visual (matches screenshot) */}
+              <div className="lg:col-span-6 relative flex items-center justify-center p-6 sm:p-8 lg:p-10 overflow-hidden min-h-[560px]" style={{ backgroundColor: '#EDF2FA' }}>
+                {/* Concentric circles */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 600" fill="none" stroke="rgba(37,99,235,0.12)">
+                  <circle cx="300" cy="300" r="100" />
+                  <circle cx="300" cy="300" r="180" />
+                  <circle cx="300" cy="300" r="260" />
+                  <circle cx="300" cy="300" r="340" />
                 </svg>
 
                 {/* Dashboard Card */}
-                <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 border border-slate-100/20 z-10">
-                  <div className="grid grid-cols-3 gap-2 pb-4 mb-4 border-b border-slate-100 text-center">
+                <div className="relative w-full max-w-[420px] bg-white rounded-2xl shadow-xl p-4 border border-slate-200/60 z-10">
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-slate-100 text-center">
                     {[['33','Startups'],['12','Mentors'],['5','Investors']].map(([n,l]) => (
-                      <div key={l} className="p-2 rounded-lg bg-slate-50">
-                        <span className="block text-xl font-bold" style={{ color: '#1A2151' }}>{n}</span>
-                        <span className="text-[11px] font-medium text-slate-500">{l}</span>
+                      <div key={l} className="py-1.5">
+                        <span className="block text-lg font-extrabold" style={{ color: '#1A2151' }}>{n}</span>
+                        <span className="text-[10px] font-medium text-slate-400">{l}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                    <div className="sm:col-span-8 space-y-2">
+
+                  <div className="grid grid-cols-12 gap-3">
+                    {/* Active Cohort */}
+                    <div className="col-span-7">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Cohort</h4>
-                        <span className="text-[10px] font-medium" style={{ color: '#2563EB' }}>View All →</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Active Cohort</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded border border-slate-200 text-slate-500">All Cohorts ▾</span>
+                          <span className="text-[9px] font-semibold" style={{ color: '#2563EB' }}>View All →</span>
+                        </div>
+                      </div>
+                      {/* Table header */}
+                      <div className="grid grid-cols-3 text-[8px] font-bold uppercase text-slate-400 px-1 mb-1">
+                        <span>Startup</span><span>Sector</span><span>Status</span>
                       </div>
                       {[
-                        { name: 'NexaAi Tech', sub: 'Dr. Sarah K. (SME)', badge: 'Incubating', bg: 'bg-emerald-100', text: 'text-emerald-800' },
-                        { name: 'BioHealth Labs', sub: 'Mark Reynolds', badge: 'Seed Funded', bg: 'bg-blue-100', text: 'text-blue-800' },
-                        { name: 'CleanGrid Power', sub: 'Elena Rostova', badge: 'Co-Incubated', bg: 'bg-purple-100', text: 'text-purple-800' },
+                        { name: 'NexaAi Tech', sub: 'Dr. Sarah K.', sector: 'Fintech', badge: 'Incubating', bg: 'bg-emerald-100', text: 'text-emerald-800' },
+                        { name: 'BioHealth Labs', sub: 'Mark Reynolds', sector: 'Fintech', badge: 'Seed Funded', bg: 'bg-blue-100', text: 'text-blue-800' },
+                        { name: 'CleanGrid Power', sub: 'Elena Rostova', sector: 'Fintech', badge: 'Co-Incubation', bg: 'bg-purple-100', text: 'text-purple-800' },
                       ].map((r) => (
-                        <div key={r.name} className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 hover:bg-slate-100/80 transition-colors text-xs">
+                        <div key={r.name} className="grid grid-cols-3 items-center p-1.5 rounded-lg hover:bg-slate-50 transition-colors text-xs mb-0.5">
                           <div>
-                            <p className="font-semibold" style={{ color: '#1A2151' }}>{r.name}</p>
-                            <p className="text-[10px] text-slate-400">{r.sub}</p>
+                            <p className="font-semibold text-[10px]" style={{ color: '#1A2151' }}>{r.name}</p>
+                            <p className="text-[9px] text-slate-400">{r.sub}</p>
                           </div>
-                          <span className={`px-2 py-0.5 rounded-full ${r.bg} ${r.text} text-[10px] font-medium`}>{r.badge}</span>
+                          <span className="text-[9px] text-slate-500">{r.sector}</span>
+                          <span className={`px-1.5 py-0.5 rounded-full ${r.bg} ${r.text} text-[8px] font-semibold text-center`}>{r.badge}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="sm:col-span-4 flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Milestones</p>
-                      <div className="relative w-16 h-16 flex items-center justify-center">
+
+                    {/* Portfolio Growth */}
+                    <div className="col-span-5 flex flex-col p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Portfolio Growth</p>
+                      <p className="text-[8px] text-slate-400 mb-2">Milestones</p>
+                      {/* Donut */}
+                      <div className="relative w-14 h-14 flex items-center justify-center mx-auto mb-2">
                         <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                           <path stroke="#e2e8f0" strokeWidth="3.5" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                           <path stroke="#2563EB" strokeDasharray="75, 100" strokeWidth="3.5" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         </svg>
-                        <span className="absolute text-xs font-bold" style={{ color: '#1A2151' }}>78%</span>
+                        <span className="absolute text-[11px] font-extrabold" style={{ color: '#1A2151' }}>78%</span>
                       </div>
-                      <span className="text-[10px] text-slate-500 mt-2 font-medium">On Schedule</span>
+                      {/* Mini line chart */}
+                      <svg viewBox="0 0 80 30" className="w-full" fill="none">
+                        <polyline points="0,28 15,22 30,18 45,12 60,8 75,3" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="0,28 15,22 30,18 45,12 60,8 75,3 75,30 0,30" fill="url(#grad)" opacity="0.15" />
+                        <defs><linearGradient id="grad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2563EB" /><stop offset="100%" stopColor="#2563EB" stopOpacity="0" /></linearGradient></defs>
+                      </svg>
                     </div>
                   </div>
                 </div>
 
                 {/* Floating Badges */}
-                <div className="animate-float-1 absolute top-8 left-4 sm:left-8 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl shadow-lg border border-emerald-100 flex items-center gap-2.5 z-20">
-                  <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-bold">✓</div>
-                  <div><p className="text-xs font-bold" style={{ color: '#1A2151' }}>Mentor Matched</p><p className="text-[10px] text-slate-500">Fintech Cohort #4</p></div>
+                <div className="animate-float-1 absolute top-6 left-1/2 -translate-x-1/2 bg-white px-3 py-2 rounded-xl shadow-md border border-emerald-100 flex items-center gap-2 z-20 whitespace-nowrap">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] font-bold">✓</div>
+                  <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>Mentor Matched</p><p className="text-[9px] text-slate-400">Fintech Cohort #4</p></div>
                 </div>
-                <div className="animate-float-2 absolute bottom-10 left-6 sm:left-10 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl shadow-lg border border-blue-100 flex items-center gap-2.5 z-20">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: '#2563EB' }}>📋</div>
-                  <div><p className="text-xs font-bold" style={{ color: '#1A2151' }}>New Application</p><p className="text-[10px] text-slate-500">AI DeepTech Program</p></div>
+                <div className="animate-float-2 absolute bottom-8 left-1/2 -translate-x-1/2 bg-white px-3 py-2 rounded-xl shadow-md border border-blue-100 flex items-center gap-2 z-20 whitespace-nowrap">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: '#2563EB' }}>📋</div>
+                  <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>New Application</p><p className="text-[9px] text-slate-400">AI DeepTech Program</p></div>
                 </div>
-                <div className="animate-float-3 absolute top-12 right-4 sm:right-6 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl shadow-lg border border-purple-100 flex items-center gap-2.5 z-20">
-                  <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">🤝</div>
-                  <div><p className="text-xs font-bold" style={{ color: '#1A2151' }}>Co-incubation Active</p><p className="text-[10px] text-slate-500">2 Partner Networks</p></div>
+                <div className="animate-float-3 absolute top-6 right-4 sm:right-6 bg-white px-3 py-2 rounded-xl shadow-md border border-purple-100 flex items-center gap-2 z-20 whitespace-nowrap">
+                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-[10px] font-bold">🤝</div>
+                  <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>Co-incubation Active</p><p className="text-[9px] text-slate-400">2 Partner Networks</p></div>
                 </div>
               </div>
             </div>
