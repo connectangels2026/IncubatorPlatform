@@ -85,8 +85,8 @@ export default function DashboardPage() {
     applicationsGrowth: '+8%',
     pendingEvaluation: 18,
     activeStartups: 38,
-    admittedStartups: 24,
-    graduatedStartups: 66,
+    inactiveStartups: 24,
+    exitedStartups: 66,
     fundingRaised: '$14.2M',
     fundingGrowth: '+$2.1M',
     jobsCreated: '850+',
@@ -711,7 +711,7 @@ export default function DashboardPage() {
               {/* KPI 3: Pipeline Breakdown */}
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-500">Active / Admitted / Grad</span>
+                  <span className="text-xs font-medium text-slate-500">Active / Inactive / Exited</span>
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
                     <GraduationCap className="w-4 h-4" />
                   </div>
@@ -719,11 +719,11 @@ export default function DashboardPage() {
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-lg font-bold text-blue-600">{metrics.activeStartups}</span>
                   <span className="text-xs text-slate-400">/</span>
-                  <span className="text-lg font-bold text-emerald-600">{metrics.admittedStartups}</span>
+                  <span className="text-lg font-bold text-amber-600">{metrics.inactiveStartups}</span>
                   <span className="text-xs text-slate-400">/</span>
-                  <span className="text-lg font-bold text-slate-700">{metrics.graduatedStartups}</span>
+                  <span className="text-lg font-bold text-slate-700">{metrics.exitedStartups}</span>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">Active | Admitted | Graduated</p>
+                <p className="text-[11px] text-slate-400 mt-1">Active | Inactive | Exited</p>
               </div>
 
               {/* KPI 4: Funding Raised */}

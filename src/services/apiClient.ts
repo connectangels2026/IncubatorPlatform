@@ -13,7 +13,7 @@ export const apiClient = axios.create({
 
 // Request interceptor to attach Supabase JWT
 apiClient.interceptors.request.use(
-  async (config) => {
+  async (config: any) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
@@ -24,13 +24,13 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 );
 
 // Response interceptor for automatic error handling
 apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  (response: any) => response,
+  (error: any) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       // Handle unauthorized session
     }
