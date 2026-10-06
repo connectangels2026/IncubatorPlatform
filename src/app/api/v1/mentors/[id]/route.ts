@@ -67,10 +67,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
       updated_at: new Date().toISOString(),
     };
 
+    if (body.mentor_type !== undefined) {
+      updates.mentor_type = body.mentor_type === 'subject_matter_expert' || body.mentor_type === 'sme' || body.mentor_type === 'SME'
+        ? 'subject_matter_expert'
+        : 'general';
+    }
+    if (body.primary_expertise !== undefined) updates.primary_expertise = body.primary_expertise;
+    if (body.specialization_details !== undefined) updates.specialization_details = body.specialization_details;
     if (body.bio !== undefined) updates.bio = body.bio;
     if (body.company_background !== undefined) updates.company_background = body.company_background;
     if (body.years_of_experience !== undefined) updates.years_of_experience = Number(body.years_of_experience);
-    if (body.primary_expertise !== undefined) updates.primary_expertise = body.primary_expertise;
     if (body.preferred_meeting_mode !== undefined) updates.preferred_meeting_mode = body.preferred_meeting_mode;
     if (body.timezone !== undefined) updates.timezone = body.timezone;
     if (body.calendar_url !== undefined) updates.calendar_url = body.calendar_url;
