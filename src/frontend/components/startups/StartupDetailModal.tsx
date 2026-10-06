@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, ExternalLink, Calendar, MapPin, Globe } from "lucide-react";
 import { StartupItem, AllocatedMentor, AllocatedInvestor, CoIncubatorItem } from "./types";
 import { BasicInfo } from "./profile/BasicInfo";
@@ -9,6 +7,7 @@ import { FinancialInfo } from "./profile/FinancialInfo";
 import { MentorAllocationSection } from "./profile/MentorAllocationSection";
 import { InvestorAllocationSection } from "./profile/InvestorAllocationSection";
 import { CoIncubationSection } from "./profile/CoIncubationSection";
+import { apiClient } from "@/services/apiClient";
 
 interface StartupDetailModalProps {
   startup: StartupItem | null;
@@ -38,6 +37,50 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   onRemoveCoIncubator,
 }) => {
   const [activeTab, setActiveTab] = useState<"overview" | "mentors" | "investors" | "co-incubation">("overview");
+  const [liveMentors, setLiveMentors] = useState<AllocatedMentor[]>([]);
+  const [liveInvestors, setLiveInvestors] = useState<AllocatedInvestor[]>([]);
+  const [liveCoIncubators, setLiveCoIncubators] = useState<CoIncubatorItem[]>([]);
+
+  // Synchronize initial & fetch live
+  useEffect(() => {
+    if (!isOpen || !startup) return;
+    setLiveMentors(startup.allocatedMentors || []);
+    setLiveInvestors(startup.allocatedInvestors || []);
+    setLiveCoIncubators(startup.coIncubators || []);
+
+    const fetchDetailAllocations = async () => {
+      try {
+        const [mRes, iRes, cRes] = await Promise.allSettled([
+          apiClient.get(`/startups/${startup.id}/mentors`),
+          apiClient.get(`/startups/${startup.id}/investors`),
+          apiClient.get(`/startups/${startup.id}/co-incubations`),
+        ]);
+
+        if (mRes.status === "fulfilled" && Array.isArray(mRes.value.data?.data)) {
+          setLiveMentors(mRes.value.data.data);
+        }
+        if (iRes.status === "fulfilled" && Array.isArray(iRes.value.data?.data)) {
+          setLiveInvestors(iRes.value.data.data);
+        }
+        if (cRes.status === "fulfilled" && Array.isArray(cRes.value.data?.data)) {
+          setLiveCoIncubators(cRes.value.data.data);
+        }
+      } catch (e) {
+        // preserve fallback items gracefully
+      }
+    };
+
+    fetchDetailAllocations();
+  }, [isOpen, startup]);
+
+  // Keep live items aligned with prop mutations
+  useEffect(() => {
+    if (startup) {
+      if (startup.allocatedMentors) setLiveMentors(startup.allocatedMentors);
+      if (startup.allocatedInvestors) setLiveInvestors(startup.allocatedInvestors);
+      if (startup.coIncubators) setLiveCoIncubators(startup.coIncubators);
+    }
+  }, [startup?.allocatedMentors, startup?.allocatedInvestors, startup?.coIncubators]);
 
   if (!isOpen || !startup) return null;
 
@@ -139,7 +182,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
 
           {activeTab === "mentors" && (
             <MentorAllocationSection
-              mentors={startup.allocatedMentors || []}
+              mentors={liveMentors}
               onOpenAllocateModal={() => onAllocateMentorClick(startup)}
               onRemoveMentor={(mentorId) => onRemoveMentor(startup.id, mentorId)}
             />
@@ -147,7 +190,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
 
           {activeTab === "investors" && (
             <InvestorAllocationSection
-              investors={startup.allocatedInvestors || []}
+              investors={liveInvestors}
               onOpenAllocateModal={() => onAllocateInvestorClick(startup)}
               onUpdateInterest={(investorId, level) => onUpdateInvestorInterest(startup.id, investorId, level)}
               onRemoveInvestor={(investorId) => onRemoveInvestor(startup.id, investorId)}
@@ -156,7 +199,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
 
           {activeTab === "co-incubation" && (
             <CoIncubationSection
-              coIncubators={startup.coIncubators || []}
+              coIncubators={liveCoIncubators}
               onOpenAddModal={() => onAddCoIncubatorClick(startup)}
               onOpenSignMOUModal={(partner) => onSignMOUClick(startup, partner)}
               onRemoveCoIncubator={(partnerId) => onRemoveCoIncubator(startup.id, partnerId)}

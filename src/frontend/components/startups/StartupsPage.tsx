@@ -393,36 +393,55 @@ export const StartupsPage: React.FC = () => {
     setIsDetailOpen(true);
   };
 
-  // Handlers: Mentors
+  // Handlers: Mentors with Backend Integration
   const handleTriggerAllocateMentor = (startup: StartupItem) => {
     setTargetStartupForAction(startup);
     setIsMentorModalOpen(true);
   };
 
-  const handleConfirmAllocateMentor = (mentorData: Omit<AllocatedMentor, "id">) => {
+  const handleConfirmAllocateMentor = async (mentorData: Omit<AllocatedMentor, "id">) => {
     if (!targetStartupForAction) return;
-    const newMentor: AllocatedMentor = {
-      ...mentorData,
-      id: "m_" + Date.now(),
-    };
-    const updated = startups.map((s) => {
-      if (s.id === targetStartupForAction.id) {
-        const allocated = [...(s.allocatedMentors || []), newMentor];
-        return { ...s, allocatedMentors: allocated };
-      }
-      return s;
-    });
-    setStartups(updated);
-    if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
-      setSelectedStartup({
-        ...selectedStartup,
-        allocatedMentors: [...(selectedStartup.allocatedMentors || []), newMentor],
+    const tempId = "m_" + Date.now();
+    const newMentor: AllocatedMentor = { ...mentorData, id: tempId };
+
+    // Optimistic UI update
+    const updateLocal = (mId: string) => {
+      const createdMentor = { ...newMentor, id: mId };
+      const updated = startups.map((s) => {
+        if (s.id === targetStartupForAction.id) {
+          return { ...s, allocatedMentors: [...(s.allocatedMentors || []), createdMentor] };
+        }
+        return s;
       });
-    }
+      setStartups(updated);
+      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+        setSelectedStartup({
+          ...selectedStartup,
+          allocatedMentors: [...(selectedStartup.allocatedMentors || []), createdMentor],
+        });
+      }
+    };
+
+    updateLocal(tempId);
     showToast(`Mentor allocated to ${targetStartupForAction.name}`);
+
+    try {
+      const res = await apiClient.post(`/startups/${targetStartupForAction.id}/mentors`, {
+        name: mentorData.name,
+        type: mentorData.type,
+        domain: mentorData.domain,
+        notes: mentorData.feedback,
+      });
+      if (res.data?.data?.id) {
+        updateLocal(res.data.data.id);
+      }
+    } catch (err: any) {
+      console.warn("API mentor post notification (using optimistic):", err?.message);
+    }
   };
 
-  const handleRemoveMentor = (startupId: string, mentorId: string) => {
+  const handleRemoveMentor = async (startupId: string, mentorId: string) => {
+    // Optimistic remove
     const updated = startups.map((s) => {
       if (s.id === startupId) {
         return {
@@ -440,38 +459,63 @@ export const StartupsPage: React.FC = () => {
       });
     }
     showToast("Mentor removed from allocation");
+
+    try {
+      await apiClient.delete(`/startups/${startupId}/mentors/${mentorId}`);
+    } catch (err: any) {
+      console.warn("API mentor delete warning:", err?.message);
+    }
   };
 
-  // Handlers: Investors
+  // Handlers: Investors with Backend Integration
   const handleTriggerAllocateInvestor = (startup: StartupItem) => {
     setTargetStartupForAction(startup);
     setIsInvestorModalOpen(true);
   };
 
-  const handleConfirmAllocateInvestor = (investorData: Omit<AllocatedInvestor, "id">) => {
+  const handleConfirmAllocateInvestor = async (investorData: Omit<AllocatedInvestor, "id">) => {
     if (!targetStartupForAction) return;
-    const newInvestor: AllocatedInvestor = {
-      ...investorData,
-      id: "i_" + Date.now(),
-    };
-    const updated = startups.map((s) => {
-      if (s.id === targetStartupForAction.id) {
-        const allocated = [...(s.allocatedInvestors || []), newInvestor];
-        return { ...s, allocatedInvestors: allocated };
-      }
-      return s;
-    });
-    setStartups(updated);
-    if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
-      setSelectedStartup({
-        ...selectedStartup,
-        allocatedInvestors: [...(selectedStartup.allocatedInvestors || []), newInvestor],
+    const tempId = "i_" + Date.now();
+    const newInvestor: AllocatedInvestor = { ...investorData, id: tempId };
+
+    const updateLocal = (iId: string) => {
+      const createdInv = { ...newInvestor, id: iId };
+      const updated = startups.map((s) => {
+        if (s.id === targetStartupForAction.id) {
+          return { ...s, allocatedInvestors: [...(s.allocatedInvestors || []), createdInv] };
+        }
+        return s;
       });
-    }
+      setStartups(updated);
+      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+        setSelectedStartup({
+          ...selectedStartup,
+          allocatedInvestors: [...(selectedStartup.allocatedInvestors || []), createdInv],
+        });
+      }
+    };
+
+    updateLocal(tempId);
     showToast(`Investor allocated to ${targetStartupForAction.name}`);
+
+    try {
+      const res = await apiClient.post(`/startups/${targetStartupForAction.id}/investors`, {
+        name: investorData.name,
+        company: investorData.company,
+        focusAreas: investorData.focusAreas,
+        interestLevel: investorData.interestLevel,
+        ticketSize: investorData.ticketSize,
+        notes: investorData.notes,
+      });
+      if (res.data?.data?.id) {
+        updateLocal(res.data.data.id);
+      }
+    } catch (err: any) {
+      console.warn("API investor post warning:", err?.message);
+    }
   };
 
-  const handleUpdateInvestorInterest = (
+  const handleUpdateInvestorInterest = async (
     startupId: string,
     investorId: string,
     interestLevel: AllocatedInvestor["interestLevel"]
@@ -497,9 +541,15 @@ export const StartupsPage: React.FC = () => {
       });
     }
     showToast(`Interest level updated to: ${interestLevel}`);
+
+    try {
+      await apiClient.patch(`/startups/${startupId}/investors/${investorId}`, { interestLevel });
+    } catch (err: any) {
+      console.warn("API investor patch warning:", err?.message);
+    }
   };
 
-  const handleRemoveInvestor = (startupId: string, investorId: string) => {
+  const handleRemoveInvestor = async (startupId: string, investorId: string) => {
     const updated = startups.map((s) => {
       if (s.id === startupId) {
         return {
@@ -517,35 +567,60 @@ export const StartupsPage: React.FC = () => {
       });
     }
     showToast("Investor allocation removed");
+
+    try {
+      await apiClient.delete(`/startups/${startupId}/investors/${investorId}`);
+    } catch (err: any) {
+      console.warn("API investor delete warning:", err?.message);
+    }
   };
 
-  // Handlers: Co-Incubation
+  // Handlers: Co-Incubation with Backend Integration
   const handleTriggerAddCoIncubator = (startup: StartupItem) => {
     setTargetStartupForAction(startup);
     setIsCoIncubatorModalOpen(true);
   };
 
-  const handleConfirmAddCoIncubator = (partnerData: Omit<CoIncubatorItem, "id">) => {
+  const handleConfirmAddCoIncubator = async (partnerData: Omit<CoIncubatorItem, "id">) => {
     if (!targetStartupForAction) return;
-    const newPartner: CoIncubatorItem = {
-      ...partnerData,
-      id: "c_" + Date.now(),
-    };
-    const updated = startups.map((s) => {
-      if (s.id === targetStartupForAction.id) {
-        const partners = [...(s.coIncubators || []), newPartner];
-        return { ...s, coIncubators: partners };
-      }
-      return s;
-    });
-    setStartups(updated);
-    if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
-      setSelectedStartup({
-        ...selectedStartup,
-        coIncubators: [...(selectedStartup.coIncubators || []), newPartner],
+    const tempId = "c_" + Date.now();
+    const newPartner: CoIncubatorItem = { ...partnerData, id: tempId };
+
+    const updateLocal = (cId: string) => {
+      const createdP = { ...newPartner, id: cId };
+      const updated = startups.map((s) => {
+        if (s.id === targetStartupForAction.id) {
+          return { ...s, coIncubators: [...(s.coIncubators || []), createdP] };
+        }
+        return s;
       });
-    }
+      setStartups(updated);
+      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+        setSelectedStartup({
+          ...selectedStartup,
+          coIncubators: [...(selectedStartup.coIncubators || []), createdP],
+        });
+      }
+    };
+
+    updateLocal(tempId);
     showToast(`Co-Incubator partner added for ${targetStartupForAction.name}`);
+
+    try {
+      const res = await apiClient.post("/co-incubations", {
+        startupId: targetStartupForAction.id,
+        name: partnerData.name,
+        type: partnerData.type,
+        equitySplit: partnerData.equitySplit,
+        responsibilities: partnerData.responsibilities,
+        duration: partnerData.duration,
+      });
+      if (res.data?.data?.id) {
+        updateLocal(res.data.data.id);
+      }
+    } catch (err: any) {
+      console.warn("API co-incubation post warning:", err?.message);
+    }
   };
 
   const handleTriggerSignMOU = (startup: StartupItem, partner: CoIncubatorItem) => {
@@ -554,8 +629,10 @@ export const StartupsPage: React.FC = () => {
     setIsSignMOUModalOpen(true);
   };
 
-  const handleConfirmSignMOU = (partnerId: string) => {
+  const handleConfirmSignMOU = async (partnerId: string) => {
     if (!targetStartupForAction) return;
+
+    // Optimistic signed update
     const updated = startups.map((s) => {
       if (s.id === targetStartupForAction.id) {
         return {
@@ -577,9 +654,18 @@ export const StartupsPage: React.FC = () => {
       });
     }
     showToast("MOU successfully signed & activated!");
+
+    try {
+      await apiClient.post(`/co-incubations/${partnerId}/mou/sign`, {
+        signatory: "Authorized Director",
+        signedAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.warn("API MOU sign warning:", err?.message);
+    }
   };
 
-  const handleRemoveCoIncubator = (startupId: string, partnerId: string) => {
+  const handleRemoveCoIncubator = async (startupId: string, partnerId: string) => {
     const updated = startups.map((s) => {
       if (s.id === startupId) {
         return {
@@ -597,6 +683,12 @@ export const StartupsPage: React.FC = () => {
       });
     }
     showToast("Co-incubator partnership removed");
+
+    try {
+      await apiClient.delete(`/co-incubations/${partnerId}`);
+    } catch (err: any) {
+      console.warn("API co-incubation delete warning:", err?.message);
+    }
   };
 
   // Aggregates for KPI banner

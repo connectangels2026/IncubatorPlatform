@@ -1,8 +1,7 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, DollarSign, TrendingUp, Briefcase } from "lucide-react";
 import { AllocatedInvestor } from "./types";
+import { apiClient } from "@/services/apiClient";
 
 interface AllocateInvestorModalProps {
   isOpen: boolean;
@@ -11,7 +10,7 @@ interface AllocateInvestorModalProps {
   startupName: string;
 }
 
-const AVAILABLE_INVESTORS = [
+const FALLBACK_INVESTORS = [
   { name: "Sequoia Surge", company: "Sequoia Capital", focus: ["Fintech", "SaaS", "AI"] },
   { name: "Nexus Venture Partners", company: "Nexus VP", focus: ["B2B SaaS", "Enterprise", "DeepTech"] },
   { name: "Blume Ventures", company: "Blume", focus: ["Consumer Tech", "EdTech", "CleanTech"] },
@@ -25,18 +24,41 @@ export const AllocateInvestorModal: React.FC<AllocateInvestorModalProps> = ({
   onAllocate,
   startupName,
 }) => {
-  const [selectedInvestor, setSelectedInvestor] = useState(AVAILABLE_INVESTORS[0].name);
+  const [investorList, setInvestorList] = useState(FALLBACK_INVESTORS);
+  const [selectedInvestor, setSelectedInvestor] = useState(FALLBACK_INVESTORS[0].name);
   const [interestLevel, setInterestLevel] = useState<AllocatedInvestor["interestLevel"]>("Warm Lead");
   const [ticketSize, setTicketSize] = useState("$250K - $500K");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCollaborators = async () => {
+      try {
+        const res = await apiClient.get("/collaborators");
+        const list = res.data?.data || res.data;
+        if (Array.isArray(list) && list.length > 0) {
+          const mapped = list.map((c: any) => ({
+            name: c.name || c.firmName || c.title,
+            company: c.company || c.firmName || "Investment Partner",
+            focus: Array.isArray(c.focus) ? c.focus : (c.focus_areas || ["Venture Capital"]),
+          }));
+          setInvestorList(mapped);
+          setSelectedInvestor(mapped[0].name);
+        }
+      } catch (err) {
+        // graceful fallback to curated venture funds
+      }
+    };
+    fetchCollaborators();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const investor = AVAILABLE_INVESTORS.find((i) => i.name === selectedInvestor) || AVAILABLE_INVESTORS[0];
+    const investor = investorList.find((i) => i.name === selectedInvestor) || investorList[0];
     setTimeout(() => {
       onAllocate({
         name: investor.name,
@@ -73,7 +95,7 @@ export const AllocateInvestorModal: React.FC<AllocateInvestorModalProps> = ({
               onChange={(e) => setSelectedInvestor(e.target.value)}
               className="w-full text-sm rounded-lg border-slate-200 border px-3 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
-              {AVAILABLE_INVESTORS.map((inv) => (
+              {investorList.map((inv) => (
                 <option key={inv.name} value={inv.name}>
                   {inv.name} ({inv.company}) - {inv.focus.join(", ")}
                 </option>
