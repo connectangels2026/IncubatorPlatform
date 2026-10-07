@@ -6,6 +6,7 @@ import {
   Sparkles, Star,
 } from 'lucide-react';
 import { Counter, ScrollRevealInit } from '@/frontend/components/landing/LandingAnimations';
+import Logo from '@/frontend/components/ui/Logo';
 
 export const metadata = {
   title: 'Arba360 — Enterprise Incubator Management Platform',
@@ -23,17 +24,7 @@ export default function Home() {
           <div className="flex items-center justify-between h-20">
 
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4L3 18H8.5L12 11.5L15.5 18H21L12 4Z" fill="currentColor" />
-                  <path d="M12 8L7.5 16H10L12 12.5L14 16H16.5L12 8Z" fill="white" opacity="0.4" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold tracking-tight" style={{ color: '#1A2151' }}>
-                Arba<span className="text-gradient-brand">360</span>
-              </span>
-            </Link>
+            <Logo size="lg" href="/" />
 
             {/* Center Nav */}
             <nav className="hidden md:flex items-center gap-8">
@@ -530,14 +521,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
             <div className="lg:col-span-2 space-y-4">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-brand flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 4L3 18H8.5L12 11.5L15.5 18H21L12 4Z" fill="currentColor" />
-                  </svg>
-                </div>
-                <span className="text-xl font-bold tracking-tight text-white">Arba<span className="text-gradient-brand">360</span></span>
-              </Link>
+              <Logo size="lg" variant="light" href="/" />
               <p className="text-xs leading-relaxed max-w-sm text-slate-400">The all-in-one enterprise operating system for innovation centers, university accelerators, corporate venture hubs, and grant managers.</p>
               <div className="flex gap-4 pt-2">
                 {/* X / Twitter */}

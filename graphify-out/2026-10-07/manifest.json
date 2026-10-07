@@ -822,9 +822,9 @@
     "semantic_hash": ""
   },
   "src/app/page.tsx": {
-    "mtime": 1791369706.8488855,
-    "seen": 1791369999.7396567,
-    "ast_hash": "a0acc6d3f409c0b9bc8b32eb06fd7035",
+    "mtime": 1791368392.7236085,
+    "seen": 1791368626.789614,
+    "ast_hash": "1a8610b0d96e65d1fe2c76b432e67e3e",
     "semantic_hash": ""
   },
   "src/app/programs/incubator/page.tsx": {
@@ -1104,9 +1104,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/ui/Logo.tsx": {
-    "mtime": 1791369243.161672,
-    "seen": 1791369383.187556,
-    "ast_hash": "c35612afcb693e9c243cd859fe248631",
+    "mtime": 1791368415.5017564,
+    "seen": 1791368626.8228145,
+    "ast_hash": "10a46c405962bd319980b3137699df2f",
     "semantic_hash": ""
   },
   "src/frontend/components/ui/Modal.tsx": {

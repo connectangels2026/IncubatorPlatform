@@ -11,7 +11,7 @@ interface LogoProps {
   showText?: boolean;
 }
 
-export function LogoIcon({ className = 'w-6 h-6' }: { className?: string }) {
+export function LogoIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -20,16 +20,16 @@ export function LogoIcon({ className = 'w-6 h-6' }: { className?: string }) {
       className={className}
     >
       <path
-        d="M6 24L16 6L26 24"
-        stroke="url(#arba360Gradient)"
-        strokeWidth="4.5"
+        d="M7 23.5L16 6.5L25 23.5"
+        stroke="url(#arbaChevronGrad)"
+        strokeWidth="4.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <defs>
-        <linearGradient id="arba360Gradient" x1="6" y1="24" x2="26" y2="6" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#0ea5e9" />
-          <stop offset="1" stopColor="#2563eb" />
+        <linearGradient id="arbaChevronGrad" x1="7" y1="23.5" x2="25" y2="6.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#0284c7" />
+          <stop offset="1" stopColor="#0066cc" />
         </linearGradient>
       </defs>
     </svg>
@@ -40,24 +40,23 @@ export default function Logo({
   className = '',
   size = 'md',
   href = '/',
-  variant = 'dark',
   showText = true,
+  variant = 'dark',
 }: LogoProps) {
-  const iconClass = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-8 h-8' : 'w-7 h-7';
-  const textClass = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-2xl' : 'text-xl';
-  const textColor = variant === 'light' ? 'text-white' : 'text-slate-900';
+  const iconSize = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6';
+  const textSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-2xl' : 'text-xl';
 
   const content = (
     <div
       className={`inline-flex items-center ${
-        showText ? 'gap-2.5' : 'justify-center'
+        showText ? 'gap-2 sm:gap-2.5' : 'justify-center'
       } hover:opacity-90 transition select-none ${className}`}
     >
-      <LogoIcon className={iconClass} />
+      <LogoIcon className={iconSize} />
       {showText && (
-        <span className={`font-bold tracking-tight ${textColor} ${textClass}`}>
-          <span className="font-serif">Arba</span>
-          <span className="font-sans font-extrabold text-blue-600">360</span>
+        <span className={`font-extrabold tracking-tight ${textSize}`}>
+          <span className={variant === 'light' ? 'text-white' : 'text-slate-900'}>Arba</span>
+          <span className="text-[#2563eb]">360</span>
         </span>
       )}
     </div>
