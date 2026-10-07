@@ -205,7 +205,7 @@ export default function SignupPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Full Name / Founder Name"
+                    placeholder="Enter Your Name"
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
                 </div>
