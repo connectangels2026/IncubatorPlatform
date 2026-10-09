@@ -25853,7 +25853,7 @@
       "file_type": "code",
       "norm_label": "config",
       "source_file": "src/middleware.ts",
-      "source_location": "L68"
+      "source_location": "L67"
     },
     {
       "id": "src_modules_auth_index",
@@ -48101,7 +48101,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/middleware.ts",
-      "source_location": "L44",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -88732,7 +88732,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/middleware.ts",
-      "source_location": "L68",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
