@@ -336,9 +336,9 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/signup/route.ts": {
-    "mtime": 1791269924.6775198,
-    "seen": 1791270444.5108676,
-    "ast_hash": "23d5539e3a76edf7c70a95871b98996d",
+    "mtime": 1791537602.1776872,
+    "seen": 1791537758.2699451,
+    "ast_hash": "62c593df58b6567c80623584c877ced4",
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/verify-email/route.ts": {
@@ -846,9 +846,9 @@
     "semantic_hash": ""
   },
   "src/app/signup/page.tsx": {
-    "mtime": 1791367915.5431855,
-    "seen": 1791368626.790609,
-    "ast_hash": "f5147803f9c9d996ce1b5f258d9bfbfd",
+    "mtime": 1791537976.882271,
+    "seen": 1791538035.1264362,
+    "ast_hash": "a5b468467388bffe8129bf5b9fdd2c0b",
     "semantic_hash": ""
   },
   "src/app/super-admin/activity-logs/page.tsx": {
@@ -1140,9 +1140,9 @@
     "semantic_hash": ""
   },
   "src/frontend/context/AuthContext.tsx": {
-    "mtime": 1789980476.9632976,
-    "seen": 1791270444.5108676,
-    "ast_hash": "ce9976ecf823b03f5541fa77d0990471",
+    "mtime": 1791537620.3510008,
+    "seen": 1791537758.3577266,
+    "ast_hash": "898e9dbe09ce58c57e82efb32ab010b3",
     "semantic_hash": ""
   },
   "src/frontend/lib/apiClient.ts": {

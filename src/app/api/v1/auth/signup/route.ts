@@ -50,9 +50,15 @@ export async function POST(req: Request) {
       (u) => u.email?.toLowerCase() === trimmedEmail
     );
 
-    if (duplicateUser) {
+    const { data: existingPublicUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', trimmedEmail)
+      .maybeSingle();
+
+    if (duplicateUser || existingPublicUser) {
       return NextResponse.json(
-        { error: 'A user with this email already exists' },
+        { error: 'This email is already registered. Please sign in instead.' },
         { status: 409 }
       );
     }
@@ -63,6 +69,14 @@ export async function POST(req: Request) {
     if (error) {
       await logAuthEvent('failed_attempt');
       return NextResponse.json({ error: error.message }, { status: error.status || 500 });
+    }
+
+    // Edge Case: Supabase enumeration protection returns user with empty identities
+    if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+      return NextResponse.json(
+        { error: 'This email is already registered. Please sign in instead.' },
+        { status: 409 }
+      );
     }
 
     return NextResponse.json({ user: data.user, session: data.session }, { status: 201 });

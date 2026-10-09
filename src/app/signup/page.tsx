@@ -189,7 +189,7 @@ export default function SignupPage() {
             </div>
 
             {error && (
-              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
                 {error}
               </div>
             )}
