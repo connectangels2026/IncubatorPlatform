@@ -39,6 +39,7 @@ interface Mentor {
 
 interface Incubator {
   id: string;
+  slug?: string;
   name: string;
   verified: boolean;
   featured: boolean;
@@ -311,6 +312,7 @@ function mapOrganizationToIncubator(org: DatabaseOrganization): Incubator {
 
   return {
     id: org.id,
+    slug: org.slug || org.id,
     name: org.name,
     verified: true,
     featured: Boolean(org.subscription_tier && org.subscription_tier !== 'free'),
@@ -344,7 +346,7 @@ function mapOrganizationToIncubator(org: DatabaseOrganization): Incubator {
 }
 
 export default function IncubatorsPage() {
-  const [incubators, setIncubators] = useState<Incubator[]>(INITIAL_INCUBATORS);
+  const [incubators, setIncubators] = useState<Incubator[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -361,9 +363,12 @@ export default function IncubatorsPage() {
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
           const mapped = json.data.map(mapOrganizationToIncubator);
           setIncubators(mapped);
+        } else {
+          setIncubators(INITIAL_INCUBATORS);
         }
       } catch (err) {
         console.error('Failed to load incubators from Supabase:', err);
+        setIncubators(INITIAL_INCUBATORS);
       } finally {
         setIsLoading(false);
       }
@@ -575,7 +580,7 @@ export default function IncubatorsPage() {
                   </button>
                 )}
                 <div className="hidden sm:flex items-center pl-3 border-l border-slate-200 ml-2 text-xs text-slate-400 font-mono">
-                  {filteredIncubators.length} result{filteredIncubators.length !== 1 ? 's' : ''}
+                  {isLoading ? '...' : `${filteredIncubators.length} result${filteredIncubators.length !== 1 ? 's' : ''}`}
                 </div>
               </div>
             </div>
@@ -605,7 +610,7 @@ export default function IncubatorsPage() {
             <div className="flex items-center justify-between w-full md:w-auto gap-3">
               <span className="bg-emerald-50 text-emerald-800 border border-emerald-200/80 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Showing {filteredIncubators.length} Cohorts
+                {isLoading ? 'Loading Cohorts...' : `Showing ${filteredIncubators.length} Cohorts`}
               </span>
             </div>
           </div>
@@ -662,7 +667,39 @@ export default function IncubatorsPage() {
 
         <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
           
-          {filteredIncubators.length > 0 ? (
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs animate-pulse flex flex-col justify-between space-y-4 min-h-[380px]">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-16 h-4 bg-slate-200 rounded-md" />
+                      <div className="w-6 h-6 bg-slate-100 rounded-full" />
+                    </div>
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-12 h-12 bg-slate-200 rounded-2xl shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <div className="w-32 h-4 bg-slate-200 rounded" />
+                        <div className="w-20 h-3 bg-slate-100 rounded" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-full h-3 bg-slate-100 rounded" />
+                      <div className="w-5/6 h-3 bg-slate-100 rounded" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
+                      <div className="h-10 bg-slate-50 border border-slate-100 rounded-xl" />
+                      <div className="h-10 bg-slate-50 border border-slate-100 rounded-xl" />
+                      <div className="h-10 bg-slate-50 border border-slate-100 rounded-xl" />
+                    </div>
+                    <div className="h-10 bg-slate-200/80 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredIncubators.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredIncubators.map((incubator) => {
                 const isApplied = appliedIds.includes(incubator.id);
@@ -1044,7 +1081,7 @@ export default function IncubatorsPage() {
               <div className="p-4 border-t border-slate-200 bg-slate-50/90 backdrop-blur-xs flex flex-col sm:flex-row items-center gap-3">
                 {/* Button 1: Apply for Pre-Incubator */}
                 <Link
-                  href={`/signup?program=pre-incubator&incubator=${selectedIncubator.id}&name=${encodeURIComponent(selectedIncubator.name)}`}
+                  href={`/incubators/${selectedIncubator.slug || selectedIncubator.id}/apply?program=pre-incubator`}
                   className="w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-2 bg-white text-[#1A2151] border-2 border-slate-200/90 hover:border-[#1A2151] hover:bg-slate-100/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 group"
                 >
                   <Layers className="w-3.5 h-3.5 text-blue-600 group-hover:scale-105 transition-transform" />
@@ -1054,7 +1091,7 @@ export default function IncubatorsPage() {
 
                 {/* Button 2: Apply for Incubator */}
                 <Link
-                  href={`/signup?program=incubator&incubator=${selectedIncubator.id}&name=${encodeURIComponent(selectedIncubator.name)}`}
+                  href={`/incubators/${selectedIncubator.slug || selectedIncubator.id}/apply?program=incubator`}
                   className="w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-extrabold text-white transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-[#1A2151] via-blue-700 to-[#2563EB] hover:from-[#13173d] hover:to-blue-600 shadow-md hover:shadow-blue-600/25 hover:-translate-y-0.5 group"
                 >
                   <Building2 className="w-3.5 h-3.5 text-cyan-300 group-hover:scale-105 transition-transform" />
