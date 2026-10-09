@@ -313,7 +313,7 @@
       "file_type": "code",
       "norm_label": "databaseorganization",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L271"
+      "source_location": "L272"
     },
     {
       "id": "src_app_incubators_page_incubator",
@@ -326,7 +326,7 @@
       "file_type": "code",
       "norm_label": "incubator",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L39"
+      "source_location": "L40"
     },
     {
       "id": "src_app_incubators_page_mentor",
@@ -339,7 +339,7 @@
       "file_type": "code",
       "norm_label": "mentor",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L33"
+      "source_location": "L34"
     },
     {
       "id": "src_app_incubators_page_perk",
@@ -352,7 +352,7 @@
       "file_type": "code",
       "norm_label": "perk",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L28"
+      "source_location": "L29"
     },
     {
       "id": "src_app_api_v1_mentorship_sessions_id_route_params",
@@ -3339,7 +3339,7 @@
       "file_type": "code",
       "norm_label": "incubatorspage()",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L345"
+      "source_location": "L346"
     },
     {
       "id": "src_app_incubators_page_incubatorspage_loadincubatorsfromdatabase",
@@ -3351,7 +3351,7 @@
       "file_type": "code",
       "norm_label": "loadincubatorsfromdatabase()",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L356"
+      "source_location": "L357"
     },
     {
       "id": "src_app_incubators_page_maporganizationtoincubator",
@@ -3363,7 +3363,7 @@
       "file_type": "code",
       "norm_label": "maporganizationtoincubator()",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L292"
+      "source_location": "L293"
     },
     {
       "id": "src_app_api_v1_mentorship_sessions_id_route_delete",
@@ -8355,7 +8355,7 @@
       "file_type": "code",
       "norm_label": "signuppage()",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L21"
+      "source_location": "L23"
     },
     {
       "id": "src_backend_lib_session_invalidateallusersessions",
@@ -13940,7 +13940,7 @@
       "file_type": "code",
       "norm_label": "categories",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L267"
+      "source_location": "L268"
     },
     {
       "id": "src_app_incubators_page_formats",
@@ -13951,7 +13951,7 @@
       "file_type": "code",
       "norm_label": "formats",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L269"
+      "source_location": "L270"
     },
     {
       "id": "src_app_incubators_page_initial_incubators",
@@ -13962,7 +13962,7 @@
       "file_type": "code",
       "norm_label": "initial_incubators",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L66"
+      "source_location": "L67"
     },
     {
       "id": "src_app_incubators_page_stages",
@@ -13973,7 +13973,7 @@
       "file_type": "code",
       "norm_label": "stages",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L268"
+      "source_location": "L269"
     },
     {
       "id": "src_app_api_v1_mentorship_sessions_id_route",
@@ -46193,7 +46193,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L499",
+      "source_location": "L500",
       "weight": 1.0
     },
     {
@@ -47362,6 +47362,18 @@
     },
     {
       "source": "src_app_signup_page_signuppage",
+      "target": "src_frontend_components_ui_logo_logo",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/signup/page.tsx",
+      "source_location": "L115",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_signup_page_signuppage",
       "target": "src_frontend_context_authcontext_useauth",
       "relation": "calls",
       "_origin": "ast",
@@ -47369,7 +47381,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L30",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -47381,19 +47393,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L51",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_signup_page_signuppage",
-      "target": "src_frontend_components_ui_logo_logo",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/app/signup/page.tsx",
-      "source_location": "L84",
+      "source_location": "L82",
       "weight": 1.0
     },
     {
@@ -48497,7 +48497,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L356",
+      "source_location": "L357",
       "weight": 1.0
     },
     {
@@ -54846,7 +54846,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -54978,7 +54978,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L17",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -54990,7 +54990,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L18",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -55002,7 +55002,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L19",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -62406,7 +62406,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -62755,7 +62755,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L17",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -62767,7 +62767,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L18",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -62779,7 +62779,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L19",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -85926,7 +85926,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L267",
+      "source_location": "L268",
       "weight": 1.0
     },
     {
@@ -85937,7 +85937,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L268",
+      "source_location": "L269",
       "weight": 1.0
     },
     {
@@ -85948,7 +85948,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L269",
+      "source_location": "L270",
       "weight": 1.0
     },
     {
@@ -85959,7 +85959,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L271",
+      "source_location": "L272",
       "weight": 1.0
     },
     {
@@ -85970,7 +85970,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -85981,7 +85981,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L292",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -85992,7 +85992,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -86003,7 +86003,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L345",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -86014,7 +86014,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -86025,7 +86025,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L66",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -86630,7 +86630,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/signup/page.tsx",
-      "source_location": "L21",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -94054,7 +94054,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/app/incubators/page.tsx",
-      "source_location": "L361",
+      "source_location": "L362",
       "weight": 1.0
     },
     {
@@ -94296,5 +94296,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "8b926c252ffce063140810a7d573ea2166b8f6fe"
+  "built_at_commit": "89cd1674231041b20592ab14898625105a989603"
 }

@@ -21,7 +21,8 @@ import {
   Users,
   Gift,
   CheckCircle2,
-  ArrowUpRight
+  ArrowUpRight,
+  Layers
 } from 'lucide-react';
 import Logo from '@/frontend/components/ui/Logo';
 
@@ -428,7 +429,7 @@ export default function IncubatorsPage() {
       triggerToast("Removed from saved list");
     } else {
       setBookmarkedIds([...bookmarkedIds, id]);
-      triggerToast("Saved to your bookmarks! ❤️");
+      triggerToast("Saved to your bookmarks");
     }
   };
 
@@ -449,7 +450,7 @@ export default function IncubatorsPage() {
     e.stopPropagation();
     if (!appliedIds.includes(incubator.id)) {
       setAppliedIds([...appliedIds, incubator.id]);
-      triggerToast(`Application draft started for ${incubator.name}! 🚀`);
+      triggerToast(`Application draft started for ${incubator.name}`);
     } else {
       triggerToast(`You have already applied to ${incubator.name}`);
     }
@@ -791,22 +792,14 @@ export default function IncubatorsPage() {
 
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={(e) => handleApply(e, incubator)}
-                            className={`text-xs font-bold px-3.5 py-2 rounded-xl transition-all duration-200 flex items-center gap-1 shadow-xs ${
-                              isApplied 
-                                ? 'bg-emerald-600 text-white cursor-default' 
-                                : 'bg-[#1A2151] hover:bg-blue-700 text-white'
-                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedIncubator(incubator);
+                              setDrawerTab('overview');
+                            }}
+                            className="text-xs font-bold px-3.5 py-2 rounded-xl transition-all duration-200 flex items-center gap-1 shadow-xs bg-[#1A2151] hover:bg-blue-700 text-white"
                           >
-                            {isApplied ? (
-                              <>
-                                <Check className="w-3.5 h-3.5" /> Applied
-                              </>
-                            ) : (
-                              <>
-                                Apply <ArrowRight className="w-3.5 h-3.5" />
-                              </>
-                            )}
+                            Apply <ArrowRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -1047,13 +1040,26 @@ export default function IncubatorsPage() {
                 )}
               </div>
 
-              {/* Drawer Action Footer */}
-              <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center gap-3">
+              {/* Drawer Action Footer: Dual Program Applications */}
+              <div className="p-4 border-t border-slate-200 bg-slate-50/90 backdrop-blur-xs flex flex-col sm:flex-row items-center gap-3">
+                {/* Button 1: Apply for Pre-Incubator */}
                 <Link
-                  href={`/signup?incubator=${selectedIncubator.id}&name=${encodeURIComponent(selectedIncubator.name)}`}
-                  className="w-full py-3 bg-[#1A2151] hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold transition shadow-md flex items-center justify-center gap-2"
+                  href={`/signup?program=pre-incubator&incubator=${selectedIncubator.id}&name=${encodeURIComponent(selectedIncubator.name)}`}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-extrabold transition-all duration-200 flex items-center justify-center gap-2 bg-white text-[#1A2151] border-2 border-slate-200/90 hover:border-[#1A2151] hover:bg-slate-100/80 shadow-xs hover:shadow-md hover:-translate-y-0.5 group"
                 >
-                  Start Cohort Application <ArrowRight className="w-4 h-4" />
+                  <Layers className="w-3.5 h-3.5 text-blue-600 group-hover:scale-105 transition-transform" />
+                  <span>Apply for Pre-Incubator</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#1A2151] group-hover:translate-x-0.5 transition-all" />
+                </Link>
+
+                {/* Button 2: Apply for Incubator */}
+                <Link
+                  href={`/signup?program=incubator&incubator=${selectedIncubator.id}&name=${encodeURIComponent(selectedIncubator.name)}`}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl text-xs font-extrabold text-white transition-all duration-200 flex items-center justify-center gap-2 bg-gradient-to-r from-[#1A2151] via-blue-700 to-[#2563EB] hover:from-[#13173d] hover:to-blue-600 shadow-md hover:shadow-blue-600/25 hover:-translate-y-0.5 group"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-cyan-300 group-hover:scale-105 transition-transform" />
+                  <span>Apply for Incubator</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
             </div>

@@ -13,6 +13,8 @@ import {
   ArrowRight,
   Star,
   Check,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { signInWithGoogle } from '@/backend/services/auth';
@@ -24,10 +26,39 @@ export default function SignupPage() {
   const [startupName, setStartupName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signup } = useAuth();
+
+  const strength = (() => {
+    if (!password) return null;
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+    if (/[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) score++;
+
+    if (score >= 3) {
+      return {
+        label: 'Strong',
+        textColor: 'text-emerald-600',
+        bars: ['bg-emerald-500', 'bg-emerald-500', 'bg-emerald-500'],
+      };
+    }
+    if (score === 2) {
+      return {
+        label: 'Medium',
+        textColor: 'text-amber-500',
+        bars: ['bg-amber-500', 'bg-amber-500', 'bg-slate-200'],
+      };
+    }
+    return {
+      label: 'Weak',
+      textColor: 'text-rose-500',
+      bars: ['bg-rose-500', 'bg-slate-200', 'bg-slate-200'],
+    };
+  })();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,25 +276,39 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {/* Field 4: Password with 3 green bars and 'Strong' */}
+              {/* Field 4: Password with dynamic strength and eye toggle */}
               <div>
                 <div className="relative flex items-center">
                   <Lock className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"
-                    className="w-full h-11 pl-10 pr-24 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
+                    className="w-full h-11 pl-10 pr-28 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
-                  <div className="absolute right-3 flex items-center gap-1.5 pointer-events-none">
-                    <div className="flex gap-1">
-                      <span className="w-3 h-1 rounded-full bg-emerald-500" />
-                      <span className="w-3 h-1 rounded-full bg-emerald-500" />
-                      <span className="w-3 h-1 rounded-full bg-emerald-500" />
-                    </div>
-                    <span className="text-[10px] font-semibold text-emerald-600">Strong</span>
+                  <div className="absolute right-3 flex items-center gap-2">
+                    {strength && (
+                      <div className="flex items-center gap-1.5 transition-all">
+                        <div className="flex gap-1">
+                          {strength.bars.map((barClass, idx) => (
+                            <span key={idx} className={`w-3 h-1 rounded-full transition-colors ${barClass}`} />
+                          ))}
+                        </div>
+                        <span className={`text-[10px] font-semibold ${strength.textColor}`}>
+                          {strength.label}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-slate-600 transition p-0.5 focus:outline-none"
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               </div>
