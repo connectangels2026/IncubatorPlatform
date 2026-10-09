@@ -1,30 +1,30 @@
-# Graph Report - Incubator-WebApp  (2026-10-09)
+# Graph Report - Incubator-WebApp  (2026-10-06)
 
 ## Corpus Check
-- 304 files · ~248,657 words
+- 301 files · ~240,953 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 102 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 4)
 
 ## Summary
-- 2979 nodes · 5172 edges · 201 communities (147 shown, 54 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 21 edges (avg confidence: 0.87)
+- 2960 nodes · 5136 edges · 203 communities (149 shown, 54 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 20 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7be94313`
+- Built from commit: `bb1792c0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - next
 - ShadcnInstaller
-- react
+- checked-components/page.tsx
 - handleApiError
 - gray
 - test_sync_brand_to_tokens.py
 - json
 - taskService.ts
-- supabase.ts
+- mentors/page.tsx
 - Tailwind CSS Utility Reference
 - UI/UX Pro Max - Design Intelligence
 - Brand Guidelines v1.0
@@ -33,12 +33,12 @@
 - slide_search_core.py
 - Canvas Design System
 - Page: Pre-Incubator Form (`/programs/preincubator`)
-- incubators/page.tsx
+- requireOrg
 - spacing
 - Form & Input Components
 - Tailwind CSS Responsive Design
-- design_system.py
-- requireOrg
+- DesignSystemGenerator
+- CollaboratorService
 - Typography Specifications
 - TestTailwindConfigGenerator
 - html-token-validator.py
@@ -47,7 +47,7 @@
 - Button
 - Logo Usage Rules
 - Component Specifications
-- super-admin/Sidebar.tsx
+- react
 - object
 - preincubator/page.tsx
 - Asset Approval Checklist
@@ -64,7 +64,7 @@
 - package.json
 - icon/generate.py
 - generate-slide.py
-- services/auth.ts
+- frontend/context/AuthContext.tsx
 - compilerOptions
 - Routing by Task Type
 - fetch-background.py
@@ -98,7 +98,7 @@
 - Layout Patterns
 - Tailwind Integration
 - Layout Patterns
-- evaluation-criteria/[id]/route.ts
+- session.ts
 - update.md
 - Logo Design Reference
 - logo/core.py
@@ -121,18 +121,18 @@
 - generate-tokens.cjs
 - button
 - Slide Strategies
-- feedback/route.ts
+- @supabase/supabase-js
 - BM25
 - BM25
-- BM25
+- test_tailwind_config_gen.py
 - TestGeneratedConfigIsValidJs
 - BM25
-- SimpleLayout.tsx
+- devDependencies
 - availability/route.ts
 - input
 - radius
 - ARBA Accelerator
-- frontend/context/AuthContext.tsx
+- login/route.ts
 - mentorship-sessions/[id]/route.ts
 - Event
 - Slides Reference
@@ -140,10 +140,10 @@
 - logo/search.py
 - HTML Slide Template
 - Slides
-- cip/generate.py
-- @supabase/supabase-js
+- design_system.py
+- layout.tsx
 - sm
-- devDependencies
+- evaluations/[id]/route.ts
 - evaluations/route.ts
 - action-points/route.ts
 - notifications/[id]/route.ts
@@ -153,16 +153,16 @@
 - $type
 - radius
 - lg
-- evaluations/[id]/route.ts
-- os
 - scripts
-- score/route.ts
+- generate_logo
+- app/page.tsx
+- type/route.ts
 - padding-y
 - xl
 - complete/route.ts
 - none
 - Database Configuration
-- utils.ts
+- signup/route.ts
 - destructive
 - destructive-foreground
 - muted
@@ -183,7 +183,9 @@
 - notifications/index.ts
 - payments/index.ts
 - reports/index.ts
-- test_validate_tokens.py
+- read/route.ts
+- reviews/route.ts
+- emailTemplates.ts
 - 16
 - 1
 - 3
@@ -192,12 +194,12 @@
 ## God Nodes (most connected - your core abstractions)
 1. `handleApiError()` - 180 edges
 2. `verifyAuth()` - 178 edges
-3. `requireOrg()` - 160 edges
-4. `next` - 122 edges
-5. `react` - 72 edges
+3. `requireOrg()` - 161 edges
+4. `next` - 119 edges
+5. `react` - 70 edges
 6. `TailwindConfigGenerator` - 60 edges
-7. `lucide-react` - 54 edges
-8. `supabaseAdmin` - 51 edges
+7. `lucide-react` - 52 edges
+8. `supabaseAdmin` - 50 edges
 9. `TestTailwindConfigGenerator` - 41 edges
 10. `ShadcnInstaller` - 34 edges
 
@@ -210,25 +212,25 @@
   .agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py → .agents/skills/ui-styling/scripts/tailwind_config_gen.py
 - `TestShadcnInstaller` --uses--> `ShadcnInstaller`  [INFERRED]
   .agents/skills/ui-styling/scripts/tests/test_shadcn_add.py → .agents/skills/ui-styling/scripts/shadcn_add.py
-- `GET()` --calls--> `requireOrg()`  [EXTRACTED]
-  src/app/api/v1/applications/[id]/route.ts → src/backend/middleware/tenant.ts
+- `GET()` --calls--> `verifyAuth()`  [EXTRACTED]
+  src/app/api/v1/applications/[id]/route.ts → src/backend/middleware/auth.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (201 total, 54 thin omitted)
+## Communities (203 total, 54 thin omitted)
 
 ### Community 0 - "next"
 Cohesion: 0.07
-Nodes (37): next, RouteContext, RouteContext, RouteContext, dynamic, isValidUUID(), Params, PUT() (+29 more)
+Nodes (31): next, VALID_TRANSITIONS, RouteContext, RouteContext, RouteContext, GET(), isValidUUID(), resolveOrg() (+23 more)
 
-### Community 2 - "react"
+### Community 2 - "checked-components/page.tsx"
 Cohesion: 0.05
-Nodes (58): react, DesignSystemPage(), BarChart(), BarChartItem, LineChart(), LineChartPoint, PieChart(), PieChartSlice (+50 more)
+Nodes (57): DesignSystemPage(), BarChart(), BarChartItem, LineChart(), LineChartPoint, PieChart(), PieChartSlice, ResponsiveContainer() (+49 more)
 
 ### Community 3 - "handleApiError"
-Cohesion: 0.09
-Nodes (44): POST(), PUT(), POST(), POST(), POST(), PUT(), GET(), PUT() (+36 more)
+Cohesion: 0.10
+Nodes (38): POST(), PUT(), POST(), POST(), POST(), PUT(), GET(), PUT() (+30 more)
 
 ### Community 4 - "gray"
 Cohesion: 0.05
@@ -239,16 +241,16 @@ Cohesion: 0.11
 Nodes (16): _run(), test_creates_default_output_directory_when_missing(), test_dark_base_color_does_not_collapse_shades_to_black(), test_force_allows_sync_with_existing_css_token_source(), test_ignores_commented_root_custom_properties(), test_ignores_custom_properties_outside_root(), test_ignores_external_css_imports(), test_refuses_css_custom_property_source_without_force() (+8 more)
 
 ### Community 6 - "json"
-Cohesion: 0.13
-Nodes (8): main(), format_brief(), format_results(), main(), main(), main(), main(), main()
+Cohesion: 0.10
+Nodes (13): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), format_brief() (+5 more)
 
 ### Community 7 - "taskService.ts"
 Cohesion: 0.08
 Nodes (30): GET(), isValidUUID(), resolveOrg(), RouteParams, DELETE(), GET(), isValidUUID(), PUT() (+22 more)
 
-### Community 8 - "supabase.ts"
-Cohesion: 0.27
-Nodes (3): VerifyEmailContent(), VerifyEmailPage(), supabase
+### Community 8 - "mentors/page.tsx"
+Cohesion: 0.15
+Nodes (14): INITIAL_FALLBACK_MENTORS, MentorExpertise, MentorItem, MentorsHubPage(), DashboardLayout(), DashboardLayoutProps, MainLayout(), MainLayoutProps (+6 more)
 
 ### Community 9 - "Tailwind CSS Utility Reference"
 Cohesion: 0.05
@@ -271,8 +273,8 @@ Cohesion: 0.13
 Nodes (15): _atlas_prediction_data(), _download_atlas_image(), _download_image(), _download_muapi_image(), _generate_with_atlas(), _generate_with_muapi(), _json_request(), load_env() (+7 more)
 
 ### Community 14 - "slide_search_core.py"
-Cohesion: 0.12
-Nodes (14): format_context(), format_result(), main(), calculate_pattern_break(), detect_domain(), get_background_config(), get_color_for_emotion(), get_layout_for_goal() (+6 more)
+Cohesion: 0.08
+Nodes (17): format_context(), format_result(), main(), BM25, calculate_pattern_break(), detect_domain(), get_background_config(), get_color_for_emotion() (+9 more)
 
 ### Community 15 - "Canvas Design System"
 Cohesion: 0.06
@@ -282,9 +284,9 @@ Nodes (35): 1. Visual Communication First, 2. Minimal Text Integration, 3. Exper
 Cohesion: 0.06
 Nodes (34): Admin / Dashboard Page, ARBA Accelerator Platform - Complete UI & Field Reference, File Structure, File Uploads, Incubator Success, Key Technical Notes, Page: Home (`/`), Page: Incubator Form (`/programs/incubator`) (+26 more)
 
-### Community 17 - "incubators/page.tsx"
-Cohesion: 0.18
-Nodes (11): CATEGORIES, DatabaseOrganization, FORMATS, Incubator, IncubatorsPage(), loadIncubatorsFromDatabase(), INITIAL_INCUBATORS, mapOrganizationToIncubator() (+3 more)
+### Community 17 - "requireOrg"
+Cohesion: 0.12
+Nodes (24): GET(), GET(), isValidUUID(), Params, resolveOrg(), GET(), isValidUUID(), POST() (+16 more)
 
 ### Community 18 - "spacing"
 Cohesion: 0.09
@@ -298,13 +300,9 @@ Nodes (32): Accordion, Alert, Alert Dialog, Avatar, Badge, Button, Card, Checkbo
 Cohesion: 0.06
 Nodes (32): 1. Mobile-First Design, 2. Consistent Breakpoint Usage, 3. Test at Breakpoint Boundaries, 4. Use Container for Content Width, 5. Progressive Enhancement, 6. Avoid Too Many Breakpoints, Best Practices, Breakpoint System (+24 more)
 
-### Community 21 - "design_system.py"
-Cohesion: 0.08
-Nodes (5): DesignSystemGenerator, format_ascii_box(), format_markdown(), generate_design_system(), format_output()
-
-### Community 22 - "requireOrg"
-Cohesion: 0.12
-Nodes (19): POST(), GET(), PUT(), GET(), POST(), GET(), POST(), GET() (+11 more)
+### Community 22 - "CollaboratorService"
+Cohesion: 0.17
+Nodes (8): POST(), GET(), PUT(), GET(), POST(), GET(), POST(), CollaboratorService
 
 ### Community 23 - "Typography Specifications"
 Cohesion: 0.06
@@ -320,11 +318,11 @@ Nodes (29): Accordion, Alert, ARIA Labels, Checkbox and Radio, Color Contrast, C
 
 ### Community 27 - "notificationService.ts"
 Cohesion: 0.09
-Nodes (32): GET(), isValidUUID(), POST(), resolveOrg(), GET(), handleReminders(), isValidUUID(), POST() (+24 more)
+Nodes (31): PUT(), GET(), isValidUUID(), POST(), resolveOrg(), GET(), handleReminders(), isValidUUID() (+23 more)
 
 ### Community 28 - "Button"
 Cohesion: 0.10
-Nodes (26): ApplicationItem, ApplicationsPage(), INITIAL_APPLICATIONS, ScoreBadge(), SectorTag(), StatusBadge(), TypeBadge(), CoIncubation (+18 more)
+Nodes (27): ApplicationItem, ApplicationsPage(), INITIAL_APPLICATIONS, ScoreBadge(), SectorTag(), StatusBadge(), TypeBadge(), CoIncubation (+19 more)
 
 ### Community 29 - "Logo Usage Rules"
 Cohesion: 0.07
@@ -334,9 +332,9 @@ Nodes (28): Absolute Don'ts, Approved Backgrounds, Before Using Logo, Clear Spac
 Cohesion: 0.07
 Nodes (28): Alert, Anatomy, Anatomy, Anatomy, Anatomy, Anatomy, Badge, Button (+20 more)
 
-### Community 31 - "super-admin/Sidebar.tsx"
-Cohesion: 0.10
-Nodes (15): AuditEvent, INITIAL_EVENTS, SuperAdminDashboard(), INITIAL_INVOICES, Invoice, initialOrgs, Organization, OrganizationsPage() (+7 more)
+### Community 31 - "react"
+Cohesion: 0.09
+Nodes (17): react, AuditEvent, INITIAL_EVENTS, SuperAdminDashboard(), INITIAL_INVOICES, Invoice, initialOrgs, Organization (+9 more)
 
 ### Community 33 - "preincubator/page.tsx"
 Cohesion: 0.23
@@ -355,7 +353,7 @@ Cohesion: 0.08
 Nodes (25): Accessibility Patterns, Alternative: Tailwind-Only Setup, Best Practices, Common Patterns, Component Layer: shadcn/ui, Component Library Guide, Component + Styling Setup, Core Stack (+17 more)
 
 ### Community 37 - "tenant.ts"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (13): POST(), GET(), PUT(), PUT(), GET(), POST(), isValidUUID(), Params (+5 more)
 
 ### Community 38 - "Color Palette Management"
@@ -383,20 +381,20 @@ Cohesion: 0.09
 Nodes (22): @apply Directive, Best Practices, Color Customization, Complete Tailwind Config, Configuration Examples, Content Configuration, Custom Color Palette, Custom Font Sizes (+14 more)
 
 ### Community 45 - "package.json"
-Cohesion: 0.10
-Nodes (19): name, private, version, axios, @base-ui/react, class-variance-authority, eslint, eslint-config-next (+11 more)
+Cohesion: 0.09
+Nodes (21): name, private, version, axios, @base-ui/react, class-variance-authority, clsx, eslint (+13 more)
 
 ### Community 46 - "icon/generate.py"
-Cohesion: 0.17
+Cohesion: 0.16
 Nodes (8): apply_color(), apply_viewbox_size(), extract_svgs(), generate_batch(), generate_icon(), generate_sizes(), load_env(), main()
 
 ### Community 47 - "generate-slide.py"
 Cohesion: 0.13
 Nodes (10): _e(), generate_chart_slide(), generate_cta_slide(), generate_deck(), generate_metrics_slide(), generate_problem_slide(), generate_solution_slide(), generate_testimonial_slide() (+2 more)
 
-### Community 48 - "services/auth.ts"
+### Community 48 - "frontend/context/AuthContext.tsx"
 Cohesion: 0.09
-Nodes (28): @upstash/redis, POST(), POST(), POST(), POST(), POST(), validatePassword(), ForgotPasswordPage() (+20 more)
+Nodes (21): POST(), ForgotPasswordPage(), VerifyEmailContent(), VerifyEmailPage(), ApplicationItem, MentorshipSession, PendingDecision, LoginPage() (+13 more)
 
 ### Community 49 - "compilerOptions"
 Cohesion: 0.10
@@ -448,7 +446,7 @@ Nodes (17): Accent, Applying Semantic Tokens, Background & Foreground, Border & 
 
 ### Community 61 - "lucide-react"
 Cohesion: 0.09
-Nodes (41): lucide-react, StartupsDirectoryRoute(), AddCoIncubatorModal(), AddCoIncubatorModalProps, PARTNER_INCUBATORS, AllocateInvestorModal(), AllocateInvestorModalProps, FALLBACK_INVESTORS (+33 more)
+Nodes (40): lucide-react, StartupsDirectoryRoute(), AddCoIncubatorModal(), AddCoIncubatorModalProps, PARTNER_INCUBATORS, AllocateInvestorModal(), AllocateInvestorModalProps, AllocateMentorModal() (+32 more)
 
 ### Community 62 - "startup-reviews/[id]/route.ts"
 Cohesion: 0.22
@@ -487,7 +485,7 @@ Cohesion: 0.13
 Nodes (14): AIDA (Attention-Interest-Desire-Action), Before-After-Bridge, Contrast Patterns, Copywriting Formulas, Core Formulas, Cost of Inaction, FAB (Features-Advantages-Benefits), Formula-to-Slide Mapping (+6 more)
 
 ### Community 71 - "cip/core.py"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (6): detect_domain(), get_cip_brief(), _load_csv(), search(), search_all(), _search_csv()
 
 ### Community 72 - "Copywriting Formulas"
@@ -530,9 +528,9 @@ Nodes (13): Animation Tokens, Base Layer, Button Example, Component Classes, CSS
 Cohesion: 0.14
 Nodes (13): Card Styles, Component Variants, CSS Structures, Feature Grid (3 columns), Layout Decision Flow, Layout Patterns, Layout Selection by Use Case, Metric Styles (+5 more)
 
-### Community 82 - "evaluation-criteria/[id]/route.ts"
-Cohesion: 0.53
-Nodes (5): DELETE(), isValidUUID(), Params, PUT(), resolveOrg()
+### Community 82 - "session.ts"
+Cohesion: 0.21
+Nodes (11): @upstash/redis, POST(), ActiveSession, invalidateAllUserSessions(), invalidateToken(), isValidToken(), memoryBlacklist, memorySessions (+3 more)
 
 ### Community 83 - "update.md"
 Cohesion: 0.15
@@ -543,7 +541,7 @@ Cohesion: 0.15
 Nodes (12): Available Styles, Color Psychology, Commands, Design Brief (Start Here), Detailed References, Generate Logo, Industry Defaults, Logo Design Reference (+4 more)
 
 ### Community 85 - "logo/core.py"
-Cohesion: 0.21
+Cohesion: 0.20
 Nodes (5): detect_domain(), _load_csv(), search(), search_all(), _search_csv()
 
 ### Community 86 - "Token Architecture"
@@ -559,7 +557,7 @@ Cohesion: 0.21
 Nodes (5): detect_domain(), _load_csv(), search(), _search_csv(), search_stack()
 
 ### Community 89 - "render-html.py"
-Cohesion: 0.25
+Cohesion: 0.23
 Nodes (4): generate_html(), get_deliverable_info(), get_image_base64(), main()
 
 ### Community 90 - "Primitive Tokens"
@@ -600,7 +598,7 @@ Nodes (10): fast, normal, slow, $type, $value, $type, $value, duration (+2 more)
 
 ### Community 100 - "StartupService"
 Cohesion: 0.15
-Nodes (10): InvestorAllocation, MentorAllocation, Startup, TeamMember, fallbackStartups, GetStartupsFilter, isValidUUID(), mapRowToStartup() (+2 more)
+Nodes (8): InvestorAllocation, MentorAllocation, Startup, TeamMember, isValidUUID(), mapRowToStartup(), resolveOrgId(), StartupService
 
 ### Community 101 - "Slide Strategies"
 Cohesion: 0.20
@@ -622,13 +620,17 @@ Nodes (10): fg, font-size, hover-bg, button, $type, $value, $type, $value (+2 mo
 Cohesion: 0.20
 Nodes (9): Common Structures, Duarte Sparkline Pattern, Matching Strategy to Context, Product Demo (6 slides), Sales Pitch (9 slides), Search Commands, Slide Strategies, Strategy Selection (+1 more)
 
-### Community 107 - "feedback/route.ts"
-Cohesion: 0.60
-Nodes (4): isValidUUID(), Params, POST(), resolveOrg()
+### Community 107 - "@supabase/supabase-js"
+Cohesion: 0.20
+Nodes (4): @supabase/supabase-js, runTests(), supabaseAdmin, supabaseAdmin
 
-### Community 110 - "BM25"
-Cohesion: 0.18
-Nodes (3): BM25, _load_csv(), _search_csv()
+### Community 110 - "test_tailwind_config_gen.py"
+Cohesion: 0.16
+Nodes (4): main(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation()
+
+### Community 113 - "devDependencies"
+Cohesion: 0.22
+Nodes (9): devDependencies, eslint, eslint-config-next, tailwindcss, @tailwindcss/postcss, @types/node, @types/react, @types/react-dom (+1 more)
 
 ### Community 114 - "availability/route.ts"
 Cohesion: 0.42
@@ -646,9 +648,9 @@ Nodes (14): $type, $value, $type, $value, $type, $value, primitive, radius (+6 m
 Cohesion: 0.25
 Nodes (7): ARBA Accelerator, Contact, Features, Getting Started, Project Structure, Tech Stack, What is this?
 
-### Community 118 - "frontend/context/AuthContext.tsx"
-Cohesion: 0.07
-Nodes (35): INITIAL_FALLBACK_MENTORS, MentorExpertise, MentorItem, MentorsHubPage(), ApplicationItem, DashboardPage(), MentorshipSession, PendingDecision (+27 more)
+### Community 118 - "login/route.ts"
+Cohesion: 0.43
+Nodes (6): POST(), POST(), logAuthEvent(), storeActiveToken(), refreshToken(), signIn()
 
 ### Community 119 - "mentorship-sessions/[id]/route.ts"
 Cohesion: 0.43
@@ -674,21 +676,21 @@ Nodes (6): Animation Classes, Background Images, Base Structure, Chart.js Integr
 Cohesion: 0.29
 Nodes (6): References (Knowledge Base), Routing, Script Paths, Slides, Subcommands, When to Use
 
-### Community 126 - "cip/generate.py"
-Cohesion: 0.15
-Nodes (6): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image()
+### Community 126 - "design_system.py"
+Cohesion: 0.16
+Nodes (4): format_ascii_box(), format_markdown(), generate_design_system(), format_output()
 
-### Community 128 - "@supabase/supabase-js"
-Cohesion: 0.20
-Nodes (4): @supabase/supabase-js, runTests(), supabaseAdmin, supabaseAdmin
+### Community 128 - "layout.tsx"
+Cohesion: 0.33
+Nodes (5): geistMono, geistSans, metadata, RootLayout(), AuthProvider()
 
 ### Community 129 - "sm"
 Cohesion: 0.60
 Nodes (5): sm, sm, sm, $type, $value
 
-### Community 130 - "devDependencies"
-Cohesion: 0.22
-Nodes (9): devDependencies, eslint, eslint-config-next, tailwindcss, @tailwindcss/postcss, @types/node, @types/react, @types/react-dom (+1 more)
+### Community 130 - "evaluations/[id]/route.ts"
+Cohesion: 0.60
+Nodes (5): isValidUUID(), Params, PUT(), resolveEvaluatorId(), resolveOrg()
 
 ### Community 131 - "evaluations/route.ts"
 Cohesion: 0.73
@@ -726,21 +728,21 @@ Nodes (5): radius, radius, radius, $type, $value
 Cohesion: 0.60
 Nodes (5): lg, $type, $value, lg, lg
 
-### Community 140 - "evaluations/[id]/route.ts"
-Cohesion: 0.60
-Nodes (5): isValidUUID(), Params, PUT(), resolveEvaluatorId(), resolveOrg()
-
-### Community 141 - "os"
-Cohesion: 0.25
-Nodes (5): enhance_prompt(), generate_batch(), generate_logo(), _generate_with_gemini(), main()
-
-### Community 142 - "scripts"
+### Community 140 - "scripts"
 Cohesion: 0.40
 Nodes (5): scripts, build, dev, lint, start
 
-### Community 143 - "score/route.ts"
+### Community 141 - "generate_logo"
+Cohesion: 0.29
+Nodes (5): enhance_prompt(), generate_batch(), generate_logo(), _generate_with_gemini(), main()
+
+### Community 142 - "app/page.tsx"
 Cohesion: 0.60
-Nodes (4): GET(), isValidUUID(), Params, resolveOrg()
+Nodes (4): Home(), metadata, Counter(), ScrollRevealInit()
+
+### Community 143 - "type/route.ts"
+Cohesion: 0.60
+Nodes (4): isValidUUID(), Params, PUT(), resolveOrg()
 
 ### Community 144 - "padding-y"
 Cohesion: 0.67
@@ -761,6 +763,10 @@ Nodes (4): $type, $value, none, none
 ### Community 148 - "Database Configuration"
 Cohesion: 0.50
 Nodes (3): Connection Details, Database Configuration, Environment Variables
+
+### Community 150 - "signup/route.ts"
+Cohesion: 0.83
+Nodes (3): POST(), validatePassword(), signUp()
 
 ### Community 151 - "destructive"
 Cohesion: 0.67
@@ -786,9 +792,13 @@ Nodes (3): ring, $type, $value
 Cohesion: 0.67
 Nodes (3): secondary-foreground, $type, $value
 
-### Community 194 - "test_validate_tokens.py"
-Cohesion: 0.27
-Nodes (3): _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation()
+### Community 194 - "read/route.ts"
+Cohesion: 0.70
+Nodes (4): isValidUUID(), Params, PUT(), resolveOrg()
+
+### Community 195 - "reviews/route.ts"
+Cohesion: 0.60
+Nodes (4): GET(), isValidUUID(), Params, resolveOrg()
 
 ### Community 197 - "16"
 Cohesion: 0.67
@@ -807,24 +817,24 @@ Cohesion: 0.67
 Nodes (3): $type, $value, 8
 
 ## Knowledge Gaps
-- **1177 isolated node(s):** `fs`, `path`, `fs`, `path`, `fs` (+1172 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1583 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **1167 isolated node(s):** `fs`, `path`, `fs`, `path`, `fs` (+1162 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1571 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `react`, `handleApiError`, `evaluations/route.ts`, `action-points/route.ts`, `notifications/[id]/route.ts`, `csv/route.ts`, `supabase.ts`, `taskService.ts`, `evaluations/[id]/route.ts`, `score/route.ts`, `incubators/page.tsx`, `complete/route.ts`, `requireOrg`, `notificationService.ts`, `Button`, `validation.ts`, `super-admin/Sidebar.tsx`, `preincubator/page.tsx`, `tenant.ts`, `package.json`, `services/auth.ts`, `incubator/page.tsx`, `lucide-react`, `startup-reviews/[id]/route.ts`, `documents/[id]/route.ts`, `evaluation-criteria/[id]/route.ts`, `feedback/route.ts`, `SimpleLayout.tsx`, `availability/route.ts`, `frontend/context/AuthContext.tsx`, `mentorship-sessions/[id]/route.ts`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+- **Why does `next` connect `next` to `layout.tsx`, `evaluations/[id]/route.ts`, `handleApiError`, `evaluations/route.ts`, `action-points/route.ts`, `notifications/[id]/route.ts`, `csv/route.ts`, `taskService.ts`, `mentors/page.tsx`, `checked-components/page.tsx`, `app/page.tsx`, `type/route.ts`, `requireOrg`, `complete/route.ts`, `signup/route.ts`, `CollaboratorService`, `notificationService.ts`, `Button`, `validation.ts`, `react`, `preincubator/page.tsx`, `tenant.ts`, `package.json`, `frontend/context/AuthContext.tsx`, `incubator/page.tsx`, `startup-reviews/[id]/route.ts`, `read/route.ts`, `reviews/route.ts`, `documents/[id]/route.ts`, `session.ts`, `availability/route.ts`, `login/route.ts`, `mentorship-sessions/[id]/route.ts`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `fs` to the rest of the system?**
-  _1177 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1167 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `next` be split into smaller, more focused modules?**
-  _Cohesion score 0.06651017214397496 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `preincubator/page.tsx`, `supabase.ts`, `package.json`, `services/auth.ts`, `incubators/page.tsx`, `SimpleLayout.tsx`, `incubator/page.tsx`, `frontend/context/AuthContext.tsx`, `Button`, `lucide-react`, `super-admin/Sidebar.tsx`?**
-  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+  _Cohesion score 0.0733099209833187 - nodes in this community are weakly interconnected._
+- **Why does `react` connect `react` to `preincubator/page.tsx`, `checked-components/page.tsx`, `mentors/page.tsx`, `package.json`, `app/page.tsx`, `frontend/context/AuthContext.tsx`, `incubator/page.tsx`, `Button`, `lucide-react`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Should `ShadcnInstaller` be split into smaller, more focused modules?**
   _Cohesion score 0.0531986531986532 - nodes in this community are weakly interconnected._
-- **Why does `TailwindConfigGenerator` connect `TailwindConfigGenerator` to `json`, `TestTailwindConfigGenerator`, `.test_add_color_palette`, `.test_add_fonts`, `.test_add_breakpoints`, `.test_add_plugins_no_duplicates`, `.test_recommend_plugins_nextjs`, `.test_generate_typescript_config`, `.test_generate_javascript_config`, `.test_generate_config_with_plugins`, `.test_validate_config_valid`, `.test_validate_config_no_content`, `.test_write_config`, `.test_write_config_creates_content`, `.test_write_config_force_overwrites_existing_file`, `.test_default_output_path_typescript`, `.test_full_configuration_typescript`, `.test_custom_output_path`, `.test_base_config_structure`, `.test_default_content_paths_nextjs`, `.test_default_content_paths_vue`, `.test_add_colors`, `.generate_config_string`, `._base_config`, `TestGeneratedConfigIsValidJs`?**
+- **Why does `TailwindConfigGenerator` connect `TailwindConfigGenerator` to `json`, `TestTailwindConfigGenerator`, `.test_add_color_palette`, `.test_add_fonts`, `.test_add_breakpoints`, `.test_add_plugins_no_duplicates`, `.test_recommend_plugins_nextjs`, `.test_generate_typescript_config`, `.test_generate_javascript_config`, `.test_generate_config_with_plugins`, `.test_validate_config_valid`, `.test_validate_config_no_content`, `.test_write_config`, `.test_write_config_creates_content`, `.test_write_config_force_overwrites_existing_file`, `.test_default_output_path_typescript`, `.test_full_configuration_typescript`, `.test_custom_output_path`, `.test_base_config_structure`, `.test_default_content_paths_nextjs`, `.test_default_content_paths_vue`, `.test_add_colors`, `.generate_config_string`, `._base_config`, `test_tailwind_config_gen.py`, `TestGeneratedConfigIsValidJs`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Should `react` be split into smaller, more focused modules?**
-  _Cohesion score 0.05297334244702666 - nodes in this community are weakly interconnected._
+- **Should `checked-components/page.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.047719298245614036 - nodes in this community are weakly interconnected._

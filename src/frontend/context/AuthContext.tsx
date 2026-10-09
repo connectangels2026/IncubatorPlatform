@@ -104,10 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setIsLoading(true);
     try {
-      const { data, error: signupErr } = await apiSignUp(email, password);
-      if (signupErr) throw signupErr;
-      setUser(data.user);
-      setSession(data.session);
+      const res = await fetch('/api/v1/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
+      setUser(data.user || null);
+      setSession(data.session || null);
       return { success: true };
     } catch (err: any) {
       const msg = err.message || 'Failed to sign up';

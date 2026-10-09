@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import {
   ArrowRight, ShieldCheck, Calendar, Layers, Users, Globe,
-  FileCheck2,
+  FileCheck2, Rocket, TrendingUp, Handshake, FolderKanban,
+  GraduationCap, Network, BarChart3, Check, ClipboardList,
+  Sparkles, Star,
 } from 'lucide-react';
+import { Counter, ScrollRevealInit } from '@/frontend/components/landing/LandingAnimations';
+import Logo from '@/frontend/components/ui/Logo';
 
 export const metadata = {
   title: 'Arba360 — Enterprise Incubator Management Platform',
@@ -12,6 +16,7 @@ export const metadata = {
 export default function Home() {
   return (
     <div className="antialiased overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#EDF2FA', color: '#1A2151' }}>
+      <ScrollRevealInit />
 
       {/* ── NAVBAR ── */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
@@ -19,17 +24,7 @@ export default function Home() {
           <div className="flex items-center justify-between h-20">
 
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4L3 18H8.5L12 11.5L15.5 18H21L12 4Z" fill="currentColor" />
-                  <path d="M12 8L7.5 16H10L12 12.5L14 16H16.5L12 8Z" fill="white" opacity="0.4" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold tracking-tight" style={{ color: '#1A2151' }}>
-                Arba<span className="text-gradient-brand">360</span>
-              </span>
-            </Link>
+            <Logo size="lg" href="/" />
 
             {/* Center Nav */}
             <nav className="hidden md:flex items-center gap-8">
@@ -60,9 +55,10 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
 
               {/* Left */}
-              <div className="lg:col-span-6 px-6 sm:px-8 lg:px-12 py-12 lg:py-20 flex flex-col justify-center">
+              <div className="lg:col-span-6 px-6 sm:px-8 lg:px-12 py-12 lg:py-20 flex flex-col justify-center animate-fade-in-up">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#2563EB]/30 text-[#2563EB] text-xs font-semibold shadow-sm mb-6">
-                  <span>🚀 Innovation &amp; Incubation Platform</span>
+                  <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" />
+                  <span>Innovation &amp; Incubation Platform</span>
                 </div>
                 <h1 className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight leading-[1.15] mb-6" style={{ color: '#1A2151' }}>
                   Manage Startups.<br />
@@ -73,12 +69,13 @@ export default function Home() {
                   Launch and manage your incubator ecosystem — startups, mentors, investors, and co-incubation programs, all in one auditable platform.
                 </p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8">
-                  <Link href="/signup" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
+                  <Link href="/signup" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
                     Get Started <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
-                  <a href="#features" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl bg-white border-2 text-base font-semibold hover:bg-slate-50 transition-all duration-200" style={{ borderColor: 'rgba(26,33,81,0.2)', color: '#1A2151' }}>
-                    Platform Overview
-                  </a>
+                  <Link href="/incubators" className="inline-flex justify-center items-center px-6 py-3.5 rounded-xl bg-white border border-slate-200/90 hover:border-[#2563EB]/40 text-base font-semibold text-[#1A2151] hover:text-[#2563EB] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+                    <span>Explore All Incubators</span>
+                    <ArrowRight className="w-4 h-4 ml-2 text-[#2563EB] group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                   <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -87,7 +84,7 @@ export default function Home() {
               </div>
 
               {/* Right — Light Visual (matches screenshot) */}
-              <div className="lg:col-span-6 relative flex items-center justify-center p-6 sm:p-8 lg:p-10 overflow-hidden min-h-[560px]" style={{ backgroundColor: '#EDF2FA' }}>
+              <div className="lg:col-span-6 relative flex items-center justify-center p-6 sm:p-8 lg:p-10 overflow-hidden min-h-[560px] animate-fade-in-right" style={{ backgroundColor: '#EDF2FA' }}>
                 {/* Concentric circles */}
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 600" fill="none" stroke="rgba(37,99,235,0.12)">
                   <circle cx="300" cy="300" r="100" />
@@ -97,7 +94,7 @@ export default function Home() {
                 </svg>
 
                 {/* Dashboard Card */}
-                <div className="relative w-full max-w-[420px] bg-white rounded-2xl shadow-xl p-4 border border-slate-200/60 z-10">
+                <div className="relative w-full max-w-[420px] bg-white rounded-2xl shadow-xl p-4 border border-slate-200/60 z-10 transition-transform duration-300 hover:scale-[1.01]">
                   {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-slate-100 text-center">
                     {[['33','Startups'],['12','Mentors'],['5','Investors']].map(([n,l]) => (
@@ -162,15 +159,21 @@ export default function Home() {
 
                 {/* Floating Badges */}
                 <div className="animate-float-1 absolute top-6 left-1/2 -translate-x-1/2 bg-white px-3 py-2 rounded-xl shadow-md border border-emerald-100 flex items-center gap-2 z-20 whitespace-nowrap">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-[10px] font-bold">✓</div>
+                  <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
                   <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>Mentor Matched</p><p className="text-[9px] text-slate-400">Fintech Cohort #4</p></div>
                 </div>
                 <div className="animate-float-2 absolute bottom-8 left-1/2 -translate-x-1/2 bg-white px-3 py-2 rounded-xl shadow-md border border-blue-100 flex items-center gap-2 z-20 whitespace-nowrap">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: '#2563EB' }}>📋</div>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: '#2563EB' }}>
+                    <ClipboardList className="w-3.5 h-3.5" />
+                  </div>
                   <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>New Application</p><p className="text-[9px] text-slate-400">AI DeepTech Program</p></div>
                 </div>
                 <div className="animate-float-3 absolute top-6 right-4 sm:right-6 bg-white px-3 py-2 rounded-xl shadow-md border border-purple-100 flex items-center gap-2 z-20 whitespace-nowrap">
-                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white text-[10px] font-bold">🤝</div>
+                  <div className="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-white">
+                    <Handshake className="w-3.5 h-3.5" />
+                  </div>
                   <div><p className="text-[11px] font-bold" style={{ color: '#1A2151' }}>Co-incubation Active</p><p className="text-[9px] text-slate-400">2 Partner Networks</p></div>
                 </div>
               </div>
@@ -183,16 +186,20 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
               {[
-                { icon: '🚀', bg: 'bg-blue-50', num: '200+', label: 'Startups Supported' },
-                { icon: '👥', bg: 'bg-emerald-50', num: '50+', label: 'Expert Mentors' },
-                { icon: '💰', bg: 'bg-purple-50', num: '30+', label: 'Active Investors' },
-                { icon: '🤝', bg: 'bg-cyan-50', num: '15', label: 'Co-incubation Programs' },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center justify-center gap-4 px-4 pt-4 sm:pt-0">
-                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center text-2xl flex-shrink-0`}>{s.icon}</div>
+                { Icon: Rocket, color: 'text-blue-600', bg: 'bg-blue-50', count: 200, suffix: '+', label: 'Startups Supported' },
+                { Icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', count: 50, suffix: '+', label: 'Expert Mentors' },
+                { Icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50', count: 30, suffix: '+', label: 'Active Investors' },
+                { Icon: Handshake, color: 'text-cyan-600', bg: 'bg-cyan-50', count: 15, suffix: '', label: 'Co-incubation Programs' },
+              ].map(({ Icon, color, bg, count, suffix, label }) => (
+                <div key={label} className="flex items-center justify-center gap-4 px-4 pt-4 sm:pt-0 scroll-reveal">
+                  <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center flex-shrink-0 transition-transform duration-300 hover:scale-110`}>
+                    <Icon className={`w-6 h-6 ${color}`} />
+                  </div>
                   <div>
-                    <p className="text-3xl font-extrabold tracking-tight" style={{ color: '#1A2151' }}>{s.num}</p>
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{s.label}</p>
+                    <p className="text-3xl font-extrabold tracking-tight" style={{ color: '#1A2151' }}>
+                      <Counter end={count} suffix={suffix} />
+                    </p>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
                   </div>
                 </div>
               ))}
@@ -212,17 +219,19 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {[
-                { icon: '📁', bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:text-[#2563EB]', title: 'Startup Portfolio Management', desc: 'Track cohorts, applications, milestones, and startup progress in one place. Automated reporting keeps stakeholders informed without spreadsheets.' },
-                { icon: '👨‍🏫', bg: 'bg-emerald-50', border: 'border-emerald-100', hover: 'hover:text-emerald-600', title: 'Mentorship Hub', desc: 'Connect startups with General Mentors and Subject Matter Experts (SME). Smart matching pairings based on domain, skill gap, and founder needs.' },
-                { icon: '🔗', bg: 'bg-purple-50', border: 'border-purple-100', hover: 'hover:text-purple-600', title: 'Co-Incubation Programs', desc: 'Launch and manage joint incubation partnerships and cross-institution programs effortlessly with shared permission controls and audit logs.' },
-                { icon: '📊', bg: 'bg-amber-50', border: 'border-amber-100', hover: 'hover:text-amber-600', title: 'Analytics Dashboard', desc: 'Real-time insights on portfolio performance, mentor engagement, economic outcomes, and grant utilization for board level presentation.' },
-              ].map((f) => (
-                <div key={f.title} className="bg-white rounded-2xl p-8 shadow-soft hover:shadow-card-hover transition-all duration-300 border border-slate-100 group">
+                { Icon: FolderKanban, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:text-[#2563EB]', title: 'Startup Portfolio Management', desc: 'Track cohorts, applications, milestones, and startup progress in one place. Automated reporting keeps stakeholders informed without spreadsheets.' },
+                { Icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', hover: 'hover:text-emerald-600', title: 'Mentorship Hub', desc: 'Connect startups with General Mentors and Subject Matter Experts (SME). Smart matching pairings based on domain, skill gap, and founder needs.' },
+                { Icon: Network, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', hover: 'hover:text-purple-600', title: 'Co-Incubation Programs', desc: 'Launch and manage joint incubation partnerships and cross-institution programs effortlessly with shared permission controls and audit logs.' },
+                { Icon: BarChart3, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100', hover: 'hover:text-amber-600', title: 'Analytics Dashboard', desc: 'Real-time insights on portfolio performance, mentor engagement, economic outcomes, and grant utilization for board level presentation.' },
+              ].map(({ Icon, color, bg, border, hover, title, desc }) => (
+                <div key={title} className="bg-white rounded-2xl p-8 shadow-soft hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 border border-slate-100 group scroll-reveal">
                   <div className="flex items-start gap-5">
-                    <div className={`w-14 h-14 rounded-2xl ${f.bg} border ${f.border} flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform`}>{f.icon}</div>
+                    <div className={`w-14 h-14 rounded-2xl ${bg} border ${border} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className={`w-7 h-7 ${color}`} />
+                    </div>
                     <div>
-                      <h3 className={`text-xl font-bold mb-2 transition-colors ${f.hover}`} style={{ color: '#1A2151' }}>{f.title}</h3>
-                      <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{f.desc}</p>
+                      <h3 className={`text-xl font-bold mb-2 transition-colors ${hover}`} style={{ color: '#1A2151' }}>{title}</h3>
+                      <p className="text-slate-600 leading-relaxed text-sm sm:text-base">{desc}</p>
                     </div>
                   </div>
                 </div>
@@ -268,11 +277,11 @@ export default function Home() {
                 { img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=120&auto=format&fit=crop&q=80', name: 'Aisha Patel', role: 'Chief AI Strategist @ DeepTech Labs', badge: 'SME Expert', badgeBg: 'bg-blue-50 text-[#2563EB] border-blue-200', tags: ['AI & ML','IP & Patents'] },
                 { img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80', name: "David O'Connor", role: 'Partner @ Horizon Ventures', badge: 'General Mentor', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', tags: ['Series A','Unit Economics'] },
               ].map((m) => (
-                <div key={m.name} className="bg-white rounded-2xl p-6 shadow-soft hover:shadow-card-hover transition-all duration-300 border border-slate-100 flex flex-col justify-between group">
+                <div key={m.name} className="bg-white rounded-2xl p-6 shadow-soft hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 border border-slate-100 flex flex-col justify-between group scroll-reveal">
                   <div>
                     <div className="flex items-start justify-between mb-4">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.img} alt={m.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#2563EB]/20 shadow" />
+                      <img src={m.img} alt={m.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#2563EB]/20 shadow group-hover:scale-105 transition-transform duration-300" />
                       <span className={`px-2.5 py-1 rounded-full border text-[11px] font-bold ${m.badgeBg}`}>{m.badge}</span>
                     </div>
                     <h3 className="text-lg font-bold group-hover:text-[#2563EB] transition-colors" style={{ color: '#1A2151' }}>{m.name}</h3>
@@ -283,7 +292,7 @@ export default function Home() {
                       ))}
                     </div>
                   </div>
-                  <Link href="/login" className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-[#1A2151] hover:text-white text-[#1A2151] font-semibold text-xs transition-all duration-200 border border-slate-200 flex items-center justify-center gap-1.5">
+                  <Link href="/login" className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-[#1A2151] hover:text-white hover:shadow-md text-[#1A2151] font-semibold text-xs transition-all duration-200 border border-slate-200 flex items-center justify-center gap-1.5">
                     Schedule Session <Calendar className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -307,7 +316,9 @@ export default function Home() {
                     'Automated investor update digest distribution',
                   ].map((pt) => (
                     <div key={pt} className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">✓</div>
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
                       <span>{pt}</span>
                     </div>
                   ))}
@@ -322,10 +333,10 @@ export default function Home() {
                   { abbr: 'NV', bg: 'bg-[#2563EB]', name: 'NextGen Ventures', type: 'Pre-Seed Angel Syndicate', ticket: '$50K - $250K', tags: ['AI / ML','DeepTech'] },
                   { abbr: 'CVC', bg: 'bg-purple-600', name: 'Crest Alliance', type: 'Corporate VC Network', ticket: '$500K - $3M', tags: ['HealthTech','CleanTech'] },
                 ].map((inv) => (
-                  <div key={inv.name} className="rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-soft transition-all duration-200 flex flex-col justify-between" style={{ backgroundColor: '#EDF2FA' }}>
+                  <div key={inv.name} className="rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between scroll-reveal group" style={{ backgroundColor: '#EDF2FA' }}>
                     <div>
-                      <div className={`w-10 h-10 rounded-xl ${inv.bg} text-white flex items-center justify-center font-bold text-sm mb-3`}>{inv.abbr}</div>
-                      <h4 className="font-bold text-sm" style={{ color: '#1A2151' }}>{inv.name}</h4>
+                      <div className={`w-10 h-10 rounded-xl ${inv.bg} text-white flex items-center justify-center font-bold text-sm mb-3 group-hover:scale-105 transition-transform`}>{inv.abbr}</div>
+                      <h4 className="font-bold text-sm group-hover:text-[#2563EB] transition-colors" style={{ color: '#1A2151' }}>{inv.name}</h4>
                       <p className="text-[11px] text-slate-500 mb-3">{inv.type}</p>
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Ticket Size</p>
                       <p className="text-xs font-bold mb-3" style={{ color: '#1A2151' }}>{inv.ticket}</p>
@@ -333,7 +344,7 @@ export default function Home() {
                         {inv.tags.map((t) => <span key={t} className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[9px] text-slate-600 font-semibold">{t}</span>)}
                       </div>
                     </div>
-                    <Link href="/login" className="w-full py-1.5 rounded-lg bg-white font-bold text-xs border border-slate-200 hover:bg-[#1A2151] hover:text-white transition-colors text-center block" style={{ color: '#1A2151' }}>
+                    <Link href="/login" className="w-full py-1.5 rounded-lg bg-white font-bold text-xs border border-slate-200 hover:bg-[#1A2151] hover:text-white transition-all text-center block" style={{ color: '#1A2151' }}>
                       View Profile
                     </Link>
                   </div>
@@ -346,10 +357,10 @@ export default function Home() {
         {/* ── CO-INCUBATION ── */}
         <section className="py-20 lg:py-24 text-white relative overflow-hidden" style={{ backgroundColor: '#1A2151' }}>
           <div className="absolute inset-0 hero-pattern opacity-30" />
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'rgba(6,182,212,0.1)' }} />
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl animate-pulse-glow" style={{ backgroundColor: 'rgba(6,182,212,0.12)' }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              <div className="lg:col-span-6 space-y-6">
+              <div className="lg:col-span-6 space-y-6 scroll-reveal">
                 <span className="px-3 py-1 rounded-full bg-white/10 border text-xs font-semibold" style={{ color: '#06B6D4', borderColor: 'rgba(6,182,212,0.3)' }}>Multi-Tenant Ecosystem</span>
                 <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">Partner-Driven Growth Through Co-Incubation</h2>
                 <p className="text-slate-300 text-base leading-relaxed">Break institutional silos. Launch joint accelerators across universities, corporations, and government innovation agencies with unified oversight.</p>
@@ -372,25 +383,28 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-              <div className="lg:col-span-6">
-                <div className="rounded-2xl p-6 border border-slate-700/60 shadow-2xl space-y-4" style={{ backgroundColor: 'rgba(15,21,53,0.9)' }}>
+              <div className="lg:col-span-6 scroll-reveal">
+                <div className="rounded-2xl p-6 border border-slate-700/60 shadow-2xl space-y-4 hover:border-slate-600 transition-colors" style={{ backgroundColor: 'rgba(15,21,53,0.9)' }}>
                   <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
                       <span className="font-bold text-sm text-white">Active Co-Incubation Network</span>
                     </div>
                     <span className="text-xs font-semibold" style={{ color: '#06B6D4' }}>3 Partner Hubs Connected</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center py-2">
-                    <div className="p-3 rounded-xl border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="p-3 rounded-xl border hover:border-white/20 transition-colors" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
                       <p className="text-xs font-bold text-white">TechHub US</p>
                       <p className="text-[10px] text-slate-400">14 Startups</p>
                     </div>
-                    <div className="p-3 rounded-xl border" style={{ backgroundColor: 'rgba(6,182,212,0.05)', borderColor: 'rgba(6,182,212,0.4)' }}>
+                    <div className="p-3 rounded-xl border shadow-sm" style={{ backgroundColor: 'rgba(6,182,212,0.05)', borderColor: 'rgba(6,182,212,0.4)' }}>
                       <p className="text-xs font-bold" style={{ color: '#06B6D4' }}>Arba360 Core</p>
                       <p className="text-[10px] text-slate-300">Unified Portal</p>
                     </div>
-                    <div className="p-3 rounded-xl border" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="p-3 rounded-xl border hover:border-white/20 transition-colors" style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }}>
                       <p className="text-xs font-bold text-white">BioEurope</p>
                       <p className="text-[10px] text-slate-400">12 Startups</p>
                     </div>
@@ -400,8 +414,8 @@ export default function Home() {
                       <span>Joint Grant Allocation Progress</span>
                       <span className="font-bold" style={{ color: '#06B6D4' }}>$1.2M / $1.5M</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                      <div className="w-4/5 h-full bg-gradient-brand" />
+                    <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden relative">
+                      <div className="w-4/5 h-full bg-gradient-brand rounded-full" />
                     </div>
                   </div>
                 </div>
@@ -413,24 +427,32 @@ export default function Home() {
         {/* ── HOW IT WORKS ── */}
         <section className="py-20 lg:py-28 border-t border-slate-200/60" style={{ backgroundColor: '#EDF2FA' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-center max-w-2xl mx-auto mb-16 scroll-reveal">
               <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#2563EB' }}>Standardized Process</span>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-4" style={{ color: '#1A2151' }}>Your incubation journey, simplified</h2>
               <p className="text-slate-600 text-base">From intake evaluation to alumni scaling, Arba360 standardizes every critical phase of startup development.</p>
             </div>
             <div className="relative">
-              <div className="hidden lg:block absolute top-1/2 left-12 right-12 h-0.5 border-t-2 border-dashed border-slate-300 -translate-y-8 z-0" />
+              {/* Sequential Line Flow & Pulse Wave */}
+              <div className="hidden lg:block absolute top-1/2 left-[10%] right-[10%] -translate-y-8 z-0">
+                <div className="w-full h-0.5 border-t-2 border-dashed border-slate-300 relative">
+                  {/* Glowing Pulse Wave Comet */}
+                  <div className="animate-pulse-comet w-16 h-2 -top-1 rounded-full bg-gradient-to-r from-transparent via-[#06B6D4] to-[#2563EB] shadow-[0_0_14px_#2563EB] blur-[0.5px]" />
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 relative z-10">
                 {[
-                  { num: '①', title: 'Apply', desc: 'Custom intake forms with automated eligibility checks and applicant portal.' },
-                  { num: '②', title: 'Select', desc: 'Multi-reviewer scoring committees, pitch panel evaluation, and contract generation.' },
-                  { num: '③', title: 'Mentor', desc: 'Automated mentor matching, office hours calendar, and progress check-in tracking.' },
-                  { num: '④', title: 'Track', desc: 'Milestone verification, grant disbursement approvals, and health score monitoring.' },
-                  { num: '⑤', title: 'Scale', desc: 'Investor showcase room, demo day portal, and long-term alumni ecosystem engagement.' },
+                  { step: '01', pulseClass: 'wave-pulse-1', title: 'Apply', desc: 'Custom intake forms with automated eligibility checks and applicant portal.' },
+                  { step: '02', pulseClass: 'wave-pulse-2', title: 'Select', desc: 'Multi-reviewer scoring committees, pitch panel evaluation, and contract generation.' },
+                  { step: '03', pulseClass: 'wave-pulse-3', title: 'Mentor', desc: 'Automated mentor matching, office hours calendar, and progress check-in tracking.' },
+                  { step: '04', pulseClass: 'wave-pulse-4', title: 'Track', desc: 'Milestone verification, grant disbursement approvals, and health score monitoring.' },
+                  { step: '05', pulseClass: 'wave-pulse-5', title: 'Scale', desc: 'Investor showcase room, demo day portal, and long-term alumni ecosystem engagement.' },
                 ].map((s) => (
-                  <div key={s.title} className="bg-white rounded-2xl p-6 shadow-soft text-center flex flex-col items-center hover:-translate-y-1 transition-transform border border-slate-100">
-                    <div className="w-12 h-12 rounded-full text-white text-lg font-bold flex items-center justify-center mb-4 shadow-md" style={{ backgroundColor: '#1A2151' }}>{s.num}</div>
-                    <h3 className="text-lg font-bold mb-2" style={{ color: '#1A2151' }}>{s.title}</h3>
+                  <div key={s.title} className="bg-white rounded-2xl p-6 shadow-soft text-center flex flex-col items-center hover:-translate-y-2.5 hover:shadow-card-hover hover:border-blue-200 transition-all duration-300 border border-slate-100 group scroll-reveal cursor-default">
+                    <div className={`w-12 h-12 rounded-full text-white text-xs font-bold tracking-wider flex items-center justify-center mb-4 shadow-md group-hover:scale-110 group-hover:bg-[#2563EB] transition-all duration-300 font-mono ${s.pulseClass}`}>
+                      {s.step}
+                    </div>
+                    <h3 className="text-lg font-bold mb-2 group-hover:text-[#2563EB] transition-colors" style={{ color: '#1A2151' }}>{s.title}</h3>
                     <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
                   </div>
                 ))}
@@ -442,7 +464,7 @@ export default function Home() {
         {/* ── TESTIMONIALS ── */}
         <section id="about" className="py-20 lg:py-28 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-center max-w-2xl mx-auto mb-16 scroll-reveal">
               <span className="text-xs font-bold tracking-widest uppercase" style={{ color: '#2563EB' }}>Social Proof</span>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-4" style={{ color: '#1A2151' }}>Trusted by top global incubators</h2>
               <p className="text-slate-600 text-base">See how enterprise innovation centers use Arba360 to amplify program outcomes.</p>
@@ -453,9 +475,13 @@ export default function Home() {
                 { quote: '"The mentor matching feature alone saved our team 80+ manual coordination hours per cohort. Mentors love the simplicity of scheduling."', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80', name: 'Marcus Chen', role: 'Head of Ecosystem, TechScale Regional' },
                 { quote: '"Audit-ready reporting made grant compliance seamless for our public fund partners. Arba360 is indispensable for modern incubation."', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80', name: 'Aisha Al-Hassan', role: 'Director, National Venture Fund' },
               ].map((t) => (
-                <div key={t.name} className="rounded-2xl p-8 border border-slate-200/60 shadow-sm flex flex-col justify-between" style={{ backgroundColor: '#EDF2FA' }}>
+                <div key={t.name} className="rounded-2xl p-8 border border-slate-200/60 shadow-sm hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between scroll-reveal" style={{ backgroundColor: '#EDF2FA' }}>
                   <div>
-                    <div className="flex text-amber-400 mb-4 text-sm">★★★★★</div>
+                    <div className="flex items-center gap-1 text-amber-400 mb-4">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
                     <p className="text-slate-700 text-sm leading-relaxed mb-6 italic">{t.quote}</p>
                   </div>
                   <div className="flex items-center gap-3 pt-4 border-t border-slate-200/80">
@@ -475,15 +501,15 @@ export default function Home() {
         {/* ── CTA BANNER ── */}
         <section id="get-started" className="relative py-20 overflow-hidden text-center text-white" style={{ backgroundColor: '#1A2151' }}>
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to right, rgba(37,99,235,0.2), transparent, rgba(6,182,212,0.2))' }} />
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: 'rgba(37,99,235,0.3)' }} />
-          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-3xl pointer-events-none animate-pulse-glow" style={{ backgroundColor: 'rgba(37,99,235,0.35)' }} />
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10 scroll-reveal">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-6">Ready to build the next generation of startups?</h2>
             <p className="text-slate-300 text-lg sm:text-xl max-w-2xl mx-auto mb-10">Join leading university, corporate, and regional incubators already using Arba360 to manage their startup ecosystem.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/signup" className="px-8 py-4 rounded-xl bg-white font-bold text-base shadow-xl hover:bg-slate-100 transition-all duration-200 hover:-translate-y-0.5 w-full sm:w-auto" style={{ color: '#1A2151' }}>
+              <Link href="/signup" className="px-8 py-4 rounded-xl bg-white font-bold text-base shadow-xl hover:bg-slate-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 w-full sm:w-auto" style={{ color: '#1A2151' }}>
                 Get Started Free
               </Link>
-              <Link href="/login" className="px-8 py-4 rounded-xl border border-white/30 text-white font-semibold text-base hover:bg-white/10 transition-all duration-200 w-full sm:w-auto">
+              <Link href="/login" className="px-8 py-4 rounded-xl border border-white/30 text-white font-semibold text-base hover:bg-white/10 hover:-translate-y-1 transition-all duration-200 w-full sm:w-auto">
                 Sign In to Dashboard
               </Link>
             </div>
@@ -496,14 +522,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
             <div className="lg:col-span-2 space-y-4">
-              <Link href="/" className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-brand flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 4L3 18H8.5L12 11.5L15.5 18H21L12 4Z" fill="currentColor" />
-                  </svg>
-                </div>
-                <span className="text-xl font-bold tracking-tight text-white">Arba<span className="text-gradient-brand">360</span></span>
-              </Link>
+              <Logo size="lg" variant="light" href="/" />
               <p className="text-xs leading-relaxed max-w-sm text-slate-400">The all-in-one enterprise operating system for innovation centers, university accelerators, corporate venture hubs, and grant managers.</p>
               <div className="flex gap-4 pt-2">
                 {/* X / Twitter */}

@@ -13,24 +13,24 @@ export async function GET(req: NextRequest) {
   try {
     const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
-
-    const realOrgId = resolveOrg(orgId);
+    const rawOrgId = req.headers.get('x-org-id') || req.nextUrl.searchParams.get('org_id');
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get('status');
     const applicationType = searchParams.get('application_type');
     const search = searchParams.get('search');
     const fromDate = searchParams.get('from_date');
     const toDate = searchParams.get('to_date');
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     let query = supabaseAdmin
       .from('applications')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', realOrgId)
+      .select('*, organization:organizations(id, name, slug)', { count: 'exact' })
       .is('deleted_at', null);
+
+    if (rawOrgId && rawOrgId !== 'all' && isValidUUID(rawOrgId)) {
+      query = query.eq('organization_id', rawOrgId);
+    }
 
     // Role check: Applicants can only see their own applications
     const role = user?.role?.toLowerCase() || '';
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      organization_id: realOrgId,
+      organization_id: rawOrgId || 'all',
       total: count ?? data?.length ?? 0,
       data: data || [],
     });
@@ -64,12 +64,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { user, errorResponse: authError } = await verifyAuth(req);
-    if (authError) return authError;
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
-
-    const realOrgId = resolveOrg(orgId);
     const body = await req.json();
 
     if (!body.applicant_name || !body.applicant_email) {
@@ -79,8 +73,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Try optional auth or fallback to guest applicant
+    const { user } = await verifyAuth(req);
+    const { orgId: headerOrgId } = requireOrg(req);
+
+    // Resolve target incubator organization
+    let targetOrgId = body.organization_id || headerOrgId;
+    let organizationRecord: any = null;
+
+    if (body.incubator_slug) {
+      const { data: orgBySlug } = await supabaseAdmin
+        .from('organizations')
+        .select('id, name, email, founder_email')
+        .eq('slug', body.incubator_slug)
+        .maybeSingle();
+      if (orgBySlug) {
+        targetOrgId = orgBySlug.id;
+        organizationRecord = orgBySlug;
+      }
+    }
+
+    if (!targetOrgId || !isValidUUID(targetOrgId)) {
+      targetOrgId = DEFAULT_ORG_ID;
+    }
+
+    if (!organizationRecord) {
+      const { data: orgData } = await supabaseAdmin
+        .from('organizations')
+        .select('id, name, email, founder_email')
+        .eq('id', targetOrgId)
+        .maybeSingle();
+      organizationRecord = orgData;
+    }
+
     const payload = {
-      organization_id: realOrgId,
+      organization_id: targetOrgId,
       applicant_name: body.applicant_name,
       applicant_email: body.applicant_email.toLowerCase().trim(),
       applicant_phone: body.applicant_phone || null,
@@ -101,17 +128,19 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    // Trigger application submission notification & confirmation email
+    const startupName = body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || body.applicant_name;
+    const incubatorName = organizationRecord?.name || 'Incubator';
+
+    // 1. Send confirmation email to Startup Applicant
     try {
       const recipientId = user?.id && isValidUUID(user.id) ? user.id : 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
-      const startupName = body.form_data?.startup_name || body.form_data?.name || body.applicant_name;
       await NotificationService.createNotification({
-        organization_id: realOrgId,
+        organization_id: targetOrgId,
         recipient_id: recipientId,
         recipient_name: body.applicant_name,
         recipient_email: body.applicant_email,
-        title: 'Application Received Successfully',
-        message: `Thank you for submitting your application for ${startupName}. Our review committee has received your submission.`,
+        title: `Application Received: ${startupName} to ${incubatorName}`,
+        message: `Thank you for submitting your application to ${incubatorName} for the ${payload.application_type} program. The committee has received your submission.`,
         notification_type: 'application_submission',
         send_email: true,
         send_in_app: true,
@@ -120,10 +149,40 @@ export async function POST(req: NextRequest) {
         metadata: {
           startup_name: startupName,
           cohort: data.cohort_name,
+          program: payload.application_type,
+          incubator: incubatorName,
         },
       });
-    } catch (notifErr) {
-      console.warn('Failed to dispatch application submission notification:', notifErr);
+    } catch (applicantNotifErr) {
+      console.warn('Failed to dispatch applicant confirmation notification:', applicantNotifErr);
+    }
+
+    // 2. Send alert email to Incubator Admin
+    try {
+      const adminEmail = organizationRecord?.founder_email || organizationRecord?.email;
+      if (adminEmail) {
+        await NotificationService.createNotification({
+          organization_id: targetOrgId,
+          recipient_id: 'dfdb0d1a-24a3-4062-98aa-0d723fc23725',
+          recipient_name: organizationRecord.name || 'Incubator Admin',
+          recipient_email: adminEmail,
+          title: `New Application Received: ${startupName}`,
+          message: `A new application has been submitted by ${body.applicant_name} (${body.applicant_email}) for the ${payload.application_type} program.`,
+          notification_type: 'application_submission',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'application',
+          related_entity_id: data.id,
+          metadata: {
+            startup_name: startupName,
+            applicant: body.applicant_name,
+            email: body.applicant_email,
+            program: payload.application_type,
+          },
+        });
+      }
+    } catch (adminNotifErr) {
+      console.warn('Failed to dispatch incubator admin notification:', adminNotifErr);
     }
 
     return NextResponse.json({

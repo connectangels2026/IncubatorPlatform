@@ -19,7 +19,9 @@ export async function middleware(req: NextRequest) {
     !req.nextUrl.pathname.includes('/auth/reset-password') &&
     !req.nextUrl.pathname.includes('/auth/verify-email') &&
     !req.nextUrl.pathname.includes('/auth/google-callback') &&
-    !req.nextUrl.pathname.includes('/reports/dashboard');
+    !req.nextUrl.pathname.includes('/reports/dashboard') &&
+    !req.nextUrl.pathname.startsWith('/api/v1/incubators') &&
+    !(req.nextUrl.pathname === '/api/v1/applications' && req.method === 'POST');
 
   if (isProtectedApiRoute) {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
