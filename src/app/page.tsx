@@ -1,19 +1,20 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight, ShieldCheck, Calendar, Layers, Users, Globe,
   FileCheck2, Rocket, TrendingUp, Handshake, FolderKanban,
   GraduationCap, Network, BarChart3, Check, ClipboardList,
-  Sparkles, Star,
+  Sparkles, Star, LogOut,
 } from 'lucide-react';
 import { Counter, ScrollRevealInit } from '@/frontend/components/landing/LandingAnimations';
 import Logo from '@/frontend/components/ui/Logo';
-
-export const metadata = {
-  title: 'Arba360 — Enterprise Incubator Management Platform',
-  description: 'Launch and manage your incubator ecosystem — startups, mentors, investors, and co-incubation programs, all in one auditable platform.',
-};
+import { useAuth } from '@/frontend/context/AuthContext';
 
 export default function Home() {
+  const router = useRouter();
+  const { user, logout, organization } = useAuth();
   return (
     <div className="antialiased overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#EDF2FA', color: '#1A2151' }}>
       <ScrollRevealInit />
@@ -37,12 +38,41 @@ export default function Home() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-              <Link href="/login" className="text-sm font-semibold hover:text-[#2563EB] transition-colors px-3 py-2" style={{ color: '#1A2151' }}>
-                Sign In
-              </Link>
-              <Link href="/signup" className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: '#1A2151' }}>
-                Get Started
-              </Link>
+              {user ? (
+                // Logged in - show organization name and logout button
+                <>
+                  <div className="text-sm font-medium text-slate-600 px-3 py-2 hidden sm:block">
+                    {organization?.name || 'Organization'}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await logout();
+                    }}
+                    className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
+                    style={{ backgroundColor: '#DC2626' }}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    Dashboard
+                  </button>
+                </>
+              ) : (
+                // Not logged in - show sign in and get started
+                <>
+                  <Link href="/login" className="text-sm font-semibold hover:text-[#2563EB] transition-colors px-3 py-2" style={{ color: '#1A2151' }}>
+                    Sign In
+                  </Link>
+                  <Link href="/signup" className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5" style={{ backgroundColor: '#1A2151' }}>
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

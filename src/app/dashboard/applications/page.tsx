@@ -450,25 +450,28 @@ export default function ApplicationsPage() {
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ? `Bearer ${session.access_token}` : 'Bearer mock-admin';
+      const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
       
-      const res = await apiClient.get('/applications?org_id=all&limit=100', {
-        headers: {
-          Authorization: token,
-          'x-org-id': 'all',
-        },
-      });
+      const endpoint = orgId ? `/applications?org_id=${orgId}&limit=100` : '/applications?limit=100';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = token;
+      if (orgId) headers['x-org-id'] = orgId;
+
+      const res = await apiClient.get(endpoint, { headers });
 
       const dbData = res.data?.data || [];
-      if (Array.isArray(dbData) && dbData.length > 0) {
-        const mappedItems = dbData.map(mapDbRecordToApplicationItem);
-        setApplications(mappedItems);
-      } else {
-        setApplications(INITIAL_APPLICATIONS);
+      if (Array.isArray(dbData)) {
+        if (dbData.length > 0) {
+          const mappedItems = dbData.map(mapDbRecordToApplicationItem);
+          setApplications(mappedItems);
+        } else {
+          setApplications([]);
+        }
       }
     } catch (err: any) {
-      console.warn('Real-time API fallback to seed data:', err?.message);
-      setApplications(INITIAL_APPLICATIONS);
+      console.warn('Real-time API fetch failed:', err?.message);
+      setApplications([]);
     } finally {
       setIsLoading(false);
     }

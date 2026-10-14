@@ -25,11 +25,9 @@ export default function IncubatorSettingsPage() {
   useEffect(() => {
     async function loadPreferences() {
       try {
+        const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
         const res = await apiClient.get('/notifications/preferences', {
-          headers: {
-            'Authorization': 'Bearer mock-admin',
-            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
-          },
+          headers: orgId ? { 'x-org-id': orgId } : {},
         });
         if (res.data?.preferences) {
           setPrefs((prev) => ({ ...prev, ...res.data.preferences }));
@@ -43,11 +41,9 @@ export default function IncubatorSettingsPage() {
 
   const handleSave = async () => {
     try {
+      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
       await apiClient.post('/notifications/preferences', prefs, {
-        headers: {
-          'Authorization': 'Bearer mock-admin',
-          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
-        },
+        headers: orgId ? { 'x-org-id': orgId } : {},
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

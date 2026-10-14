@@ -11,13 +11,36 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor to attach Supabase JWT
+// Request interceptor to attach Supabase JWT and org_id
 apiClient.interceptors.request.use(
   async (config: any) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
+      // Extract org_id from URL or localStorage
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const orgId = urlParams.get('org') || localStorage.getItem('org_id');
+
+        if (orgId) {
+          if (!config.headers) {
+            config.headers = {};
+          }
+          if (!config.headers['x-org-id']) {
+            config.headers['x-org-id'] = orgId;
+          }
+
+          // Add org_id as query parameter if not already present
+          if (!config.params) {
+            config.params = {};
+          }
+          if (!config.params.org_id) {
+            config.params.org_id = orgId;
+          }
+        }
       }
     } catch {
       // Ignore session fetch error on public requests

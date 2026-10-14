@@ -321,45 +321,65 @@ export const StartupsPage: React.FC = () => {
   useEffect(() => {
     const loadStartups = async () => {
       try {
-        const res = await apiClient.get("/startups");
+        // Get organization_id from URL query params or localStorage
+        const searchParams = new URLSearchParams(window.location.search);
+        const orgIdFromUrl = searchParams.get('org');
+        const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+        const orgId = orgIdFromUrl || orgIdFromStorage;
+
+        if (!orgId) {
+          console.warn('Organization ID not found. Cannot fetch startups.');
+          return;
+        }
+
+        // Pass org_id as query parameter to API
+        const res = await apiClient.get("/startups", {
+          params: {
+            org_id: orgId,
+          },
+        });
+
         const apiData = res.data?.data;
-        if (Array.isArray(apiData) && apiData.length > 0) {
-          const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
-            const fallback = INITIAL_STARTUPS.find((s) => s.id === item.id) || INITIAL_STARTUPS[idx % INITIAL_STARTUPS.length];
-            return {
-              id: item.id || String(idx + 1),
-              name: item.name || fallback.name,
-              monogram: fallback.monogram,
-              monogramBg: fallback.monogramBg,
-              sector: item.sector || fallback.sector,
-              industry: item.sector || fallback.industry,
-              stage: item.stage || fallback.stage,
-              status: item.status || fallback.status,
-              mrr: typeof item.revenue === "number" ? item.revenue : fallback.mrr,
-              arr: typeof item.revenue === "number" ? item.revenue * 12 : fallback.arr,
-              customers: fallback.customers,
-              funding: fallback.funding,
-              fundingRaised: fallback.fundingRaised,
-              burn: fallback.burn,
-              monthlyBurn: fallback.monthlyBurn,
-              cohort: item.cohort || fallback.cohort,
-              healthScore: fallback.healthScore,
-              tagline: fallback.tagline,
-              pitch: item.description || fallback.pitch,
-              founder: item.founder_name || fallback.founder,
-              founderEmail: item.email || fallback.founderEmail,
-              website: fallback.website,
-              location: fallback.location,
-              teamMembers: fallback.teamMembers,
-              allocatedMentors: fallback.allocatedMentors || [],
-              allocatedInvestors: fallback.allocatedInvestors || [],
-              coIncubators: fallback.coIncubators || [],
-            };
-          });
-          setStartups(merged);
+        if (Array.isArray(apiData)) {
+          if (apiData.length === 0) {
+            setStartups([]);
+          } else {
+            const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
+              return {
+                id: item.id || String(idx + 1),
+                name: item.name || 'Startup',
+                monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
+                monogramBg: 'bg-blue-600',
+                sector: item.sector || 'General',
+                industry: item.sector || 'General',
+                stage: item.stage || 'Idea',
+                status: item.status || 'active',
+                mrr: typeof item.revenue === "number" ? item.revenue : 0,
+                arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
+                customers: item.customer_count || 0,
+                funding: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                fundingRaised: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                burn: '$0',
+                monthlyBurn: '$0',
+                cohort: item.cohort || 'Cohort 2026',
+                healthScore: '85',
+                tagline: item.description || '',
+                pitch: item.description || '',
+                founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
+                founderEmail: item.email || item.founder_email || '',
+                website: item.website || '',
+                location: 'Remote',
+                teamMembers: [],
+                allocatedMentors: item.allocatedMentors || [],
+                allocatedInvestors: item.allocatedInvestors || [],
+                coIncubators: item.coIncubators || [],
+              };
+            });
+            setStartups(merged);
+          }
         }
       } catch (e) {
-        console.warn("Using local startups fallback", e);
+        console.warn("Error fetching startups", e);
       }
     };
     loadStartups();

@@ -97,10 +97,11 @@ export default function EventsPage() {
   useEffect(() => {
     async function fetchEvents() {
       try {
+        const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
         const res = await fetch('/api/v1/events', {
           headers: {
             Authorization: 'Bearer mock-admin',
-            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+            ...(orgId ? { 'x-org-id': orgId } : {}),
           },
         });
         if (res.ok) {
@@ -135,12 +136,13 @@ export default function EventsPage() {
     };
 
     try {
+      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
       const res = await fetch('/api/v1/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Bearer mock-admin',
-          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+          ...(orgId ? { 'x-org-id': orgId } : {}),
         },
         body: JSON.stringify(payload),
       });

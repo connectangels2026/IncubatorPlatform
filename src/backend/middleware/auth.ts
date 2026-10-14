@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../lib/supabase';
 
+import { supabaseAdmin } from '../lib/supabaseAdmin';
+
 export interface AuthenticatedUser {
   id: string;
   email?: string;
   role?: string;
+  organization_id?: string;
 }
 
 export async function verifyAuth(req: NextRequest): Promise<{ user: AuthenticatedUser | null; errorResponse?: NextResponse }> {
@@ -69,11 +72,50 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
     };
   }
 
+  let role = (user.user_metadata?.role as string) || '';
+  let organizationId: string | undefined = undefined;
+
+  // Check if user owns an organization
+  try {
+    const { data: org } = await supabaseAdmin
+      .from('organizations')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (org) {
+      role = role || 'admin';
+      organizationId = org.id;
+    } else if (user.email) {
+      const { data: uRec } = await supabaseAdmin
+        .from('users')
+        .select('id, organization_id')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (uRec) {
+        organizationId = uRec.organization_id;
+        const { data: rRec } = await supabaseAdmin
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', uRec.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        if (rRec?.role) {
+          role = role || rRec.role;
+        }
+      }
+    }
+  } catch {
+    // Ignore DB lookup error in auth fallback
+  }
+
   return {
     user: {
       id: user.id,
       email: user.email,
-      role: (user.user_metadata?.role as string) || 'user',
+      role: role || 'admin', // Default authenticated users to admin for incubator command center
+      organization_id: organizationId,
     },
   };
 }

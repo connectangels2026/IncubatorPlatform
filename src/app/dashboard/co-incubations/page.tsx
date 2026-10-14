@@ -76,10 +76,11 @@ export default function CoIncubationsPage() {
   useEffect(() => {
     async function fetchCoIncubations() {
       try {
+        const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
         const res = await fetch('/api/v1/co-incubations', {
           headers: {
             Authorization: 'Bearer mock-admin',
-            'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+            ...(orgId ? { 'x-org-id': orgId } : {}),
           },
         });
         if (res.ok) {
@@ -108,12 +109,13 @@ export default function CoIncubationsPage() {
     };
 
     try {
+      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
       const res = await fetch('/api/v1/co-incubations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Bearer mock-admin',
-          'x-org-id': '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279',
+          ...(orgId ? { 'x-org-id': orgId } : {}),
         },
         body: JSON.stringify(payload),
       });

@@ -20,15 +20,29 @@ function VerifyEmailContent() {
     if (token) {
       const verifyToken = async () => {
         try {
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'email',
+          // Call our backend API to verify email and update organization.is_verified
+          const response = await fetch('/api/v1/auth/verify-email', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            // Pass token as query parameter
+            // Note: Next.js will handle URL encoding
           });
-          if (!error) {
+
+          // Actually, let's use the proper URL with query params
+          const verifyUrl = new URL('/api/v1/auth/verify-email', window.location.origin);
+          verifyUrl.searchParams.append('token_hash', token);
+          verifyUrl.searchParams.append('type', 'email');
+
+          const res = await fetch(verifyUrl.toString());
+          const data = await res.json();
+
+          if (data.success) {
             setVerified(true);
           }
         } catch (err) {
-          console.error(err);
+          console.error('Verification error:', err);
         } finally {
           setIsVerifying(false);
         }

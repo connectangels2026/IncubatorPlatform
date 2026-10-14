@@ -116,14 +116,16 @@ export class StartupService {
 
     const { data, count, error } = await query;
 
-    if (error || !data || data.length === 0) {
-      // Fallback if table is empty
-      let list = [...fallbackStartups];
-      if (filter.search) {
-        const q = filter.search.toLowerCase();
-        list = list.filter((s) => s.name.toLowerCase().includes(q) || s.founder_name.toLowerCase().includes(q));
-      }
-      return { startups: list.slice(offset, offset + limit), total: list.length };
+    if (error) {
+      console.error('Error fetching startups:', error);
+      // Return empty array on error to maintain tenant isolation
+      return { startups: [], total: 0 };
+    }
+
+    if (!data || data.length === 0) {
+      // No startups found for this organization - return empty
+      // Do NOT return fallback data from other organizations
+      return { startups: [], total: 0 };
     }
 
     return {

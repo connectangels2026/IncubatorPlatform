@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,13 +18,20 @@ import Logo from '@/frontend/components/ui/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +39,12 @@ export default function LoginPage() {
     setError(null);
     const res = await login(email, password);
     if (res.success) {
-      router.push('/dashboard');
+      const orgId = res.organization?.id;
+      if (orgId) {
+        router.push(`/dashboard?org=${orgId}`);
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       setError(res.error || 'Invalid credentials');
     }

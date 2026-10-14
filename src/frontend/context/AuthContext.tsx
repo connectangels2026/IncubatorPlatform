@@ -6,15 +6,26 @@ import { supabase } from '@/backend/lib/supabase';
 import { signIn, signUp as apiSignUp, signOut as apiSignOut, refreshToken as apiRefreshToken } from '@/backend/services/auth';
 import type { User, Session } from '@supabase/supabase-js';
 
+export interface Organization {
+  id: string;
+  slug: string;
+  name: string;
+  founder_name?: string;
+  founder_email?: string;
+  logo_url?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  organization: Organization | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; organization?: Organization }>;
+  signup: (organization_name: string, founder_name: string, founder_email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
+  refreshOrg: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,9 +33,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const fetchUserOrg = async (token?: string) => {
+    try {
+      const authToken = token || session?.access_token;
+      if (!authToken) return;
+
+      const res = await fetch('/api/v1/auth/me', {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.organization) {
+          setOrganization(data.organization);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('org_id', data.organization.id);
+            if (data.organization.founder_name) {
+              localStorage.setItem('org_founder_name', data.organization.founder_name);
+            }
+            if (data.organization.name) {
+              localStorage.setItem('org_name', data.organization.name);
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  };
 
   useEffect(() => {
     // 1. Initial Session Load
@@ -35,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
+
+        if (initialSession?.access_token) {
+          await fetchUserOrg(initialSession.access_token);
+        }
       } catch (err: any) {
         console.error('Session load error:', err.message);
       } finally {
@@ -46,9 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
+      async (_event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        if (currentSession?.access_token) {
+          await fetchUserOrg(currentSession.access_token);
+        }
         setIsLoading(false);
       }
     );
@@ -86,11 +135,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setIsLoading(true);
     try {
-      const { data, error: loginErr } = await signIn(email, password);
-      if (loginErr) throw loginErr;
-      setUser(data.user);
-      setSession(data.session);
-      return { success: true };
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to login');
+        return { success: false, error: data.error || 'Failed to login', organization: data.organization };
+      }
+
+      setUser(data.user || null);
+      setOrganization(data.organization || null);
+
+      // Store organization ID & founder info in localStorage for API requests
+      if (typeof window !== 'undefined') {
+        if (data.organization?.id) {
+          localStorage.setItem('org_id', data.organization.id);
+        }
+        if (data.organization?.founder_name) {
+          localStorage.setItem('org_founder_name', data.organization.founder_name);
+        }
+        if (data.organization?.name) {
+          localStorage.setItem('org_name', data.organization.name);
+        }
+      }
+
+      return { success: true, organization: data.organization };
     } catch (err: any) {
       const msg = err.message || 'Failed to login';
       setError(msg);
@@ -100,21 +173,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password?: string) => {
+  const signup = async (organization_name: string, founder_name: string, founder_email: string, password: string) => {
     setError(null);
     setIsLoading(true);
     try {
       const res = await fetch('/api/v1/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ organization_name, founder_name, founder_email, password }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to sign up');
       }
-      setUser(data.user || null);
-      setSession(data.session || null);
+      setOrganization({
+        id: data.organization_id,
+        slug: data.slug,
+        name: data.organization_name,
+        founder_name: founder_name.trim(),
+        founder_email: data.founder_email,
+      });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('org_id', data.organization_id);
+        localStorage.setItem('org_founder_name', founder_name.trim());
+        localStorage.setItem('org_name', data.organization_name);
+      }
       return { success: true };
     } catch (err: any) {
       const msg = err.message || 'Failed to sign up';
@@ -131,6 +214,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiSignOut();
       setUser(null);
       setSession(null);
+      setOrganization(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('org_id');
+        localStorage.removeItem('org_founder_name');
+        localStorage.removeItem('org_name');
+      }
       router.push('/login');
     } catch (err: any) {
       console.error('Logout error:', err.message);
@@ -140,18 +229,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const clearError = () => setError(null);
+  const refreshOrg = async () => {
+    await fetchUserOrg();
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         session,
+        organization,
         isLoading,
         error,
         login,
         signup,
         logout,
         clearError,
+        refreshOrg,
       }}
     >
       {children}

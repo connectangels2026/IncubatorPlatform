@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,15 +22,22 @@ import Logo from '@/frontend/components/ui/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [fullName, setFullName] = useState('');
-  const [startupName, setStartupName] = useState('');
-  const [email, setEmail] = useState('');
+  const { signup, user } = useAuth();
+  const [organizationName, setOrganizationName] = useState('');
+  const [founderName, setFounderName] = useState('');
+  const [founderEmail, setFounderEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signup } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const strength = (() => {
     if (!password) return null;
@@ -68,9 +75,9 @@ export default function SignupPage() {
     }
     setIsLoading(true);
     setError(null);
-    const res = await signup(email, password);
+    const res = await signup(organizationName, founderName, founderEmail, password);
     if (res.success) {
-      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+      router.push(`/auth/verify-email?email=${encodeURIComponent(founderEmail)}`);
     } else {
       setError(res.error || 'Failed to create account');
     }
@@ -227,50 +234,49 @@ export default function SignupPage() {
 
             {/* Form */}
             <form onSubmit={handleSignup} className="space-y-3.5">
-              {/* Field 1: Full Name */}
+              {/* Field 1: Organization Name with building & rocket on right */}
+              <div>
+                <div className="relative flex items-center">
+                  <Building2 className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    value={organizationName}
+                    onChange={(e) => setOrganizationName(e.target.value)}
+                    placeholder="Organization Name"
+                    className="w-full h-11 pl-10 pr-16 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
+                  />
+                  <div className="absolute right-3.5 flex items-center gap-1.5 text-slate-400 pointer-events-none">
+                    <Rocket className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Field 2: Founder Name */}
               <div>
                 <div className="relative flex items-center">
                   <User className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter Your Name"
+                    value={founderName}
+                    onChange={(e) => setFounderName(e.target.value)}
+                    placeholder="Founder Name"
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
                 </div>
               </div>
 
-              {/* Field 2: Startup Name with building & rocket on right */}
-              <div>
-                <div className="relative flex items-center">
-                  <Users className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    required
-                    value={startupName}
-                    onChange={(e) => setStartupName(e.target.value)}
-                    placeholder="Startup / Project Name"
-                    className="w-full h-11 pl-10 pr-16 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
-                  />
-                  <div className="absolute right-3.5 flex items-center gap-1.5 text-slate-400 pointer-events-none">
-                    <Building2 className="w-3.5 h-3.5" />
-                    <Rocket className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Field 3: Work Email */}
+              {/* Field 3: Founder Email */}
               <div>
                 <div className="relative flex items-center">
                   <Mail className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
                     type="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Work Email"
+                    value={founderEmail}
+                    onChange={(e) => setFounderEmail(e.target.value)}
+                    placeholder="Founder Email"
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
                 </div>
