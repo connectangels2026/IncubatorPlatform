@@ -11,19 +11,6 @@ interface ValidationError {
   code: string;
 }
 
-function validateOrganizationName(name: string): ValidationError | null {
-  if (!name || name.trim().length === 0) {
-    return { field: 'organization_name', message: 'Organization name is required', code: 'REQUIRED_FIELD' };
-  }
-  if (name.length < 3) {
-    return { field: 'organization_name', message: 'Organization name must be at least 3 characters', code: 'MIN_LENGTH' };
-  }
-  if (name.length > 255) {
-    return { field: 'organization_name', message: 'Organization name must not exceed 255 characters', code: 'MAX_LENGTH' };
-  }
-  return null;
-}
-
 function validateFounderName(name: string): ValidationError | null {
   if (!name || name.trim().length === 0) {
     return { field: 'founder_name', message: 'Founder name is required', code: 'REQUIRED_FIELD' };
@@ -34,15 +21,19 @@ function validateFounderName(name: string): ValidationError | null {
   if (name.length > 255) {
     return { field: 'founder_name', message: 'Founder name must not exceed 255 characters', code: 'MAX_LENGTH' };
   }
+  // Check for special characters
+  if (!/^[a-zA-Z\s'-]+$/.test(name)) {
+    return { field: 'founder_name', message: 'Founder name can only contain letters, spaces, hyphens, and apostrophes', code: 'INVALID_FORMAT' };
+  }
   return null;
 }
 
 function validateEmail(email: string): ValidationError | null {
   if (!email || email.trim().length === 0) {
-    return { field: 'founder_email', message: 'Email is required', code: 'REQUIRED_FIELD' };
+    return { field: 'email', message: 'Email is required', code: 'REQUIRED_FIELD' };
   }
   if (!EMAIL_REGEX.test(email)) {
-    return { field: 'founder_email', message: 'Invalid email format', code: 'INVALID_FORMAT' };
+    return { field: 'email', message: 'Invalid email format', code: 'INVALID_EMAIL' };
   }
   return null;
 }
@@ -52,13 +43,13 @@ function validatePassword(pwd: string): ValidationError | null {
     return { field: 'password', message: 'Password is required', code: 'REQUIRED_FIELD' };
   }
   if (pwd.length < 8) {
-    return { field: 'password', message: 'Password must be at least 8 characters', code: 'MIN_LENGTH' };
+    return { field: 'password', message: 'Password must be at least 8 characters', code: 'INVALID_PASSWORD' };
   }
   if (!/[A-Z]/.test(pwd)) {
-    return { field: 'password', message: 'Password must contain at least one uppercase letter', code: 'INVALID_PASSWORD' };
+    return { field: 'password', message: 'Password must be at least 8 characters and contain 1 uppercase letter and 1 number', code: 'INVALID_PASSWORD' };
   }
   if (!/[0-9]/.test(pwd)) {
-    return { field: 'password', message: 'Password must contain at least one number', code: 'INVALID_PASSWORD' };
+    return { field: 'password', message: 'Password must be at least 8 characters and contain 1 uppercase letter and 1 number', code: 'INVALID_PASSWORD' };
   }
   return null;
 }
@@ -76,29 +67,32 @@ function generateSlug(name: string): string {
 
 export async function POST(req: Request) {
   try {
-    const { organization_name, founder_name, founder_email, password } = await req.json();
+    const body = await req.json();
+    const { founder_name, email, password } = body;
 
-    // Validate all required fields with detailed errors
-    const orgNameError = validateOrganizationName(organization_name);
-    if (orgNameError) {
-      return NextResponse.json(
-        { success: false, error: orgNameError.message, code: orgNameError.code },
-        { status: 400 }
-      );
-    }
-
+    // Validate only required fields for generic signup
     const founderNameError = validateFounderName(founder_name);
     if (founderNameError) {
       return NextResponse.json(
-        { success: false, error: founderNameError.message, code: founderNameError.code },
+        {
+          success: false,
+          error: founderNameError.message,
+          code: founderNameError.code,
+          message: founderNameError.message
+        },
         { status: 400 }
       );
     }
 
-    const emailError = validateEmail(founder_email);
+    const emailError = validateEmail(email);
     if (emailError) {
       return NextResponse.json(
-        { success: false, error: emailError.message, code: emailError.code },
+        {
+          success: false,
+          error: emailError.message,
+          code: emailError.code,
+          message: emailError.message
+        },
         { status: 400 }
       );
     }
@@ -106,12 +100,17 @@ export async function POST(req: Request) {
     const passwordError = validatePassword(password);
     if (passwordError) {
       return NextResponse.json(
-        { success: false, error: passwordError.message, code: passwordError.code },
+        {
+          success: false,
+          error: passwordError.message,
+          code: passwordError.code,
+          message: passwordError.message
+        },
         { status: 400 }
       );
     }
 
-    const trimmedEmail = founder_email.trim().toLowerCase();
+    const trimmedEmail = email.trim().toLowerCase();
 
     // Check for duplicate email in auth and public tables
     const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
@@ -127,74 +126,57 @@ export async function POST(req: Request) {
 
     if (duplicateAuthUser || existingPublicUser) {
       return NextResponse.json(
-        { success: false, error: 'Email already registered', code: 'DUPLICATE_EMAIL' },
-        { status: 409 }
+        {
+          success: false,
+          error: 'Email already registered',
+          code: 'DUPLICATE_EMAIL',
+          message: 'This email is already in use. Try logging in or use a different email.'
+        },
+        { status: 400 }
       );
     }
 
-    // Check for duplicate organization name
-    const { data: existingOrg } = await supabaseAdmin
-      .from('organizations')
-      .select('id')
-      .eq('name', organization_name.trim())
-      .maybeSingle();
-
-    if (existingOrg) {
-      return NextResponse.json(
-        { success: false, error: 'Organization name already exists', code: 'DUPLICATE_ORG_NAME' },
-        { status: 409 }
-      );
-    }
-
-    // Create Supabase Auth user
+    // Create Supabase Auth user (NO EMAIL SENT - verification disabled)
     const { data, error } = await signUp(trimmedEmail, password);
 
     if (error) {
+      console.error('Auth user creation failed:', error);
       await logAuthEvent('failed_attempt');
       return NextResponse.json(
-        { success: false, error: error.message, code: 'AUTH_FAILED' },
+        {
+          success: false,
+          error: error.message || 'Failed to create auth user',
+          code: 'AUTH_FAILED',
+          message: error.message || 'Failed to create auth user'
+        },
         { status: error.status || 500 }
       );
     }
 
-    // Edge Case: Supabase enumeration protection returns user with empty identities
-    if (data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+    if (!data?.user) {
+      console.error('No user returned from auth signup');
       return NextResponse.json(
-        { success: false, error: 'Email already registered', code: 'DUPLICATE_EMAIL' },
-        { status: 409 }
-      );
-    }
-
-    if (!data.user) {
-      return NextResponse.json(
-        { success: false, error: 'User creation failed. Please try again.', code: 'AUTH_FAILED' },
+        {
+          success: false,
+          error: 'User creation failed. Please try again.',
+          code: 'AUTH_FAILED',
+          message: 'User creation failed. Please try again.'
+        },
         { status: 500 }
       );
     }
 
-    // Generate slug
-    const slug = generateSlug(organization_name);
+    // Create user profile WITHOUT organization_id (will be set after role selection)
+    // For now, we need to create a temporary organization since organization_id is NOT NULL
+    // BUT this organization will not be used - it's just a placeholder
+    // We'll create the real organization after role selection
 
-    // Check if slug already exists (for duplicate organization names with different casing)
-    const { data: existingSlug } = await supabaseAdmin
-      .from('organizations')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle();
-
-    if (existingSlug) {
-      return NextResponse.json(
-        { success: false, error: 'Organization name already exists', code: 'DUPLICATE_ORG_NAME' },
-        { status: 409 }
-      );
-    }
-
-    // Create organization record with auth_user_id
-    const { data: orgData, error: orgError } = await supabaseAdmin
+    const tempOrgName = `temp-${Date.now()}`;
+    const { data: tempOrgData, error: tempOrgError } = await supabaseAdmin
       .from('organizations')
       .insert({
-        name: organization_name.trim(),
-        slug,
+        name: tempOrgName,
+        slug: `temp-${Date.now()}`,
         founder_name: founder_name.trim(),
         founder_email: trimmedEmail,
         auth_user_id: data.user.id,
@@ -204,26 +186,35 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (orgError) {
-      console.error('Organization creation failed:', orgError);
-      // Ideally delete the auth user here, but we'll leave it for recovery
+    if (tempOrgError) {
+      console.error('Temp organization creation failed:', tempOrgError);
       return NextResponse.json(
-        { success: false, error: 'Failed to create organization. Please contact support.', code: 'ORG_CREATION_FAILED' },
+        {
+          success: false,
+          error: 'Failed to create account. Please contact support.',
+          code: 'ORG_CREATION_FAILED',
+          message: 'Failed to create account. Please contact support.'
+        },
         { status: 500 }
       );
     }
 
-    // Create founder user profile in public.users table
+    // Create user profile with NO role (role = null)
+    const nameArray = founder_name.trim().split(' ');
+    const firstName = nameArray[0] || 'User';
+    const lastName = nameArray.slice(1).join(' ') || '';
+
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
-        organization_id: orgData.id,
+        organization_id: tempOrgData.id, // Temporary org - will be replaced after role selection
         email: trimmedEmail,
-        first_name: founder_name.trim().split(' ')[0],
-        last_name: founder_name.trim().split(' ').slice(1).join(' ') || '',
+        first_name: firstName,
+        last_name: lastName,
         full_name: founder_name.trim(),
         is_active: true,
-        email_verified: false,
+        email_verified: true, // Email verification disabled
+        role: null, // NO ROLE YET - user must select
       })
       .select()
       .single();
@@ -231,48 +222,53 @@ export async function POST(req: Request) {
     if (userError) {
       console.error('User profile creation failed:', userError);
       return NextResponse.json(
-        { success: false, error: 'Failed to create user profile. Please contact support.', code: 'USER_CREATION_FAILED' },
+        {
+          success: false,
+          error: 'Failed to create user profile. Please contact support.',
+          code: 'USER_CREATION_FAILED',
+          message: 'Failed to create user profile. Please contact support.',
+          details: userError.message,
+        },
         { status: 500 }
       );
     }
 
-    // Create user_roles entry with admin role
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: userData.id,
-        organization_id: orgData.id,
-        role: 'admin',
-        is_active: true,
-      });
-
-    if (roleError) {
-      console.error('User role assignment failed:', roleError);
+    if (!userData || !userData.id) {
+      console.error('User creation returned no data');
       return NextResponse.json(
-        { success: false, error: 'Failed to assign role. Please contact support.', code: 'ROLE_ASSIGNMENT_FAILED' },
+        {
+          success: false,
+          error: 'User creation failed - no data returned.',
+          code: 'USER_CREATION_FAILED',
+          message: 'Failed to create user profile. Please contact support.'
+        },
         { status: 500 }
       );
     }
 
-    // Return success response matching the specification
+    // Return success response - user can now select role
     return NextResponse.json(
       {
         success: true,
-        message: 'Organization created successfully',
-        organization_id: orgData.id,
-        organization_name: orgData.name,
-        slug: orgData.slug,
-        founder_email: orgData.founder_email,
-        is_verified: false,
-        next_steps: 'Verification email sent. Click the link to verify your email and complete signup.',
+        message: 'Signup successful. Please select your role.',
+        user_id: userData.id,
+        email: trimmedEmail,
+        founder_name: founder_name.trim(),
+        auth_user_id: data.user.id,
       },
       { status: 201 }
     );
   } catch (err: any) {
     console.error('Signup error:', err);
     return NextResponse.json(
-      { success: false, error: err.message || 'An error occurred during signup', code: 'INTERNAL_ERROR' },
+      {
+        success: false,
+        error: err.message || 'An error occurred during signup',
+        code: 'INTERNAL_ERROR',
+        message: err.message || 'An error occurred during signup'
+      },
       { status: 500 }
     );
   }
 }
+

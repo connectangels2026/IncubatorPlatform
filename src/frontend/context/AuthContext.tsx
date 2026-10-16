@@ -21,8 +21,8 @@ interface AuthContextType {
   organization: Organization | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; organization?: Organization }>;
-  signup: (organization_name: string, founder_name: string, founder_email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization }>;
+  signup: (founder_name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
   refreshOrg: () => Promise<void>;
@@ -143,8 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Failed to login');
-        return { success: false, error: data.error || 'Failed to login', organization: data.organization };
+        // Return error response with code for better handling
+        return {
+          success: false,
+          error: data.error || 'Failed to login',
+          code: data.code,
+          organization: data.organization
+        };
       }
 
       setUser(data.user || null);
@@ -173,31 +178,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (organization_name: string, founder_name: string, founder_email: string, password: string) => {
+  const signup = async (founder_name: string, email: string, password: string) => {
     setError(null);
     setIsLoading(true);
     try {
       const res = await fetch('/api/v1/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organization_name, founder_name, founder_email, password }),
+        body: JSON.stringify({ founder_name, email, password }),
       });
       const data = await res.json();
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to sign up');
+        throw new Error(data.message || data.error || 'Failed to sign up');
       }
-      setOrganization({
-        id: data.organization_id,
-        slug: data.slug,
-        name: data.organization_name,
-        founder_name: founder_name.trim(),
-        founder_email: data.founder_email,
-      });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('org_id', data.organization_id);
-        localStorage.setItem('org_founder_name', founder_name.trim());
-        localStorage.setItem('org_name', data.organization_name);
+
+      // After signup, try to sign in with the credentials to establish session
+      try {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (signInError) {
+          console.warn('Auto sign-in after signup failed:', signInError);
+          // Continue anyway - user will be redirected to choose-role
+        } else if (signInData.session) {
+          // Session established
+          setSession(signInData.session);
+          setUser(signInData.user);
+        }
+      } catch (signInErr) {
+        console.warn('Error during auto sign-in:', signInErr);
+        // Continue - session should be established by Supabase listener
       }
+
+      // New flow: Don't set organization yet (user hasn't selected role)
+      // Organization will be set after role selection
       return { success: true };
     } catch (err: any) {
       const msg = err.message || 'Failed to sign up';

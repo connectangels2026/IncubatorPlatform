@@ -57,35 +57,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get organization data for this user
-    const { data: orgData, error: orgError } = await supabaseAdmin
-      .from('organizations')
-      .select('id, name, is_verified')
-      .eq('auth_user_id', data.user.id)
-      .single();
-
-    if (orgError || !orgData) {
-      return NextResponse.json(
-        { success: false, error: 'Organization not found', code: 'ORG_NOT_FOUND' },
-        { status: 404 }
-      );
-    }
-
-    // Update organization as verified
-    const { error: updateError } = await supabaseAdmin
-      .from('organizations')
-      .update({ is_verified: true })
-      .eq('id', orgData.id);
-
-    if (updateError) {
-      console.error('Failed to update organization verification status:', updateError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to verify email. Please contact support.', code: 'VERIFICATION_FAILED' },
-        { status: 500 }
-      );
-    }
-
-    // Mark user email as verified
+    // Mark user email as verified in users table
     const { error: userUpdateError } = await supabaseAdmin
       .from('users')
       .update({ email_verified: true })
@@ -93,15 +65,18 @@ export async function POST(req: NextRequest) {
 
     if (userUpdateError) {
       console.error('Failed to mark user email as verified:', userUpdateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to verify email. Please contact support.', code: 'VERIFICATION_FAILED' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully',
-        organization_name: orgData.name,
-        is_verified: true,
-        redirect_to: '/auth/login?message=Email%20verified%20successfully',
+        message: 'Email verified successfully. Please select your role.',
+        email: data.user.email,
+        redirect_to: '/auth/choose-role',
       },
       { status: 200 }
     );
@@ -173,35 +148,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get organization data for this user
-    const { data: orgData, error: orgError } = await supabaseAdmin
-      .from('organizations')
-      .select('id, name, is_verified')
-      .eq('auth_user_id', data.user.id)
-      .single();
-
-    if (orgError || !orgData) {
-      return NextResponse.json(
-        { success: false, error: 'Organization not found', code: 'ORG_NOT_FOUND' },
-        { status: 404 }
-      );
-    }
-
-    // Update organization as verified
-    const { error: updateError } = await supabaseAdmin
-      .from('organizations')
-      .update({ is_verified: true })
-      .eq('id', orgData.id);
-
-    if (updateError) {
-      console.error('Failed to update organization verification status:', updateError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to verify email. Please contact support.', code: 'VERIFICATION_FAILED' },
-        { status: 500 }
-      );
-    }
-
-    // Mark user email as verified
+    // Mark user email as verified in users table
     const { error: userUpdateError } = await supabaseAdmin
       .from('users')
       .update({ email_verified: true })
@@ -209,15 +156,18 @@ export async function GET(req: NextRequest) {
 
     if (userUpdateError) {
       console.error('Failed to mark user email as verified:', userUpdateError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to verify email. Please contact support.', code: 'VERIFICATION_FAILED' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully',
-        organization_name: orgData.name,
-        is_verified: true,
-        redirect_to: '/auth/login?message=Email%20verified%20successfully',
+        message: 'Email verified successfully. Please select your role.',
+        email: data.user.email,
+        redirect_to: '/auth/choose-role',
       },
       { status: 200 }
     );
@@ -229,3 +179,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

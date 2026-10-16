@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, CheckCircle2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
 
 function VerifyEmailContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || 'your registered email';
   const token = searchParams.get('token');
@@ -20,17 +21,6 @@ function VerifyEmailContent() {
     if (token) {
       const verifyToken = async () => {
         try {
-          // Call our backend API to verify email and update organization.is_verified
-          const response = await fetch('/api/v1/auth/verify-email', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            // Pass token as query parameter
-            // Note: Next.js will handle URL encoding
-          });
-
-          // Actually, let's use the proper URL with query params
           const verifyUrl = new URL('/api/v1/auth/verify-email', window.location.origin);
           verifyUrl.searchParams.append('token_hash', token);
           verifyUrl.searchParams.append('type', 'email');
@@ -40,6 +30,10 @@ function VerifyEmailContent() {
 
           if (data.success) {
             setVerified(true);
+            // Auto redirect to choose-role after 2 seconds
+            setTimeout(() => {
+              router.push('/auth/choose-role');
+            }, 2000);
           }
         } catch (err) {
           console.error('Verification error:', err);
@@ -49,7 +43,7 @@ function VerifyEmailContent() {
       };
       verifyToken();
     }
-  }, [token]);
+  }, [token, router]);
 
   const handleResend = async () => {
     setResending(true);
@@ -81,19 +75,23 @@ function VerifyEmailContent() {
         {verified ? (
           <div className="mt-3 space-y-4">
             <p className="text-xs text-slate-500">
-              Your email has been verified. You can now access your incubator dashboard.
+              Your email has been verified. Redirecting you to select your role...
             </p>
+            <div className="flex items-center justify-center gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              <span className="text-xs font-semibold text-blue-600">Redirecting...</span>
+            </div>
             <Link
-              href="/login"
+              href="/auth/choose-role"
               className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition"
             >
-              Continue to Login
+              Continue to Role Selection
             </Link>
           </div>
         ) : (
           <div className="mt-3 space-y-4">
             <p className="text-xs text-slate-600 leading-relaxed">
-              We have sent a verification link to <strong className="text-slate-900">{email}</strong>. Please check your inbox and click the link to activate your account.
+              We have sent a verification link to <strong className="text-slate-900">{email}</strong>. Please check your inbox and click the link to verify your email.
             </p>
 
             {isVerifying && (
@@ -120,10 +118,10 @@ function VerifyEmailContent() {
               </button>
 
               <Link
-                href="/login"
+                href="/signup"
                 className="text-xs font-semibold text-slate-400 hover:text-slate-700 transition"
               >
-                Back to Sign In
+                Back to Sign Up
               </Link>
             </div>
           </div>

@@ -31,30 +31,58 @@ export async function POST(req: Request) {
       );
     }
 
-    // Query organization by auth_user_id
+    // Query user profile and organization
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, email_verified, role, organization_id')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    if (userError || !userData) {
+      console.error('User not found:', userError);
+      return NextResponse.json(
+        { success: false, error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' },
+        { status: 401 }
+      );
+    }
+
+    // Get organization details
     const { data: orgData, error: orgError } = await supabaseAdmin
       .from('organizations')
       .select('id, slug, name, founder_name, founder_email, is_verified')
-      .eq('auth_user_id', data.user.id)
+      .eq('id', userData.organization_id)
       .single();
 
     if (orgError || !orgData) {
-      // Organization not found - user exists in auth but no organization
-      console.error('Organization not found for auth_user_id:', data.user.id);
+      console.error('Organization not found:', orgError);
       return NextResponse.json(
         { success: false, error: 'Organization not found. Please contact support.', code: 'ORG_NOT_FOUND' },
         { status: 404 }
       );
     }
 
-    // Check if organization is verified
-    if (!orgData.is_verified) {
+    // Check if email is verified (using users table, not organizations table)
+    if (!userData.email_verified) {
       return NextResponse.json(
         {
           success: false,
           error: 'Please verify your email first',
           code: 'EMAIL_NOT_VERIFIED',
-          organization_id: orgData.id,
+          user_id: userData.id,
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check if user has selected a role
+    if (!userData.role) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please select your role first',
+          code: 'ROLE_NOT_SELECTED',
+          user_id: userData.id,
+          next_step: '/auth/choose-role',
         },
         { status: 403 }
       );

@@ -174,4 +174,33 @@ export const emailTemplates = {
       actionText: 'Open Session Details',
       actionUrl: link || 'https://incubator.example.com/dashboard/mentors',
     }),
+
+  /**
+   * super_admin_review — dispatched to the platform super admin when a startup
+   * submits an application naming an incubator as free text. The super admin
+   * must then review it and assign the startup to a real incubator org.
+   */
+  super_admin_review: (
+    recipientName: string,
+    startupName: string,
+    applicantName: string,
+    incubatorNameText: string,
+    program: string,
+    applicationId: string,
+    reviewUrl: string
+  ) =>
+    generateBaseEmail({
+      recipientName,
+      title: `🚀 New Incubator Application Pending Review: ${startupName}`,
+      message: `A new startup application requires your review. ${applicantName} has applied to the "${incubatorNameText}" incubator for the ${program} program. Please review the application and assign the startup to the correct incubator organization.`,
+      metadata: {
+        Startup: startupName,
+        Applicant: applicantName,
+        'Incubator Name (typed)': incubatorNameText,
+        Program: program,
+        'Application ID': applicationId,
+      },
+      actionText: 'Review Application',
+      actionUrl: reviewUrl,
+    }),
 };

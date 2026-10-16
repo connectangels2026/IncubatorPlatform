@@ -1,8 +1,15 @@
 import { supabase } from '@/backend/lib/supabase';
+import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
 export const signUp = async (email: string, password?: string) => {
   if (password) {
-    return supabase.auth.signUp({ email, password });
+    // Use admin API to create user without sending confirmation email
+    // This prevents the "email rate limit exceeded" issue
+    return supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm email to skip verification
+    });
   }
   // OTP based sign up if no password
   return supabase.auth.signInWithOtp({ email });

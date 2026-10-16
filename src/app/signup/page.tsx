@@ -7,12 +7,8 @@ import {
   Mail,
   Lock,
   User,
-  Users,
-  Building2,
-  Rocket,
   ArrowRight,
   Star,
-  Check,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -22,13 +18,12 @@ import Logo from '@/frontend/components/ui/Logo';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup, user } = useAuth();
-  const [organizationName, setOrganizationName] = useState('');
+  const { user, signup } = useAuth();
   const [founderName, setFounderName] = useState('');
-  const [founderEmail, setFounderEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [agreed, setAgreed] = useState(true);
+  const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,13 +70,22 @@ export default function SignupPage() {
     }
     setIsLoading(true);
     setError(null);
-    const res = await signup(organizationName, founderName, founderEmail, password);
-    if (res.success) {
-      router.push(`/auth/verify-email?email=${encodeURIComponent(founderEmail)}`);
-    } else {
-      setError(res.error || 'Failed to create account');
+
+    try {
+      const res = await signup(founderName, email, password);
+      if (res.success) {
+        // Wait a moment for session to be established, then redirect
+        setTimeout(() => {
+          router.push('/auth/choose-role');
+        }, 500);
+      } else {
+        setError(res.error || 'Failed to create account');
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during signup');
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleGoogleSignup = async () => {
@@ -234,25 +238,7 @@ export default function SignupPage() {
 
             {/* Form */}
             <form onSubmit={handleSignup} className="space-y-3.5">
-              {/* Field 1: Organization Name with building & rocket on right */}
-              <div>
-                <div className="relative flex items-center">
-                  <Building2 className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    required
-                    value={organizationName}
-                    onChange={(e) => setOrganizationName(e.target.value)}
-                    placeholder="Organization Name"
-                    className="w-full h-11 pl-10 pr-16 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
-                  />
-                  <div className="absolute right-3.5 flex items-center gap-1.5 text-slate-400 pointer-events-none">
-                    <Rocket className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Field 2: Founder Name */}
+              {/* Field 1: Founder Name */}
               <div>
                 <div className="relative flex items-center">
                   <User className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -261,28 +247,28 @@ export default function SignupPage() {
                     required
                     value={founderName}
                     onChange={(e) => setFounderName(e.target.value)}
-                    placeholder="Founder Name"
+                    placeholder="Full Name"
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
                 </div>
               </div>
 
-              {/* Field 3: Founder Email */}
+              {/* Field 2: Email */}
               <div>
                 <div className="relative flex items-center">
                   <Mail className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                   <input
                     type="email"
                     required
-                    value={founderEmail}
-                    onChange={(e) => setFounderEmail(e.target.value)}
-                    placeholder="Founder Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
                     className="w-full h-11 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 transition"
                   />
                 </div>
               </div>
 
-              {/* Field 4: Password with dynamic strength and eye toggle */}
+              {/* Field 3: Password with dynamic strength and eye toggle */}
               <div>
                 <div className="relative flex items-center">
                   <Lock className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />

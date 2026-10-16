@@ -38,6 +38,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
     const res = await login(email, password);
+
     if (res.success) {
       const orgId = res.organization?.id;
       if (orgId) {
@@ -46,7 +47,18 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } else {
-      setError(res.error || 'Invalid credentials');
+      // Check for specific error codes to provide better guidance
+      if (res.error?.includes('role') || res.code === 'ROLE_NOT_SELECTED') {
+        setError('Please select your role to continue. Redirecting to role selection...');
+        // Use a longer timeout to ensure page is stable
+        setTimeout(() => {
+          router.push('/auth/choose-role');
+        }, 2000);
+      } else if (res.error?.includes('verify')) {
+        setError(res.error || 'Please verify your email before logging in');
+      } else {
+        setError(res.error || 'Invalid credentials');
+      }
     }
     setIsLoading(false);
   };
