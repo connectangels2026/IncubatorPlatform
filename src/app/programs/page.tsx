@@ -2,18 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Zap, Users, TrendingUp } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
+import { useAuth } from '@/frontend/context/AuthContext';
 
 type Program = 'pre-incubator' | 'incubator' | null;
 
 export default function ProgramsPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<Program>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleApplyPreIncubator = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (user) {
+      router.push('/programs/preincubator');
+    } else {
+      router.push('/login?redirect=/programs/preincubator');
+    }
+  };
 
   const programs = {
     'pre-incubator': {
@@ -156,7 +169,7 @@ export default function ProgramsPage() {
                       </div>
 
                       <Button
-                        onClick={() => setSelectedProgram('pre-incubator')}
+                        onClick={handleApplyPreIncubator}
                         className="w-full bg-blue-500 hover:bg-blue-600 group-hover:scale-105 transition-transform"
                       >
                         Start Application →
@@ -341,17 +354,22 @@ export default function ProgramsPage() {
                     </div>
 
                     {/* CTA */}
-                    <Link href={selectedProgram === 'pre-incubator' ? '/programs/preincubator' : '/programs/incubator'} className="block">
+                    {selectedProgram === 'pre-incubator' ? (
                       <Button
-                        className={`w-full py-6 text-lg font-semibold ${
-                          selectedProgram === 'pre-incubator'
-                            ? 'bg-blue-500 hover:bg-blue-600'
-                            : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
-                        }`}
+                        onClick={handleApplyPreIncubator}
+                        className="w-full py-6 text-lg font-semibold bg-blue-500 hover:bg-blue-600"
                       >
                         Apply Now
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link href="/programs/incubator" className="block">
+                        <Button
+                          className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600"
+                        >
+                          Apply Now
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

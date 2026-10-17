@@ -12,19 +12,66 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const [isCheckingApplication, setIsCheckingApplication] = React.useState(true);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login');
+    let isMounted = true;
+
+    async function checkAccess() {
+      if (!isLoading && !user) {
+        router.push('/login');
+        return;
+      }
+
+      if (user) {
+        const emailLower = (user.email || '').toLowerCase();
+        const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+
+        // Admins and super-admins bypass review gating
+        if (
+          emailLower === 'arba1@gmail.com' ||
+          emailLower === 'admin@nuturecave.com' ||
+          role === 'admin' ||
+          role === 'super-admin'
+        ) {
+          if (isMounted) setIsCheckingApplication(false);
+          return;
+        }
+
+        // Check if user has an application pending review
+        try {
+          const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`);
+          const data = await res.json();
+          if (data?.success && data?.data) {
+            const app = data.data;
+            const status = (app.status || '').toLowerCase();
+            // If submitted or under review, founder must see the status review page
+            if (status === 'submitted' || status === 'under_review' || status === 'rejected') {
+              router.push(`/programs/preincubator/status?id=${app.id}`);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('ProtectedRoute application check:', e);
+        }
+
+        if (isMounted) setIsCheckingApplication(false);
+      }
     }
+
+    checkAccess();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || (user && isCheckingApplication)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-semibold text-slate-500">Verifying authentication...</p>
+          <p className="text-xs font-semibold text-slate-500">Checking cohort admission status...</p>
         </div>
       </div>
     );

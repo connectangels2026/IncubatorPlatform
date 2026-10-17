@@ -453,14 +453,24 @@ export default function ApplicationsPage() {
       const token = session?.access_token ? `Bearer ${session.access_token}` : '';
       const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
       
-      const endpoint = orgId ? `/applications?org_id=${orgId}&limit=100` : '/applications?limit=100';
+      const endpoint = orgId && orgId !== 'all' ? `/applications?org_id=${orgId}&limit=100` : '/applications?limit=100';
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = token;
       if (orgId) headers['x-org-id'] = orgId;
 
-      const res = await apiClient.get(endpoint, { headers });
+      let res = await apiClient.get(endpoint, { headers });
+      let dbData = res.data?.data || [];
 
-      const dbData = res.data?.data || [];
+      // If org-specific query returned 0, fetch all accessible applications
+      if (dbData.length === 0 && orgId && orgId !== 'all') {
+        const fallbackRes = await apiClient.get('/applications?limit=100', {
+          headers: { ...headers, 'x-org-id': 'all' },
+        });
+        if (fallbackRes.data?.data && fallbackRes.data.data.length > 0) {
+          dbData = fallbackRes.data.data;
+        }
+      }
+
       if (Array.isArray(dbData)) {
         if (dbData.length > 0) {
           const mappedItems = dbData.map(mapDbRecordToApplicationItem);

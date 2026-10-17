@@ -199,6 +199,42 @@ export default function DashboardPage() {
       } else if (fetchedApps.length > 0) {
         setScheduleStartup((prev) => prev || fetchedApps[0].name);
       }
+
+      // Fetch user's own submitted applications directly from database
+      try {
+        const appsRes = await apiClient.get('/applications?limit=50', { headers });
+        const dbApps = appsRes.data?.data;
+        if (Array.isArray(dbApps) && dbApps.length > 0) {
+          const mappedDbApps: ApplicationItem[] = dbApps.map((item: any) => ({
+            id: item.id,
+            name:
+              item.form_data?.startup_name ||
+              item.form_data?.businessName ||
+              item.form_data?.oneSentencePitch ||
+              (item.applicant_name ? `${item.applicant_name}'s Startup` : 'My Pre-Incubator Application'),
+            founder_name: item.applicant_name || 'Founder',
+            sector: item.form_data?.industry || item.form_data?.industryVertical || 'Early Stage',
+            type: item.application_type || 'pre-incubator',
+            score: item.score ?? 75,
+            status: item.status || 'submitted',
+            date: item.created_at ? item.created_at.split('T')[0] : 'Today',
+            email: item.applicant_email,
+            phone: item.applicant_phone,
+            form_data: item.form_data,
+          }));
+
+          setApplications((prev) => {
+            const map = new Map<string, ApplicationItem>();
+            mappedDbApps.forEach((a) => map.set(a.id, a));
+            prev.forEach((a) => {
+              if (!map.has(a.id)) map.set(a.id, a);
+            });
+            return Array.from(map.values());
+          });
+        }
+      } catch (appsErr) {
+        console.warn('Could not fetch user applications:', appsErr);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.error || err?.message || 'Unable to load dashboard data.');
     } finally {
@@ -342,6 +378,12 @@ export default function DashboardPage() {
       return matchesFilter && matchesSearch;
     });
   }, [startups, currentFilter, searchQuery]);
+
+  const myPendingApplications = useMemo(() => {
+    return applications.filter(
+      (app) => app.status === 'submitted' || app.status === 'under_review'
+    );
+  }, [applications]);
 
   const openEval = (app: ApplicationItem) => {
     setEvalApp(app);
@@ -822,6 +864,57 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1">Direct & indirect workforce</p>
+                </div>
+              </div>
+            )}
+
+            {/* User's Pending Applications Status Section */}
+            {myPendingApplications.length > 0 && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-blue-500/10 to-indigo-500/10 border border-amber-200/80 rounded-2xl p-5 shadow-2xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-2xs shrink-0">
+                      <Clock className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Submitted Application Under Review</h3>
+                      <p className="text-xs text-slate-500">Your program application has been received and is currently in the committee evaluation queue.</p>
+                    </div>
+                  </div>
+                  <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1.5 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                    Pending Decision ({myPendingApplications.length})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {myPendingApplications.map((app) => (
+                    <div key={app.id} className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 transition hover:shadow-md">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate">{app.name}</p>
+                          <p className="text-[11px] text-slate-500 capitalize truncate">{app.type.replace('_', ' ')} • {app.sector}</p>
+                        </div>
+                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full capitalize shrink-0 ${
+                          app.status === 'under_review'
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
+                          {app.status === 'submitted' ? 'Pending Review' : 'Under Review'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                        <span>Submitted on {app.date}</span>
+                        <Link
+                          href={`/programs/preincubator/status?id=${app.id}`}
+                          className="font-semibold text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <span>Track Status</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
