@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Mail,
   Lock,
@@ -16,8 +16,10 @@ import { useAuth } from '@/frontend/context/AuthContext';
 import { signInWithGoogle } from '@/backend/services/auth';
 import Logo from '@/frontend/components/ui/Logo';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams ? (searchParams.get('redirect') || searchParams.get('returnUrl')) : null;
   const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,12 +28,58 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const routeUserAfterAuth = async (userEmail?: string, orgId?: string) => {
+    if (redirectTo) {
+      router.push(redirectTo);
+      return;
+    }
+
+    const emailToCheck = userEmail || user?.email;
+    if (emailToCheck) {
+      const emailLower = emailToCheck.toLowerCase();
+      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+      // Super admin / admin accounts bypass review gating
+      if (
+        emailLower === 'arba1@gmail.com' ||
+        emailLower === 'admin@nuturecave.com' ||
+        role === 'admin' ||
+        role === 'super-admin'
+      ) {
+        router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+        return;
+      }
+
+      // Check if user has an active application
+      try {
+        const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`);
+        const data = await res.json();
+        if (data?.success && data?.data) {
+          const app = data.data;
+          const status = (app.status || '').toLowerCase();
+          // If not admitted yet, route to status tracking page
+          if (status === 'submitted' || status === 'under_review' || status === 'rejected') {
+            router.push(`/programs/preincubator/status?id=${app.id}`);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Application status check error on login:', e);
+      }
+    }
+
+    if (orgId) {
+      router.push(`/dashboard?org=${orgId}`);
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      routeUserAfterAuth(user.email);
     }
-  }, [user, router]);
+  }, [user, router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,11 +89,7 @@ export default function LoginPage() {
 
     if (res.success) {
       const orgId = res.organization?.id;
-      if (orgId) {
-        router.push(`/dashboard?org=${orgId}`);
-      } else {
-        router.push('/dashboard');
-      }
+      await routeUserAfterAuth(email, orgId);
     } else {
       // Check for specific error codes to provide better guidance
       if (res.error?.includes('role') || res.code === 'ROLE_NOT_SELECTED') {
@@ -321,5 +365,13 @@ export default function LoginPage() {
 
       <div />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-sm font-semibold text-slate-500">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

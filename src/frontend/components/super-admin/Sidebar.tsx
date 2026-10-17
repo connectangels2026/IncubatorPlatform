@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   BellRing,
+  FileText,
 } from 'lucide-react';
 
 export default function SuperAdminSidebar() {
@@ -25,6 +26,13 @@ export default function SuperAdminSidebar() {
       name: 'Dashboard / Overview',
       href: '/super-admin/dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      name: 'Applications Review',
+      href: '/super-admin/applications',
+      icon: FileText,
+      badge: 'Live',
+      badgeColor: 'bg-emerald-600 text-white',
     },
     {
       name: 'Organizations',
