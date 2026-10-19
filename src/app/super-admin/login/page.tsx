@@ -30,7 +30,7 @@ export default function SuperAdminLoginPage() {
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
-        password: password,
+        password: password.trim(),
       });
 
       if (authError || !data.user) {

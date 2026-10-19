@@ -46,19 +46,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get organization details
-    const { data: orgData, error: orgError } = await supabaseAdmin
-      .from('organizations')
-      .select('id, slug, name, founder_name, founder_email, is_verified')
-      .eq('id', userData.organization_id)
-      .single();
+    // Super Admin bypasses incubator organization requirement
+    const isSuperAdmin = userData.role === 'super-admin' || email.toLowerCase() === 'shadmannc0516@gmail.com';
+    let orgData: any = null;
 
-    if (orgError || !orgData) {
-      console.error('Organization not found:', orgError);
-      return NextResponse.json(
-        { success: false, error: 'Organization not found. Please contact support.', code: 'ORG_NOT_FOUND' },
-        { status: 404 }
-      );
+    if (!isSuperAdmin && userData.organization_id) {
+      // Get organization details
+      const { data: oData } = await supabaseAdmin
+        .from('organizations')
+        .select('id, slug, name, founder_name, founder_email, is_verified')
+        .eq('id', userData.organization_id)
+        .single();
+
+      orgData = oData;
     }
 
     // Check if email is verified (using users table, not organizations table)
@@ -95,16 +95,19 @@ export async function POST(req: Request) {
         user: {
           id: data.user.id,
           email: data.user.email,
-          founder_name: orgData.founder_name,
+          role: userData.role,
+          founder_name: orgData?.founder_name || userData.full_name || 'Administrator',
         },
-        organization: {
-          id: orgData.id,
-          slug: orgData.slug,
-          name: orgData.name,
-          founder_name: orgData.founder_name,
-          founder_email: orgData.founder_email,
-          is_verified: orgData.is_verified,
-        },
+        organization: orgData
+          ? {
+              id: orgData.id,
+              slug: orgData.slug,
+              name: orgData.name,
+              founder_name: orgData.founder_name,
+              founder_email: orgData.founder_email,
+              is_verified: orgData.is_verified,
+            }
+          : null,
       },
       { status: 200 }
     );
