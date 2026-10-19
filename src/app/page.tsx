@@ -102,8 +102,8 @@ export default function Home() {
                   <Link href="/signup" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
                     Get Started <ArrowRight className="w-5 h-5 ml-2" />
                   </Link>
-                  <Link href="/incubators" className="inline-flex justify-center items-center px-6 py-3.5 rounded-xl bg-white border border-slate-200/90 hover:border-[#2563EB]/40 text-base font-semibold text-[#1A2151] hover:text-[#2563EB] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
-                    <span>Explore All Incubators</span>
+                  <Link href="/programs" className="inline-flex justify-center items-center px-6 py-3.5 rounded-xl bg-white border border-slate-200/90 hover:border-[#2563EB]/40 text-base font-semibold text-[#1A2151] hover:text-[#2563EB] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+                    <span>Explore Programs</span>
                     <ArrowRight className="w-4 h-4 ml-2 text-[#2563EB] group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>

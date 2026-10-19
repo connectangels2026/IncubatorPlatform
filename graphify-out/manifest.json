@@ -822,9 +822,9 @@
     "semantic_hash": ""
   },
   "src/app/page.tsx": {
-    "mtime": 1792220538.2784164,
-    "seen": 1792228539.4082549,
-    "ast_hash": "a6d98f6a1804571bbac89b6091a2c4eb",
+    "mtime": 1792397639.279614,
+    "seen": 1792397850.2653372,
+    "ast_hash": "5a923435342554fa07bc252956c78671",
     "semantic_hash": ""
   },
   "src/app/programs/incubator/page.tsx": {
@@ -2009,22 +2009,10 @@
     "ast_hash": "ffe2ff9f1e464ae58d5788e6e950f8a6",
     "semantic_hash": ""
   },
-  "src/app/incubators/page.tsx": {
-    "mtime": 1792220514.2098804,
-    "seen": 1792228539.4072616,
-    "ast_hash": "0a32364bb9447aab0c6bb683e9ed27d7",
-    "semantic_hash": ""
-  },
   "src/app/api/v1/incubators/route.ts": {
     "mtime": 1792220514.1677904,
     "seen": 1792228539.3836968,
     "ast_hash": "335f95e31fa32b1340a0ade003f88496",
-    "semantic_hash": ""
-  },
-  "src/app/incubators/[slug]/apply/page.tsx": {
-    "mtime": 1792220514.2068799,
-    "seen": 1792228539.4072616,
-    "ast_hash": "ba935d73977c7a57c253e4a1c377ce8d",
     "semantic_hash": ""
   },
   "apply-migration.js": {
@@ -2145,6 +2133,12 @@
     "mtime": 1792234871.3707001,
     "seen": 1792235055.4119017,
     "ast_hash": "b8d943c909cf1fd43abcdea83285b7bd",
+    "semantic_hash": ""
+  },
+  "next.config.mjs": {
+    "mtime": 1792397661.870807,
+    "seen": 1792397850.2021313,
+    "ast_hash": "dff454a5a906456f648a3afe8b9cd90e",
     "semantic_hash": ""
   }
 }
