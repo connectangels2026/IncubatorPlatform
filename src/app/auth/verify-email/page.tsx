@@ -31,7 +31,6 @@ function VerifyEmailContent() {
 
           if (data.success) {
             setVerified(true);
-            // Auto redirect to choose-role after 2 seconds
             setTimeout(() => {
               router.push('/auth/choose-role');
             }, 2000);
@@ -45,6 +44,30 @@ function VerifyEmailContent() {
       verifyToken();
     }
   }, [token, router]);
+
+  // Listen for Supabase session after user clicks Gmail confirmation link
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email && !verified) {
+        // Mark email_verified in public.users via API
+        try {
+          await fetch('/api/v1/auth/verify-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: session.user.email, token: 'mock-token' }),
+          });
+        } catch (e) {
+          // Best-effort: Supabase Auth already confirmed the email
+        }
+        setVerified(true);
+        setIsVerifying(false);
+        setTimeout(() => {
+          router.push('/auth/choose-role');
+        }, 2000);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router, verified]);
 
   const handleResend = async () => {
     setResending(true);
