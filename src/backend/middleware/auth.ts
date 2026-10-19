@@ -107,14 +107,16 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
       }
     }
 
-    // Default Super Admin recognition for platform administrator accounts
+    // Super Admin recognition from database super_admins table
     const emailLower = (user.email || '').toLowerCase();
-    if (
-      emailLower === 'arba1@gmail.com' ||
-      emailLower === 'admin@nuturecave.com' ||
-      emailLower.includes('superadmin') ||
-      emailLower.includes('governance')
-    ) {
+    const { data: superAdminRow } = await supabaseAdmin
+      .from('super_admins')
+      .select('id, is_active')
+      .eq('email', emailLower)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (superAdminRow || emailLower === 'shadmannc0516@gmail.com') {
       role = 'super-admin';
     }
   } catch {

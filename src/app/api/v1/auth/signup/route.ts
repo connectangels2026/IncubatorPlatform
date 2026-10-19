@@ -142,14 +142,19 @@ export async function POST(req: Request) {
     if (error) {
       console.error('Auth user creation failed:', error);
       await logAuthEvent('failed_attempt');
+      const errorMsg = (error.message || '').toLowerCase();
+      let userFacingError = error.message || 'Failed to create auth user';
+      if (errorMsg.includes('rate limit') || errorMsg.includes('too many') || (error as any).status === 429) {
+        userFacingError = 'Too many email requests sent. Please wait 24hours before requesting a new link.';
+      }
       return NextResponse.json(
         {
           success: false,
-          error: error.message || 'Failed to create auth user',
-          code: 'AUTH_FAILED',
-          message: error.message || 'Failed to create auth user'
+          error: userFacingError,
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: userFacingError
         },
-        { status: error.status || 500 }
+        { status: error.status || 429 }
       );
     }
 
@@ -166,40 +171,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create user profile WITHOUT organization_id (will be set after role selection)
-    // For now, we need to create a temporary organization since organization_id is NOT NULL
-    // BUT this organization will not be used - it's just a placeholder
-    // We'll create the real organization after role selection
-
-    const tempOrgName = `temp-${Date.now()}`;
-    const { data: tempOrgData, error: tempOrgError } = await supabaseAdmin
-      .from('organizations')
-      .insert({
-        name: tempOrgName,
-        slug: `temp-${Date.now()}`,
-        founder_name: founder_name.trim(),
-        founder_email: trimmedEmail,
-        auth_user_id: data.user.id,
-        is_verified: false,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (tempOrgError) {
-      console.error('Temp organization creation failed:', tempOrgError);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to create account. Please contact support.',
-          code: 'ORG_CREATION_FAILED',
-          message: 'Failed to create account. Please contact support.'
-        },
-        { status: 500 }
-      );
-    }
-
-    // Create user profile with NO role (role = null)
+    // Create user profile in users table (role = null, organization_id = null)
     const nameArray = founder_name.trim().split(' ');
     const firstName = nameArray[0] || 'User';
     const lastName = nameArray.slice(1).join(' ') || '';
@@ -207,14 +179,14 @@ export async function POST(req: Request) {
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
-        organization_id: tempOrgData.id, // Temporary org - will be replaced after role selection
+        organization_id: null, // No organization created here
         email: trimmedEmail,
         first_name: firstName,
         last_name: lastName,
         full_name: founder_name.trim(),
         is_active: true,
-        email_verified: true, // Email verification disabled
-        role: null, // NO ROLE YET - user must select
+        email_verified: false,
+        role: null, // Role is NOT selected yet
       })
       .select()
       .single();
@@ -246,11 +218,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Return success response - user can now select role
+    // Return success response matching criteria
     return NextResponse.json(
       {
         success: true,
-        message: 'Signup successful. Please select your role.',
+        message: 'Signup successful. Please verify your email to continue.',
         user_id: userData.id,
         email: trimmedEmail,
         founder_name: founder_name.trim(),

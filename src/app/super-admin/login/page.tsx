@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
+import { supabase } from '@/backend/lib/supabase';
+
 export default function SuperAdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -12,14 +14,36 @@ export default function SuperAdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail !== 'shadmannc0516@gmail.com') {
+      setError('Access Denied: Only the designated Super Admin (shadmannc0516@gmail.com) can access this console.');
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: password,
+      });
+
+      if (authError || !data.user) {
+        setError(authError?.message || 'Invalid credentials. Please verify your Super Admin password.');
+        setIsLoading(false);
+        return;
+      }
+
       router.push('/super-admin/dashboard');
-    }, 800);
+    } catch (err: any) {
+      setError(err?.message || 'Authentication failed. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,6 +76,12 @@ export default function SuperAdminLoginPage() {
               Access multi-tenant management and platform-wide controls
             </p>
           </div>
+
+          {error && (
+            <div className="mb-6 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold leading-relaxed">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Email Field */}
