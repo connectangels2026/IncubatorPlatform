@@ -25,19 +25,22 @@ export async function GET(req: NextRequest) {
 
     let query = supabaseAdmin
       .from('applications')
-      .select('*, organization:organizations(id, name, slug)', { count: 'exact' })
+      .select('*, organization:organizations!organization_id(id, name, slug)', { count: 'exact' })
       .is('deleted_at', null);
 
-    if (rawOrgId && rawOrgId !== 'all' && isValidUUID(rawOrgId)) {
-      query = query.eq('organization_id', rawOrgId);
-    }
-
-    // Role check: Applicants can only see their own applications
     const role = user?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'super-admin') {
-      if (user?.email) {
-        query = query.eq('applicant_email', user.email.toLowerCase());
+    const userEmail = user?.email?.toLowerCase();
+
+    if (role === 'super-admin' || rawOrgId === 'all') {
+      // Super admin or explicit 'all' shows all applications
+    } else if (rawOrgId && isValidUUID(rawOrgId)) {
+      if (userEmail) {
+        query = query.or(`organization_id.eq.${rawOrgId},applicant_email.eq.${userEmail}`);
+      } else {
+        query = query.eq('organization_id', rawOrgId);
       }
+    } else if (userEmail) {
+      query = query.eq('applicant_email', userEmail);
     }
 
     if (status) query = query.eq('status', status);

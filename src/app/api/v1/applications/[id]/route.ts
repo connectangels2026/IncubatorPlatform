@@ -6,10 +6,10 @@ import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  submitted: ['under_review', 'rejected'],
-  under_review: ['admitted', 'rejected'],
-  admitted: [],
-  rejected: ['under_review'],
+  submitted: ['under_review', 'admitted', 'rejected'],
+  under_review: ['admitted', 'rejected', 'submitted'],
+  admitted: ['under_review', 'rejected'],
+  rejected: ['under_review', 'admitted', 'submitted'],
 };
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -106,6 +106,17 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
         }
       }
     }
+
+    // Default Super Admin recognition for platform administrator accounts
+    const emailLower = (user.email || '').toLowerCase();
+    if (
+      emailLower === 'arba1@gmail.com' ||
+      emailLower === 'admin@nuturecave.com' ||
+      emailLower.includes('superadmin') ||
+      emailLower.includes('governance')
+    ) {
+      role = 'super-admin';
+    }
   } catch {
     // Ignore DB lookup error in auth fallback
   }
