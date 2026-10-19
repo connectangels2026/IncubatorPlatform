@@ -22,7 +22,8 @@ export default function SuperAdminLoginPage() {
 
     const cleanEmail = email.trim().toLowerCase();
     if (cleanEmail !== 'shadmannc0516@gmail.com') {
-      setError('Access Denied: Only the designated Super Admin (shadmannc0516@gmail.com) can access this console.');
+
+      setError('Access Denied: Only authorized Super Admins can access this console.');
       return;
     }
 

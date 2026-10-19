@@ -96,7 +96,7 @@ export async function POST(req: Request) {
           id: data.user.id,
           email: data.user.email,
           role: userData.role,
-          founder_name: orgData?.founder_name || userData.full_name || 'Administrator',
+          founder_name: orgData?.founder_name || data.user.user_metadata?.full_name || 'Administrator',
         },
         organization: orgData
           ? {

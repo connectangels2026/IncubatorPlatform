@@ -101,9 +101,9 @@ export default function SuperAdminLayout({
           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
             <ShieldAlert className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-bold">Access Restricted</h2>
+          <h2 className="text-lg font-bold text-rose-400">Access Denied</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Only the designated Super Admin (<span className="text-cyan-400 font-mono">{AUTHORIZED_SUPER_ADMIN_EMAIL}</span>) can access this governance console.
+            Only authorized Super Admins can access this console.
           </p>
         </div>
       </div>
