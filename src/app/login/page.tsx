@@ -38,13 +38,17 @@ function LoginForm() {
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
       const role = (user as any)?.role || (user as any)?.user_metadata?.role;
-      // Super admin / admin accounts bypass review gating
+      // Super Admin account routing
       if (
-        emailLower === 'arba1@gmail.com' ||
-        emailLower === 'admin@nuturecave.com' ||
-        role === 'admin' ||
+        emailLower === 'shadmannc0516@gmail.com' ||
         role === 'super-admin'
       ) {
+        router.push('/super-admin/dashboard');
+        return;
+      }
+
+      // Incubator admin routing
+      if (role === 'admin') {
         router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
         return;
       }

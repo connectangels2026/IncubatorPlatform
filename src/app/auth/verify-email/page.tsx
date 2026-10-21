@@ -16,6 +16,7 @@ function VerifyEmailContent() {
   const [verified, setVerified] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -30,7 +31,6 @@ function VerifyEmailContent() {
 
           if (data.success) {
             setVerified(true);
-            // Auto redirect to choose-role after 2 seconds
             setTimeout(() => {
               router.push('/auth/choose-role');
             }, 2000);
@@ -45,12 +45,46 @@ function VerifyEmailContent() {
     }
   }, [token, router]);
 
+  // Listen for Supabase session after user clicks Gmail confirmation link
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email && !verified) {
+        // Mark email_verified in public.users via API
+        try {
+          await fetch('/api/v1/auth/verify-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: session.user.email, token: 'mock-token' }),
+          });
+        } catch (e) {
+          // Best-effort: Supabase Auth already confirmed the email
+        }
+        setVerified(true);
+        setIsVerifying(false);
+        setTimeout(() => {
+          router.push('/auth/choose-role');
+        }, 2000);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router, verified]);
+
   const handleResend = async () => {
     setResending(true);
     setResendMessage(null);
     try {
       if (email && email.includes('@')) {
-        await supabase.auth.resend({ type: 'signup', email });
+        const { error } = await supabase.auth.resend({ type: 'signup', email });
+        if (error) {
+          const msg = (error.message || '').toLowerCase();
+          if (msg.includes('rate limit') || msg.includes('too many') || (error as any).status === 429) {
+            setIsRateLimited(true);
+            setResendMessage('Too many email requests sent. Please wait 24hours before requesting a new link.');
+            return;
+          }
+          setResendMessage(error.message || 'Failed to resend. Please try again later.');
+          return;
+        }
       }
       setResendMessage('Verification link resent successfully!');
     } catch {
@@ -102,7 +136,13 @@ function VerifyEmailContent() {
             )}
 
             {resendMessage && (
-              <p className="text-xs font-semibold text-emerald-600 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+              <p
+                className={`text-xs font-semibold p-3 rounded-xl border leading-relaxed ${
+                  isRateLimited
+                    ? 'text-amber-800 bg-amber-50 border-amber-200'
+                    : 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                }`}
+              >
                 {resendMessage}
               </p>
             )}
@@ -110,11 +150,11 @@ function VerifyEmailContent() {
             <div className="pt-2 flex flex-col gap-2">
               <button
                 onClick={handleResend}
-                disabled={resending}
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 rounded-xl transition flex items-center justify-center gap-1.5"
+                disabled={resending || isRateLimited}
+                className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none"
               >
                 {resending && <RefreshCw className="w-3 h-3 animate-spin" />}
-                <span>Resend Verification Link</span>
+                <span>{isRateLimited ? 'Resend Blocked (Rate Limited)' : 'Resend Verification Link'}</span>
               </button>
 
               <Link

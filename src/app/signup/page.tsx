@@ -74,10 +74,7 @@ export default function SignupPage() {
     try {
       const res = await signup(founderName, email, password);
       if (res.success) {
-        // Wait a moment for session to be established, then redirect
-        setTimeout(() => {
-          router.push('/auth/choose-role');
-        }, 500);
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } else {
         setError(res.error || 'Failed to create account');
         setIsLoading(false);

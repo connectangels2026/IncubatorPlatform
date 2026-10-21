@@ -3,13 +3,37 @@ import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
 export const signUp = async (email: string, password?: string) => {
   if (password) {
-    // Use admin API to create user without sending confirmation email
-    // This prevents the "email rate limit exceeded" issue
-    return supabaseAdmin.auth.admin.createUser({
+    const result = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true, // Auto-confirm email to skip verification
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/verify-email`,
+      },
     });
+
+    // If Supabase free tier email rate limit is hit, gracefully fall back to admin creation
+    if (result.error && (result.error.status === 429 || (result.error.message || '').toLowerCase().includes('rate limit'))) {
+      const adminResult = await supabaseAdmin.auth.admin.generateLink({
+        type: 'signup',
+        email,
+        password,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/verify-email`,
+        },
+      });
+
+      if (!adminResult.error && adminResult.data?.user) {
+        return {
+          data: {
+            user: adminResult.data.user,
+            session: null,
+          },
+          error: null,
+        };
+      }
+    }
+
+    return result;
   }
   // OTP based sign up if no password
   return supabase.auth.signInWithOtp({ email });
