@@ -123,16 +123,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user already has a role selected
+    // Check if user already has a role selected - smoothly redirect instead of blocking with 400 error
     if (userData.role && userData.role !== null) {
+      const redirect_to = (userData.role === 'startup' || role === 'startup')
+        ? '/startup/application'
+        : '/auth/signup-incubator';
       return NextResponse.json(
         {
-          success: false,
-          error: 'You have already selected a role',
-          code: 'ROLE_ALREADY_SET',
-          current_role: userData.role,
+          success: true,
+          message: 'Role already set',
+          role: userData.role,
+          redirect_to,
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 

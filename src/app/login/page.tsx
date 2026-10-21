@@ -34,10 +34,10 @@ function LoginForm() {
       return;
     }
 
+    const role = (user as any)?.role || (user as any)?.user_metadata?.role;
     const emailToCheck = userEmail || user?.email;
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
-      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
       // Super Admin account routing
       if (
         emailLower === 'shadmannc0516@gmail.com' ||
@@ -73,8 +73,10 @@ function LoginForm() {
 
     if (orgId) {
       router.push(`/dashboard?org=${orgId}`);
+    } else if (role === 'startup') {
+      router.push('/startup/application');
     } else {
-      router.push('/dashboard');
+      router.push('/programs/preincubator/status');
     }
   };
 

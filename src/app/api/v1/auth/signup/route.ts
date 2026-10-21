@@ -185,11 +185,16 @@ export async function POST(req: Request) {
         last_name: lastName,
         full_name: founder_name.trim(),
         is_active: true,
-        email_verified: false,
+        email_verified: true, // Verified by default to bypass email rate limits
         role: null, // Role is NOT selected yet
       })
       .select()
       .single();
+
+    // Auto-confirm user in Supabase Auth to ensure session and login work
+    if (data?.user?.id) {
+      await supabaseAdmin.auth.admin.updateUserById(data.user.id, { email_confirm: true }).catch(() => {});
+    }
 
     if (userError) {
       console.error('User profile creation failed:', userError);

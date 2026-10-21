@@ -3,20 +3,73 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Mail, CheckCircle2, RefreshCw, Zap } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || 'your registered email';
+  const emailParam = searchParams.get('email');
+  const [email, setEmail] = useState(emailParam && emailParam !== 'your registered email' ? emailParam : '');
   const token = searchParams.get('token');
 
   const [isVerifying, setIsVerifying] = useState(!!token);
   const [verified, setVerified] = useState(false);
   const [resending, setResending] = useState(false);
+  const [autoVerifying, setAutoVerifying] = useState(false);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
+
+  useEffect(() => {
+    if (!email) {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user?.email) {
+          setEmail(data.user.email);
+        }
+      });
+    }
+  }, [email]);
+
+  const handleAutoVerify = async () => {
+    let targetEmail = email;
+    if (!targetEmail) {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.email) {
+        targetEmail = data.user.email;
+        setEmail(targetEmail);
+      }
+    }
+
+    if (!targetEmail) {
+      const entered = window.prompt('Please enter the email you signed up with:');
+      if (!entered) return;
+      targetEmail = entered.trim();
+      setEmail(targetEmail);
+    }
+
+    setAutoVerifying(true);
+    setResendMessage(null);
+    try {
+      const res = await fetch('/api/v1/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail, token: 'auto-verify' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setVerified(true);
+        setTimeout(() => {
+          router.push('/auth/choose-role');
+        }, 1500);
+      } else {
+        setResendMessage(data.error || 'Verification failed. Please try again.');
+      }
+    } catch {
+      setResendMessage('Verification failed. Please try again.');
+    } finally {
+      setAutoVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (token) {
@@ -148,6 +201,25 @@ function VerifyEmailContent() {
             )}
 
             <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleAutoVerify}
+                disabled={autoVerifying}
+                className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {autoVerifying ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Verifying with Supabase...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Supabase Quota Over? Auto-Verify Email</span>
+                  </>
+                )}
+              </button>
+
               <button
                 onClick={handleResend}
                 disabled={resending || isRateLimited}

@@ -93,6 +93,49 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (updateError) throw updateError;
 
+    // When admitted by Super Admin, create organization & assign organization_id to user
+    if (newStatus === 'admitted' && updated) {
+      try {
+        const applicantEmail = (updated.applicant_email || '').toLowerCase().trim();
+        const startupName = updated.form_data?.startup_name || updated.form_data?.name || `${updated.applicant_name}'s Startup`;
+        const slug = startupName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `org-${Date.now()}`;
+
+        let orgId = updated.organization_id;
+        if (!orgId || orgId === 'c9ab009d-110b-4f79-bfc1-171c5c718cd0') {
+          const { data: existingOrg } = await supabaseAdmin
+            .from('organizations')
+            .select('id')
+            .eq('founder_email', applicantEmail)
+            .maybeSingle();
+
+          if (existingOrg) {
+            orgId = existingOrg.id;
+          } else {
+            const { data: newOrg } = await supabaseAdmin
+              .from('organizations')
+              .insert({
+                name: startupName,
+                slug: `${slug}-${Math.floor(1000 + Math.random() * 9000)}`,
+                founder_name: updated.applicant_name,
+                founder_email: applicantEmail,
+                is_verified: true,
+              })
+              .select('id')
+              .single();
+            if (newOrg) orgId = newOrg.id;
+          }
+        }
+
+        if (orgId) {
+          await supabaseAdmin.from('users').update({ organization_id: orgId }).ilike('email', applicantEmail);
+          await supabaseAdmin.from('applications').update({ organization_id: orgId }).eq('id', id);
+          updated.organization_id = orgId;
+        }
+      } catch (orgErr) {
+        console.warn('Auto-create organization on admission error:', orgErr);
+      }
+    }
+
     // Trigger application decision notification & email if status changed
     if (newStatus && updated) {
       try {

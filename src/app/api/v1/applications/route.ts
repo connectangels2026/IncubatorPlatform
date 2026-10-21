@@ -97,16 +97,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!targetOrgId || !isValidUUID(targetOrgId)) {
-      targetOrgId = DEFAULT_ORG_ID;
-    }
-
-    if (!organizationRecord) {
-      const { data: orgData } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, email, founder_email')
-        .eq('id', targetOrgId)
-        .maybeSingle();
-      organizationRecord = orgData;
+      targetOrgId = null;
     }
 
     const payload = {

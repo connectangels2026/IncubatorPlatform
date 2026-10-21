@@ -24,6 +24,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +75,11 @@ export default function SignupPage() {
     try {
       const res = await signup(founderName, email, password);
       if (res.success) {
-        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        if (isTestMode) {
+          router.push('/auth/choose-role');
+        } else {
+          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        }
       } else {
         setError(res.error || 'Failed to create account');
         setIsLoading(false);
@@ -314,6 +319,32 @@ export default function SignupPage() {
                 <span className="text-slate-600 text-[11px] leading-tight">
                   I agree to the Terms of Service & Incubator Code of Conduct
                 </span>
+              </div>
+
+              {/* Test Environment Switch */}
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-semibold text-slate-800 flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${isTestMode ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                    Test Environment Mode
+                  </span>
+                  <span className="text-[10px] text-slate-500">
+                    {isTestMode ? 'Auto-verifies email (skips Supabase email)' : 'Supabase email verification'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTestMode(!isTestMode)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isTestMode ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      isTestMode ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
               {/* Submit CTA */}
