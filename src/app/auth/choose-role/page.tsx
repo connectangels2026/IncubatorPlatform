@@ -79,7 +79,7 @@ export default function ChooseRolePage() {
 
       if (data.success || data.code === 'ROLE_ALREADY_SET') {
         // Redirect based on role or backend suggestion
-        const destination = data.redirect_to || (role === 'startup' ? '/startup/application' : '/auth/signup-incubator');
+        const destination = data.redirect_to || (role === 'startup' ? '/startup/application' : '/auth/incubator-plans');
         router.push(destination);
       } else {
         setError(data.error || data.message || 'Failed to select role');

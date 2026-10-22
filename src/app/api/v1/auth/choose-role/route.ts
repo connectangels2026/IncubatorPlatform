@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     if (userData.role && userData.role !== null) {
       const redirect_to = (userData.role === 'startup' || role === 'startup')
         ? '/startup/application'
-        : '/auth/signup-incubator';
+        : '/auth/incubator-plans';
       return NextResponse.json(
         {
           success: true,
@@ -159,7 +159,7 @@ export async function POST(req: Request) {
     }
 
     // Determine redirect URL based on role
-    const redirect_to = role === 'startup' ? '/startup/application' : '/auth/signup-incubator';
+    const redirect_to = role === 'startup' ? '/startup/application' : '/auth/incubator-plans';
 
     // Return success response
     return NextResponse.json(
