@@ -100,7 +100,9 @@ export async function POST(req: NextRequest) {
       targetOrgId = null;
     }
 
-    const payload = {
+    const targetIncubatorName = body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || null;
+
+    const payload: any = {
       organization_id: targetOrgId,
       applicant_name: body.applicant_name,
       applicant_email: body.applicant_email.toLowerCase().trim(),
@@ -112,6 +114,7 @@ export async function POST(req: NextRequest) {
       score: null,
       uploaded_documents: [],
       mou_signed: false,
+      incubator_name_text: targetIncubatorName,
     };
 
     const { data, error } = await supabaseAdmin

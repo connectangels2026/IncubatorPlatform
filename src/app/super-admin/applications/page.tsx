@@ -38,6 +38,7 @@ interface ApplicationRecord {
   stage: string;
   traction: string;
   status: 'Pending Decision' | 'Admitted' | 'Rejected' | string;
+  incubatorName: string;
   submittedTimestamp: string;
   rawRecord: any;
   dossier: {
@@ -129,6 +130,13 @@ export default function SuperAdminApplicationsPage() {
         })
       : 'Recently';
 
+    const incubatorName =
+      r.incubator_name ||
+      r.incubator_name_text ||
+      fd.incubatorName ||
+      r.organization?.name ||
+      'General Application';
+
     return {
       id: r.id,
       refId,
@@ -141,6 +149,7 @@ export default function SuperAdminApplicationsPage() {
       stage,
       traction,
       status: displayStatus,
+      incubatorName,
       submittedTimestamp,
       rawRecord: r,
       dossier: {
@@ -253,8 +262,8 @@ export default function SuperAdminApplicationsPage() {
     return incubators.filter(
       (inc) =>
         (inc.name || '').toLowerCase().includes(q) ||
-        (inc.location || '').toLowerCase().includes(q) ||
-        (inc.founder_name || '').toLowerCase().includes(q)
+        (inc.description || '').toLowerCase().includes(q) ||
+        (inc.slug || '').toLowerCase().includes(q)
     );
   }, [incubators, incubatorSearch]);
 
@@ -272,13 +281,18 @@ export default function SuperAdminApplicationsPage() {
     if (incubators.length === 0) {
       setIsLoadingIncubators(true);
       try {
-        const { data, error } = await supabase
-          .from('organizations')
-          .select('id, name, slug, founder_name, founder_email, location')
-          .is('deleted_at', null)
-          .order('name');
-        if (!error && data) {
-          setIncubators(data);
+        const res = await fetch('/api/v1/incubators');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setIncubators(json.data);
+        } else {
+          const { data } = await supabase
+            .from('organizations')
+            .select('id, name, slug, description, logo_url')
+            .order('name');
+          if (data && data.length > 0) {
+            setIncubators(data);
+          }
         }
       } catch (e) {
         console.error('Error fetching incubators:', e);
@@ -774,9 +788,24 @@ export default function SuperAdminApplicationsPage() {
                 </div>
               </div>
 
+              {/* DESIGN B: TARGET INCUBATOR SHOWCASE PANEL */}
+              <div className="flex items-center gap-3 bg-white/10 border border-cyan-400/30 rounded-2xl px-4 py-2 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  <Building2 className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-cyan-300 block">
+                    Target Incubator
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-white tracking-tight">
+                    {activeApp.incubatorName}
+                  </span>
+                </div>
+              </div>
+
               <button
                 onClick={() => setDossierModalOpen(false)}
-                className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -966,30 +995,38 @@ export default function SuperAdminApplicationsPage() {
                     <div
                       key={inc.id}
                       onClick={() => setSelectedIncubatorId(inc.id)}
-                      className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'border-blue-600 bg-blue-50/70 shadow-2xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                          ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600/30'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 bg-white'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs ${
-                            isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          <Building2 className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#1A2151]">{inc.name}</p>
-                          <p className="text-[10px] text-slate-500 font-medium">
-                            {inc.location || inc.founder_email || 'Active Partner Incubator'}
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        {inc.logo_url ? (
+                          <img
+                            src={inc.logo_url}
+                            alt={inc.name}
+                            className="w-11 h-11 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                              isSelected ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-[#1A2151]'
+                            }`}
+                          >
+                            <Building2 className="w-5 h-5 text-current" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-extrabold text-[#1A2151] truncate">{inc.name}</p>
+                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
+                            {inc.description || 'Verified Partner Incubator'}
                           </p>
                         </div>
                       </div>
                       <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300'
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'
                         }`}
                       >
                         {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}

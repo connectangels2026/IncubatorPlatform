@@ -357,14 +357,6 @@ function LoginForm() {
                 </button>
               </div>
             </form>
-
-            {/* Switch to Super Admin Portal matching image */}
-            <div className="text-center pt-5 mt-5 border-t border-slate-100 text-xs text-slate-500">
-              <span>Looking for Platform Governance? </span>
-              <Link href="/super-admin/login" className="font-semibold text-blue-600 hover:underline">
-                Switch to Super Admin Portal
-              </Link>
-            </div>
           </div>
         </div>
       </div>

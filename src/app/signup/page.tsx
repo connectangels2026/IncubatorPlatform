@@ -373,6 +373,14 @@ export default function SignupPage() {
                 Sign In
               </Link>
             </div>
+
+            {/* Switch to Super Admin Portal */}
+            <div className="text-center pt-3 text-xs text-slate-500">
+              <span>Looking for Platform Governance? </span>
+              <Link href="/super-admin/login" className="font-semibold text-blue-600 hover:underline">
+                Switch to Super Admin Portal
+              </Link>
+            </div>
           </div>
         </div>
       </div>
