@@ -21,10 +21,10 @@ import { apiClient } from '@/services/apiClient';
 
 const TIER_META: Record<string, { name: string; startups: string; mentors: string; price: string; icon: any; color: string }> = {
   free: {
-    name: 'Community Free',
+    name: 'Incubator Starter',
     startups: 'Up to 20 Startups',
     mentors: 'Up to 10 Mentors',
-    price: '₹0 / mo',
+    price: '₹2,999 / mo (billed annually)',
     icon: Rocket,
     color: 'text-slate-600 bg-slate-100 border-slate-200',
   },

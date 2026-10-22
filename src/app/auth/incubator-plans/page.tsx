@@ -38,10 +38,10 @@ interface Plan {
 const plans: Plan[] = [
   {
     id: 'free',
-    name: 'Community Free',
-    description: 'Entry-level tier for newly launched incubators and trial cohorts.',
-    priceMonthly: 0,
-    priceAnnual: 0,
+    name: 'Incubator Starter',
+    description: 'Entry-level tier for newly launched incubators and emerging cohorts.',
+    priceMonthly: 3999,
+    priceAnnual: 2999,
     limits: [
       { label: 'Startups Allowed', value: 'Up to 20', icon: <Building2 className="w-4 h-4 text-slate-500" /> },
       { label: 'Mentors Allowed', value: 'Up to 10', icon: <Users className="w-4 h-4 text-slate-500" /> },
@@ -53,7 +53,7 @@ const plans: Plan[] = [
       'Standard Email Support',
       'Standard Analytics Overview',
     ],
-    ctaText: 'Get Started Free',
+    ctaText: 'Choose Starter Plan',
     ctaStyle: 'outline',
     icon: <Rocket className="w-6 h-6 text-slate-700" />,
   },
@@ -70,7 +70,7 @@ const plans: Plan[] = [
       { label: 'Mentors Allowed', value: 'Up to 25', icon: <Users className="w-4 h-4 text-blue-600" /> },
     ],
     features: [
-      'Everything in Community Free',
+      'Everything in Incubator Starter',
       '1-on-1 Mentorship CRM',
       'CSV Export & Cohort Reports',
       'Demo Day Investor Matching',
