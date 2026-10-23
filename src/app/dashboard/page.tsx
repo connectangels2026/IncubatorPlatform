@@ -1,1644 +1,1009 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
-  ArrowLeft,
   Search,
-  Rocket,
-  FolderOpen,
-  GraduationCap,
-  Coins,
-  Briefcase,
-  ClipboardCheck,
-  CalendarPlus,
-  FileEdit,
-  FileDown,
-  ArrowUp,
-  ArrowRight,
-  X,
-  Video,
-  LogOut,
-  UserCheck,
-  Clock,
-  LayoutDashboard,
-  Menu,
-  RefreshCw,
-  AlertTriangle,
   Bell,
+  Plus,
+  Calendar,
+  Download,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ChevronRight,
+  TrendingUp,
+  Users,
+  Building2,
+  GraduationCap,
+  DollarSign,
+  Layers,
+  FileText,
+  Briefcase,
+  BarChart3,
+  Settings,
+  CreditCard,
+  LogOut,
+  User as UserIcon,
+  Sparkles,
+  X,
   Check,
-  CheckCheck,
+  Filter,
+  Zap,
+  MoreHorizontal,
+  ChevronDown,
+  Activity,
+  Award,
+  Globe,
+  Copy,
+  LayoutGrid,
+  List,
+  ArrowUpRight,
+  Shield,
+  Sliders,
+  SlidersHorizontal,
+  FolderPlus,
+  Mail,
+  UserCheck,
+  Database,
+  ArrowRight
 } from 'lucide-react';
-import { Button } from '@/frontend/components/ui/button';
-import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
+import { apiClient } from '@/services/apiClient';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
-import { supabase } from '@/backend/lib/supabase';
-import { apiClient } from '@/services/apiClient';
 
-interface ApplicationItem {
+// --- TYPES ---
+type NavTab = 'programs' | 'pipeline' | 'mentors' | 'demodays';
+type ViewMode = 'kanban' | 'list';
+type Stage = 'Ideation' | 'Validation' | 'Scaling' | 'Demo Day Ready';
+
+interface Startup {
   id: string;
   name: string;
-  founder_name?: string;
-  sector: string;
-  type: string;
-  score: number;
-  status: 'submitted' | 'under_review' | 'admitted' | 'rejected';
-  date: string;
-  email: string;
-  phone?: string;
-  form_data?: any;
-}
-
-interface StartupItem {
-  id: string;
-  name: string;
-  founder_name: string;
-  email: string;
-  sector: string;
-  stage: string;
-  status: string;
-  revenue: number;
-  funding_raised: number;
-  team_size: number;
-  date: string;
-  created_at?: string;
-}
-
-interface PendingDecision {
-  id: string;
-  name: string;
-  score: number;
-  type: string;
-  recommendation: string;
-}
-
-interface MentorshipSession {
+  logo: string;
+  sector: 'Fintech' | 'Healthtech' | 'AI/SaaS' | 'Clean Energy';
+  stage: Stage;
+  leadScore: number;
+  fundingAsk: string;
   mentor: string;
-  role: string;
-  startup: string;
-  time: string;
-  link: string;
+  mentorAvatar: string;
+  progress: number;
+  batch: string;
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, organization, logout } = useAuth();
 
-  // State
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Navigation & View States
+  const [activeTab, setActiveTab] = useState<NavTab>('pipeline');
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentFilter, setCurrentFilter] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'applications' | 'startups'>('applications');
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
+  const [selectedSectorFilter, setSelectedSectorFilter] = useState<string>('All');
+  
+  // Modals & Popups
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isCmdKOpen, setIsCmdKOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Tenant / Founder Profile State
-  const [founderName, setFounderName] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('org_founder_name') || '';
+  // Profile Flyout Ref for outside click
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Tenant / Organization Data
+  const orgName = organization?.name || 'Silicon Oasis Innovation Hub';
+  const orgSlug = organization?.slug || 'soih-dubai';
+  const founderName = organization?.founder_name || user?.email?.split('@')[0] || 'Dr. Sarah Al-Mansoor';
+  const founderEmail = organization?.founder_email || user?.email || 'director@incubator.org';
+
+  // Sample Startups Data
+  const [startups, setStartups] = useState<Startup[]>([
+    {
+      id: 'ST-101',
+      name: 'OmniHealth AI',
+      logo: '🧬',
+      sector: 'Healthtech',
+      stage: 'Ideation',
+      leadScore: 94,
+      fundingAsk: '$1.2M SAFEs',
+      mentor: 'Dr. Tariq Al-Hassan',
+      mentorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      progress: 35,
+      batch: 'Batch 8'
+    },
+    {
+      id: 'ST-102',
+      name: 'VerdeGrid Bio',
+      logo: '⚡',
+      sector: 'Clean Energy',
+      stage: 'Ideation',
+      leadScore: 88,
+      fundingAsk: '$800K Pre-Seed',
+      mentor: 'Elena Rostova',
+      mentorAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
+      progress: 25,
+      batch: 'Batch 8'
+    },
+    {
+      id: 'ST-103',
+      name: 'FinFlow Pay',
+      logo: '💳',
+      sector: 'Fintech',
+      stage: 'Validation',
+      leadScore: 92,
+      fundingAsk: '$2.5M Seed',
+      mentor: 'Faisal Al-Khouri',
+      mentorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+      progress: 60,
+      batch: 'Batch 7'
+    },
+    {
+      id: 'ST-104',
+      name: 'LogiChainX',
+      logo: '📦',
+      sector: 'AI/SaaS',
+      stage: 'Validation',
+      leadScore: 81,
+      fundingAsk: '$650K SAFEs',
+      mentor: 'Sarah Jenkins',
+      mentorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
+      progress: 50,
+      batch: 'Batch 8'
+    },
+    {
+      id: 'ST-105',
+      name: 'QuantumSec',
+      logo: '🛡️',
+      sector: 'AI/SaaS',
+      stage: 'Scaling',
+      leadScore: 97,
+      fundingAsk: '$4.0M Series A',
+      mentor: 'Michael Chang',
+      mentorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+      progress: 82,
+      batch: 'Batch 6'
+    },
+    {
+      id: 'ST-106',
+      name: 'SolarPulse',
+      logo: '☀️',
+      sector: 'Clean Energy',
+      stage: 'Scaling',
+      leadScore: 89,
+      fundingAsk: '$1.8M Seed',
+      mentor: 'Amina Al-Mansoor',
+      mentorAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+      progress: 75,
+      batch: 'Batch 7'
+    },
+    {
+      id: 'ST-107',
+      name: 'PayPulse MENA',
+      logo: '💎',
+      sector: 'Fintech',
+      stage: 'Demo Day Ready',
+      leadScore: 99,
+      fundingAsk: '$3.2M Series A',
+      mentor: 'Dr. Tariq Al-Hassan',
+      mentorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      progress: 95,
+      batch: 'Batch 6'
+    },
+    {
+      id: 'ST-108',
+      name: 'CureGene Therapeutics',
+      logo: '🧬',
+      sector: 'Healthtech',
+      stage: 'Demo Day Ready',
+      leadScore: 96,
+      fundingAsk: '$5.0M Series A',
+      mentor: 'Prof. Arthur P.',
+      mentorAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
+      progress: 90,
+      batch: 'Batch 6'
     }
-    return '';
-  });
-  const [orgName, setOrgName] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('org_name') || '';
-    }
-    return '';
-  });
+  ]);
 
-  // Data Loading & API State
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState({
-    totalStartups: 0,
-    totalStartupsGrowth: '+0%',
-    applicationsReceived: 0,
-    applicationsGrowth: '+0%',
-    pendingEvaluation: 0,
-    activeStartups: 0,
-    inactiveStartups: 0,
-    exitedStartups: 0,
-    fundingRaised: '$0',
-    fundingGrowth: '+$0',
-    jobsCreated: '0',
-    jobsGrowth: '+0 this mo',
-  });
-
-  const [applications, setApplications] = useState<ApplicationItem[]>([]);
-  const [startups, setStartups] = useState<StartupItem[]>([]);
-  const [pendingDecisions, setPendingDecisions] = useState<PendingDecision[]>([]);
-  const [mentorshipSessions, setMentorshipSessions] = useState<MentorshipSession[]>([]);
-
-  // Update founder and organization state from auth context
+  // Outside click handler for profile dropdown
   useEffect(() => {
-    if (organization) {
-      if (organization.founder_name) setFounderName(organization.founder_name);
-      if (organization.name) setOrgName(organization.name);
-    }
-  }, [organization]);
-
-  // Helper to dynamically obtain authorization and tenant headers
-  const getAuthHeaders = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-    const orgId = organization?.id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = token;
-    if (orgId) headers['x-org-id'] = orgId;
-    return headers;
-  };
-
-  // Fetch real-time dashboard data for the authenticated organization
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const headers = await getAuthHeaders();
-      const res = await apiClient.get('/reports/dashboard', { headers });
-      const json = res.data;
-      const payload = json?.data || json;
-
-      if (payload.organization) {
-        if (payload.organization.founder_name) setFounderName(payload.organization.founder_name);
-        if (payload.organization.name) setOrgName(payload.organization.name);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
       }
-
-      if (payload.metrics) {
-        setMetrics(payload.metrics);
-      } else if (payload.summary) {
-        setMetrics((prev) => ({
-          ...prev,
-          totalStartups: payload.summary.total_startups ?? prev.totalStartups,
-          applicationsReceived: payload.summary.total_applications ?? prev.applicationsReceived,
-          activeStartups: payload.summary.active_startups ?? prev.activeStartups,
-          inactiveStartups: payload.summary.inactive_startups ?? prev.inactiveStartups,
-          exitedStartups: payload.summary.exited_startups ?? prev.exitedStartups,
-          pendingEvaluation: payload.summary.pending_evaluation ?? prev.pendingEvaluation,
-          fundingRaised: payload.summary.total_funding_raised
-            ? `$${(payload.summary.total_funding_raised / 1000000).toFixed(1)}M`
-            : '$0',
-          jobsCreated: payload.summary.total_jobs_created
-            ? `${payload.summary.total_jobs_created}`
-            : '0',
-        }));
-      }
-
-      const fetchedApps = Array.isArray(payload.applications) ? payload.applications : [];
-      const fetchedStartups = Array.isArray(payload.startups) ? payload.startups : [];
-      setApplications(fetchedApps);
-      setStartups(fetchedStartups);
-      setPendingDecisions(Array.isArray(payload.pendingDecisions) ? payload.pendingDecisions : []);
-      if (Array.isArray(payload.mentorshipSessions) && payload.mentorshipSessions.length > 0) {
-        setMentorshipSessions(payload.mentorshipSessions);
-      }
-      if (fetchedStartups.length > 0) {
-        setScheduleStartup((prev) => prev || fetchedStartups[0].name);
-      } else if (fetchedApps.length > 0) {
-        setScheduleStartup((prev) => prev || fetchedApps[0].name);
-      }
-
-      // Fetch user's own submitted applications directly from database
-      try {
-        const appsRes = await apiClient.get('/applications?limit=50', { headers });
-        const dbApps = appsRes.data?.data;
-        if (Array.isArray(dbApps) && dbApps.length > 0) {
-          const mappedDbApps: ApplicationItem[] = dbApps.map((item: any) => ({
-            id: item.id,
-            name:
-              item.form_data?.startup_name ||
-              item.form_data?.businessName ||
-              item.form_data?.oneSentencePitch ||
-              (item.applicant_name ? `${item.applicant_name}'s Startup` : 'My Pre-Incubator Application'),
-            founder_name: item.applicant_name || 'Founder',
-            sector: item.form_data?.industry || item.form_data?.industryVertical || 'Early Stage',
-            type: item.application_type || 'pre-incubator',
-            score: item.score ?? 75,
-            status: item.status || 'submitted',
-            date: item.created_at ? item.created_at.split('T')[0] : 'Today',
-            email: item.applicant_email,
-            phone: item.applicant_phone,
-            form_data: item.form_data,
-          }));
-
-          setApplications((prev) => {
-            const map = new Map<string, ApplicationItem>();
-            mappedDbApps.forEach((a) => map.set(a.id, a));
-            prev.forEach((a) => {
-              if (!map.has(a.id)) map.set(a.id, a);
-            });
-            return Array.from(map.values());
-          });
-        }
-      } catch (appsErr) {
-        console.warn('Could not fetch user applications:', appsErr);
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Unable to load dashboard data.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Notification center state
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const fetchLiveNotifications = async () => {
-    try {
-      const headers = await getAuthHeaders();
-      const res = await apiClient.get('/notifications?limit=30', { headers });
-      if (res.data?.data) {
-        const seen = new Set<string>();
-        const unique = (res.data.data as any[]).filter((n) => {
-          const key = `${n.title}::${n.message}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        setLiveNotifications(unique);
-        setUnreadCount(unique.filter((n) => !n.is_read).length);
-      }
-    } catch {
-      // Fallback
-    }
-  };
-
-  const markNotificationAsRead = async (id: string) => {
-    try {
-      const headers = await getAuthHeaders();
-      await apiClient.put(`/notifications/${id}/read`, { is_read: true }, { headers });
-      setLiveNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch {
-      // Fallback
-    }
-  };
-
-  const markAllNotificationsAsRead = async () => {
-    try {
-      const headers = await getAuthHeaders();
-      const unread = liveNotifications.filter((n) => !n.is_read);
-      await Promise.all(
-        unread.map((n) =>
-          apiClient.put(`/notifications/${n.id}/read`, { is_read: true }, { headers })
-        )
-      );
-      setLiveNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
-    } catch {
-      // Fallback
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-    fetchLiveNotifications();
-
-    // Subscribe to Supabase real-time database changes
-    const channel = supabase
-      .channel('realtime-dashboard')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'applications' },
-        () => {
-          fetchDashboardData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'startups' },
-        () => {
-          fetchDashboardData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications' },
-        () => {
-          fetchLiveNotifications();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Modals state
-  const [evalModalOpen, setEvalModalOpen] = useState(false);
-  const [evalApp, setEvalApp] = useState<ApplicationItem | null>(null);
-  const [evalScores, setEvalScores] = useState({ team: 22, market: 20, tech: 21, traction: 18 });
-  const [evalDecision, setEvalDecision] = useState<'under_review' | 'admitted' | 'rejected'>('admitted');
-  const [evalNotes, setEvalNotes] = useState('');
+  // Keyboard Shortcuts (Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCmdKOpen((prev) => !prev);
+      }
+      if (e.key === 'Escape') {
+        setIsCmdKOpen(false);
+        setIsProfileOpen(false);
+        setIsNotificationsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [scheduleMentor, setScheduleMentor] = useState('Dr. Marcus Vance (Fintech Specialist)');
-  const [scheduleStartup, setScheduleStartup] = useState('');
-  const [scheduleDate, setScheduleDate] = useState('2026-09-28');
-  const [scheduleTime, setScheduleTime] = useState('14:00');
-
-  // Helpers
-  const showToast = (text: string, type: 'success' | 'info' = 'info') => {
-    setToastMessage({ text, type });
+  // Show toast utility
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Copy Public URL Slug
+  const handleCopySlug = () => {
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/incubators/${orgSlug}` : `https://arba360.io/incubators/${orgSlug}`;
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(true);
+    showToast('Public hub URL copied to clipboard!');
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
   const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
-
-  const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
-      const matchesFilter = currentFilter === 'all' || app.status === currentFilter;
-      const matchesSearch =
-        !searchQuery ||
-        app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        app.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (app.founder_name && app.founder_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        app.email.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [applications, currentFilter, searchQuery]);
-
-  const filteredStartups = useMemo(() => {
-    return startups.filter((s) => {
-      const matchesFilter = currentFilter === 'all' || s.status === currentFilter;
-      const matchesSearch =
-        !searchQuery ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.founder_name && s.founder_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        s.email.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [startups, currentFilter, searchQuery]);
-
-  const myPendingApplications = useMemo(() => {
-    return applications.filter(
-      (app) => app.status === 'submitted' || app.status === 'under_review'
-    );
-  }, [applications]);
-
-  const openEval = (app: ApplicationItem) => {
-    setEvalApp(app);
-    setEvalScores({ team: 22, market: 20, tech: 21, traction: 18 });
-    setEvalDecision(app.status === 'submitted' ? 'under_review' : app.status as any);
-    setEvalModalOpen(true);
-  };
-
-  const handleEvalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!evalApp) return;
-
-    const total = evalScores.team + evalScores.market + evalScores.tech + evalScores.traction;
-
-    setApplications((prev) =>
-      prev.map((a) => (a.id === evalApp.id ? { ...a, score: total, status: evalDecision } : a))
-    );
-    setPendingDecisions((prev) => prev.filter((p) => p.id !== evalApp.id));
-    setEvalModalOpen(false);
-    showToast(`Updated evaluation & decision for ${evalApp.name}.`, 'success');
-
-    // Create persistent in-app notification
     try {
-      const headers = await getAuthHeaders();
-      const res = await apiClient.post(
-        '/notifications',
-        {
-          title: `Application Decision: ${evalDecision.toUpperCase()}`,
-          message: `Evaluation submitted for ${evalApp.name}: Status is now ${evalDecision.toUpperCase()} with total score of ${total}/100.`,
-          notification_type: 'application_decision',
-          send_in_app: true,
-          send_email: true,
-        },
-        { headers }
-      );
-      const newNotif = res.data?.data || res.data?.notification;
-      if (newNotif) {
-        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
-        setUnreadCount((prev) => prev + 1);
-      }
-      fetchLiveNotifications();
-    } catch (err) {
-      console.warn('Failed to dispatch evaluation notification:', err);
+      await logout();
+      router.push('/login');
+    } catch {
+      router.push('/login');
     }
   };
 
-  const quickDecision = async (id: string, decision: 'admitted' | 'rejected') => {
-    const targetApp = applications.find((a) => a.id === id);
-    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status: decision } : a)));
-    setPendingDecisions((prev) => prev.filter((p) => p.id !== id));
-    showToast(`Application ${decision === 'admitted' ? 'Admitted' : 'Rejected'} successfully!`, 'info');
+  // Filtered Startups
+  const filteredStartups = startups.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.sector.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.mentor.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSector = selectedSectorFilter === 'All' || item.sector === selectedSectorFilter;
+    return matchesSearch && matchesSector;
+  });
 
-    try {
-      const headers = await getAuthHeaders();
-      const res = await apiClient.post(
-        '/notifications',
-        {
-          title: `Application Decision: ${decision.toUpperCase()}`,
-          message: `Application for ${targetApp?.name || 'Startup'} was ${decision.toUpperCase()}.`,
-          notification_type: 'application_decision',
-          send_in_app: true,
-          send_email: true,
-        },
-        { headers }
-      );
-      const newNotif = res.data?.data || res.data?.notification;
-      if (newNotif) {
-        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
-        setUnreadCount((prev) => prev + 1);
-      }
-      fetchLiveNotifications();
-    } catch (err) {
-      console.warn('Failed to dispatch quick decision notification:', err);
-    }
-  };
-
-  const handleScheduleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const mentorName = scheduleMentor.split('(')[0].trim();
-    setMentorshipSessions((prev) => [
-      {
-        mentor: mentorName,
-        role: 'Advisor',
-        startup: scheduleStartup,
-        time: `${scheduleDate} at ${scheduleTime}`,
-        link: 'https://meet.google.com',
-      },
-      ...prev,
-    ]);
-    setScheduleModalOpen(false);
-    showToast(`Mentorship session scheduled with ${scheduleStartup}!`, 'success');
-
-    // Create persistent in-app notification
-    try {
-      const headers = await getAuthHeaders();
-      const res = await apiClient.post(
-        '/notifications',
-        {
-          title: `Mentorship Session Booked: ${scheduleStartup}`,
-          message: `Confirmed mentorship session with ${mentorName} for ${scheduleStartup} on ${scheduleDate} at ${scheduleTime}.`,
-          notification_type: 'mentorship_booking',
-          send_in_app: true,
-          send_email: true,
-        },
-        { headers }
-      );
-      const newNotif = res.data?.data || res.data?.notification;
-      if (newNotif) {
-        setLiveNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
-        setUnreadCount((prev) => prev + 1);
-      }
-      fetchLiveNotifications();
-    } catch (err) {
-      console.warn('Failed to dispatch schedule notification:', err);
-    }
-  };
-
-  const downloadReports = () => {
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      'ID,Startup Name,Sector,Type,Score,Status,Date\n' +
-      applications.map((e) => `${e.id},${e.name},${e.sector},${e.type},${e.score},${e.status},${e.date}`).join('\n');
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'Arba360_Applications_Report.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Exported applications report as CSV.', 'success');
-  };
+  const stages: Stage[] = ['Ideation', 'Validation', 'Scaling', 'Demo Day Ready'];
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans relative flex">
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Ambient background glow spots */}
+        <div className="fixed top-0 left-1/4 -translate-x-1/2 w-[600px] h-[350px] bg-[#00d4ff]/10 blur-[130px] pointer-events-none rounded-full z-0" />
+        <div className="fixed top-20 right-10 w-[500px] h-[400px] bg-[#0066ff]/10 blur-[140px] pointer-events-none rounded-full z-0" />
+        <div className="fixed bottom-10 left-1/3 w-[700px] h-[300px] bg-[#1A2151]/5 blur-[120px] pointer-events-none rounded-full z-0" />
+
         {/* Toast Notification */}
         {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold text-white shadow-xl bg-slate-900 border border-slate-700 animate-in fade-in slide-in-from-bottom-2">
-            <span className={toastMessage.type === 'success' ? 'text-emerald-400' : 'text-sky-400'}>●</span>
-            <span>{toastMessage.text}</span>
+          <div className="fixed bottom-6 right-6 z-50 bg-[#1A2151] text-white px-4 py-3 rounded-2xl shadow-2xl border border-[#00d4ff]/30 flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-[#00d4ff] animate-ping" />
+            <span className="text-xs font-medium">{toastMessage}</span>
           </div>
         )}
 
-        {/* Sidebar Component with hover animation and icon-only logo */}
-        <Sidebar
-          mobileOpen={sidebarOpen}
-          onCloseMobile={() => setSidebarOpen(false)}
-          onLogout={handleLogout}
-        />
+        {/* =========================================================================
+            WHITE TOP NAVBAR (Clean, without the photo tab strip)
+           ========================================================================= */}
+        <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between transition-all">
+          {/* Left: Brand Logo + Incubator Console Tag */}
+          <div className="flex items-center gap-3">
+            <Logo variant="dark" size="md" href="/dashboard" />
 
-        {/* Right Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Bar */}
-          <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-xs">
-            <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-1.5 -ml-1.5 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
-                  aria-label="Open sidebar"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-                <span className="text-sm font-semibold text-slate-700 hidden sm:inline-block">
-                  Dashboard
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                {/* Notifications Bell Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => {
-                      setNotificationsOpen(!notificationsOpen);
-                      if (!notificationsOpen) fetchLiveNotifications();
-                    }}
-                    className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition relative"
-                    aria-label="View notifications"
-                    title="Notifications"
-                  >
-                    <Bell className="w-4 h-4" />
-                    {unreadCount > 0 && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600 absolute top-1.5 right-1.5 ring-2 ring-white" />
-                    )}
-                  </button>
+            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block" />
 
-                  {notificationsOpen && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-4 animate-in fade-in zoom-in-95">
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Notifications</h4>
-                          {unreadCount > 0 && (
-                            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600">
-                              {unreadCount} new
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {unreadCount > 0 && (
-                            <button
-                              onClick={markAllNotificationsAsRead}
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-800 transition"
-                              title="Mark all as read"
-                            >
-                              <CheckCheck className="w-3 h-3" />
-                              <span>Mark all read</span>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setNotificationsOpen(false)}
-                            className="text-slate-400 hover:text-slate-600 text-xs p-1 rounded-md hover:bg-slate-100 transition"
-                            title="Close"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-[11px] font-semibold text-blue-700">
+              <Sparkles className="w-3 h-3 text-blue-600" />
+              <span>Incubator Console</span>
+            </div>
+          </div>
 
-                      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto mt-2">
-                        {liveNotifications.length === 0 ? (
-                          <div className="py-8 text-center text-xs text-slate-400">
-                            No notifications yet
-                          </div>
-                        ) : (
-                          liveNotifications.map((n) => (
-                            <div
-                              key={n.id}
-                              className={`py-3 px-2.5 rounded-xl transition flex items-start justify-between gap-3 ${!n.is_read ? 'bg-blue-50/60 border border-blue-100/50' : 'hover:bg-slate-50'
-                                }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-xs font-semibold text-slate-900 truncate">{n.title}</p>
-                                  {!n.is_read && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed line-clamp-2">{n.message}</p>
-                                <span className="text-[10px] text-slate-400 mt-1 block">
-                                  {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                              <div className="shrink-0 pt-0.5">
-                                {!n.is_read ? (
-                                  <button
-                                    onClick={() => markNotificationAsRead(n.id)}
-                                    className="p-1.5 rounded-lg text-blue-600 hover:text-emerald-600 hover:bg-emerald-50 bg-white border border-slate-200 hover:border-emerald-300 shadow-2xs transition group"
-                                    title="Mark as read"
-                                    aria-label="Mark as read"
-                                  >
-                                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  </button>
-                                ) : (
-                                  <span className="p-1.5 block text-slate-300" title="Read">
-                                    <CheckCheck className="w-3.5 h-3.5 text-slate-300" />
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
+          {/* Right Section: Cmd+K, Tier Badge, Notifications, Radiant Avatar */}
+          <div className="flex items-center gap-3">
+            {/* Quick Search Trigger (Cmd+K) */}
+            <button
+              onClick={() => setIsCmdKOpen(true)}
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs text-slate-600 transition group cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+              <span>Search hub...</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] bg-white border border-slate-300 rounded text-slate-500 font-mono">
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Tier Badge */}
+            <Link
+              href="/auth/incubator-plans"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 shadow-2xs hover:border-blue-300 transition"
+            >
+              <Shield className="w-3.5 h-3.5 text-blue-600" />
+              <span>Pro Cluster</span>
+            </Link>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                className="relative p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              </button>
+
+              {/* Notification Flyout */}
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-3 w-80 rounded-2xl bg-[#1A2151] border border-[#00d4ff]/30 text-white shadow-2xl p-4 z-50">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
+                    <span className="font-semibold text-xs text-slate-200">Notifications</span>
+                    <span className="text-[10px] bg-[#00d4ff]/20 text-[#00d4ff] px-2 py-0.5 rounded-full font-mono">3 New</span>
+                  </div>
+                  <div className="space-y-3 py-3">
+                    <div className="flex gap-2.5 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-[#00d4ff] mt-1.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-slate-200">OmniHealth AI submitted Batch 8 Pitch</p>
+                        <span className="text-[10px] text-slate-400">12 minutes ago</span>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                {/* Authenticated Founder Profile Chip */}
-                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-100/90 border border-slate-200/80">
-                  <div className="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-xs uppercase shadow-2xs">
-                    {(founderName || orgName || 'F').charAt(0)}
-                  </div>
-                  <div className="hidden md:flex flex-col text-left">
-                    <span className="text-xs font-semibold text-slate-800 leading-tight">
-                      {founderName || 'Founder'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-medium leading-tight max-w-[130px] truncate">
-                      {orgName || organization?.name || 'Incubator'}
-                    </span>
+                    <div className="flex gap-2.5 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-[#0066ff] mt-1.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-slate-200">Dr. Tariq confirmed 3 mentor slots</p>
+                        <span className="text-[10px] text-slate-400">1 hour ago</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                <Link href="/programs">
-                  <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs">
-                    Programs
-                  </Button>
-                </Link>
-                <Link href="/" className="hidden sm:block">
-                  <Button variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 text-xs">
-                    Home
-                  </Button>
-                </Link>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-300 text-slate-700 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 gap-1.5 transition text-xs"
-                  title="Log Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Log Out</span>
-                </Button>
-              </div>
-            </div>
-          </nav>
-
-          {/* Main Content */}
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-            {/* Dashboard Title Banner & Quick Actions Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">Admin Command Center</h1>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                    {orgName || organization?.name || 'Incubator Platform'}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Welcome back, <strong className="text-slate-900 font-semibold">{founderName || 'Founder'}</strong>
-                </p>
-              </div>
-
-              {/* Primary Quick Actions Bar */}
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={fetchDashboardData}
-                  disabled={isLoading}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs disabled:opacity-50 transition"
-                  title="Refresh dashboard data"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} /> Refresh
-                </button>
-                <button
-                  onClick={() => openEval(applications[0])}
-                  disabled={applications.length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs disabled:opacity-50 transition"
-                >
-                  <ClipboardCheck className="w-4 h-4" /> Review Applications
-                </button>
-                <button
-                  onClick={() => setScheduleModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs transition"
-                >
-                  <CalendarPlus className="w-4 h-4 text-blue-600" /> Schedule Mentor
-                </button>
-                <button
-                  onClick={() => applications[1] && openEval(applications[1])}
-                  disabled={applications.length < 2}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs disabled:opacity-50 transition"
-                >
-                  <FileEdit className="w-4 h-4 text-amber-500" /> Startup Review
-                </button>
-                <button
-                  onClick={downloadReports}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-slate-900 text-white hover:bg-slate-800 shadow-xs transition"
-                >
-                  <FileDown className="w-4 h-4" /> Export Reports
-                </button>
-              </div>
+              )}
             </div>
 
-            {/* Error Banner */}
-            {error && (
-              <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold text-rose-900">{error}</p>
-                    <p className="text-[11px] text-rose-600">Failed to load real-time cohort and analytics reports from /api/v1/reports/dashboard.</p>
-                  </div>
+            {/* RADIANT CIRCULAR PROFILE AVATAR TRIGGER */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="relative p-[2px] rounded-full bg-gradient-to-tr from-[#00d4ff] via-[#0066ff] to-[#00d4ff] shadow-lg shadow-[#00d4ff]/30 hover:scale-105 transition-transform cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-full bg-[#1A2151] p-[1.5px] overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80"
+                    alt={founderName}
+                    className="w-full h-full rounded-full object-cover"
+                  />
                 </div>
-                <button
-                  onClick={fetchDashboardData}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retry
-                </button>
-              </div>
-            )}
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#1A2151] rounded-full shadow-xs" />
+              </button>
 
-            {/* 5 Key Metric KPI Cards Grid */}
-            {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs animate-pulse space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="w-24 h-3.5 bg-slate-200 rounded" />
-                      <div className="w-8 h-8 rounded-lg bg-slate-100" />
-                    </div>
-                    <div className="w-20 h-7 bg-slate-200 rounded" />
-                    <div className="w-28 h-3 bg-slate-100 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* KPI 1: Total Startups */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Total Startups</span>
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
-                      <Rocket className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900">{metrics.totalStartups}</span>
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      <ArrowUp className="w-3 h-3" /> {metrics.totalStartupsGrowth}
+              {/* MODAL PROFILE FLYOUT CARD */}
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl bg-[#1A2151] border border-[#00d4ff]/30 text-white shadow-2xl overflow-hidden z-50">
+                  
+                  {/* Gradient Top Banner */}
+                  <div className="h-24 bg-gradient-to-r from-[#1A2151] via-[#0066ff] to-[#00d4ff] relative p-4 flex justify-between items-start">
+                    <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-mono font-medium text-[#00d4ff] border border-white/10">
+                      INCUBATOR ADMIN
                     </span>
+                    <button
+                      onClick={() => setIsProfileOpen(false)}
+                      className="p-1 rounded-full bg-black/30 hover:bg-black/50 text-slate-200 transition cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">vs previous cohort</p>
-                </div>
 
-                {/* KPI 2: Applications Received */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Applications (This Mo)</span>
-                    <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
-                      <FolderOpen className="w-4 h-4" />
+                  {/* Circular Avatar Overlapping Header */}
+                  <div className="px-6 pb-6 relative">
+                    <div className="-mt-12 mb-3 flex items-end justify-between">
+                      <div className="relative p-[3px] rounded-full bg-gradient-to-tr from-[#00d4ff] to-[#0066ff] shadow-xl">
+                        <img
+                          src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80"
+                          alt={founderName}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-[#1A2151]"
+                        />
+                      </div>
+                      <button
+                        onClick={handleCopySlug}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-xs font-medium text-slate-200 transition cursor-pointer"
+                      >
+                        {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#00d4ff]" />}
+                        <span>{copiedUrl ? 'Copied' : 'Hub URL'}</span>
+                      </button>
                     </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900">{metrics.applicationsReceived}</span>
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      <ArrowUp className="w-3 h-3" /> {metrics.applicationsGrowth}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">{metrics.pendingEvaluation} pending evaluation</p>
-                </div>
 
-                {/* KPI 3: Pipeline Breakdown */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Active / Inactive / Exited</span>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
-                      <GraduationCap className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-blue-600">{metrics.activeStartups}</span>
-                    <span className="text-xs text-slate-400">/</span>
-                    <span className="text-lg font-bold text-amber-600">{metrics.inactiveStartups}</span>
-                    <span className="text-xs text-slate-400">/</span>
-                    <span className="text-lg font-bold text-slate-700">{metrics.exitedStartups}</span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">Active | Inactive | Exited</p>
-                </div>
-
-                {/* KPI 4: Funding Raised */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Funding Raised</span>
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm">
-                      <Coins className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900">{metrics.fundingRaised}</span>
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                      {metrics.fundingGrowth}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">across all startups</p>
-                </div>
-
-                {/* KPI 5: Jobs Created */}
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Jobs Created</span>
-                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900">{metrics.jobsCreated}</span>
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                      {metrics.jobsGrowth}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">Direct & indirect workforce</p>
-                </div>
-              </div>
-            )}
-
-            {/* User's Pending Applications Status Section */}
-            {myPendingApplications.length > 0 && (
-              <div className="bg-gradient-to-r from-amber-500/10 via-blue-500/10 to-indigo-500/10 border border-amber-200/80 rounded-2xl p-5 shadow-2xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-2xs shrink-0">
-                      <Clock className="w-5 h-5 animate-pulse" />
-                    </div>
+                    {/* User Info */}
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900">Submitted Application Under Review</h3>
-                      <p className="text-xs text-slate-500">Your program application has been received and is currently in the committee evaluation queue.</p>
-                    </div>
-                  </div>
-                  <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                    Pending Decision ({myPendingApplications.length})
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {myPendingApplications.map((app) => (
-                    <div key={app.id} className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 transition hover:shadow-md">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate">{app.name}</p>
-                          <p className="text-[11px] text-slate-500 capitalize truncate">{app.type.replace('_', ' ')} • {app.sector}</p>
-                        </div>
-                        <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full capitalize shrink-0 ${
-                          app.status === 'under_review'
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {app.status === 'submitted' ? 'Pending Review' : 'Under Review'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100">
-                        <span>Submitted on {app.date}</span>
-                        <Link
-                          href={`/programs/preincubator/status?id=${app.id}`}
-                          className="font-semibold text-blue-600 hover:underline flex items-center gap-1"
-                        >
-                          <span>Track Status</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left 2 Columns: Recent Applications Table */}
-              <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-                  {/* Table Header Toolbar */}
-                  <div className="p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      {/* View Switcher Tabs: Applications & Startups */}
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setActiveTab('applications')}
-                          className={`text-sm font-bold pb-1 border-b-2 transition ${activeTab === 'applications'
-                              ? 'border-blue-600 text-slate-900'
-                              : 'border-transparent text-slate-500 hover:text-slate-800'
-                            }`}
-                        >
-                          Recent Applications ({applications.length})
-                        </button>
-                        <span className="text-slate-300">|</span>
-                        <button
-                          onClick={() => setActiveTab('startups')}
-                          className={`text-sm font-bold pb-1 border-b-2 transition ${activeTab === 'startups'
-                              ? 'border-blue-600 text-slate-900'
-                              : 'border-transparent text-slate-500 hover:text-slate-800'
-                            }`}
-                        >
-                          Cohort Startups ({startups.length})
-                        </button>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        {activeTab === 'applications'
-                          ? `Incoming applicant pipeline for ${orgName || 'your incubator'}.`
-                          : `Startups currently incubated under ${orgName || 'your incubator'}.`}
+                      <h3 className="text-base font-bold text-white flex items-center gap-1.5">
+                        <span>{founderName}</span>
+                        <CheckCircle2 className="w-4 h-4 text-[#00d4ff] fill-[#00d4ff]/20" />
+                      </h3>
+                      <p className="text-xs text-slate-300 font-medium">{founderEmail}</p>
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{orgName}</span>
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Search inside table */}
-                      <div className="relative">
-                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder={activeTab === 'applications' ? 'Search applications...' : 'Search startups...'}
-                          className="bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
+                    {/* Public URL Slug Badge */}
+                    <div className="mt-3 p-2 rounded-xl bg-[#0d1230] border border-slate-700/60 flex items-center justify-between text-xs font-mono text-slate-300">
+                      <span className="truncate text-slate-400">arba360.io/incubators/{orgSlug}</span>
+                      <button onClick={handleCopySlug} className="text-[#00d4ff] hover:text-white ml-2 cursor-pointer">
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Live Subscription Status Banner */}
+                    <div className="mt-4 p-3 rounded-2xl bg-gradient-to-r from-[#0066ff]/20 via-[#00d4ff]/10 to-transparent border border-[#00d4ff]/30 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#00d4ff]">
+                          <Zap className="w-3.5 h-3.5 fill-[#00d4ff]" />
+                          <span>Pro Cluster Active</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Annual Billing • 20% Saved</p>
+                      </div>
+                      <Link
+                        href="/auth/incubator-plans"
+                        className="px-3 py-1 rounded-lg bg-[#0066ff] hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition"
+                      >
+                        Plans
+                      </Link>
+                    </div>
+
+                    {/* Usage Quota Meters */}
+                    <div className="mt-4 space-y-2.5">
+                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hub Resource Usage</div>
+                      
+                      <div>
+                        <div className="flex justify-between text-xs font-medium text-slate-300 mb-1">
+                          <span>Active Startups</span>
+                          <span className="font-mono text-[#00d4ff]">42 / 100</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] rounded-full" style={{ width: '42%' }} />
+                        </div>
                       </div>
 
-                      {/* Filter Pills */}
-                      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-lg self-start sm:self-auto overflow-x-auto max-w-full">
-                        {[
-                          { id: 'all', label: 'All' },
-                          { id: 'submitted', label: 'Submitted' },
-                          { id: 'under_review', label: 'In Review' },
-                          { id: 'admitted', label: 'Admitted' },
-                          { id: 'rejected', label: 'Rejected' },
-                        ].map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => setCurrentFilter(f.id)}
-                            className={`text-xs font-medium px-2.5 py-1 rounded-md transition ${currentFilter === f.id
-                                ? 'bg-white text-slate-900 shadow-2xs'
-                                : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                          >
-                            {f.label}
-                          </button>
-                        ))}
+                      <div>
+                        <div className="flex justify-between text-xs font-medium text-slate-300 mb-1">
+                          <span>Verified Mentors</span>
+                          <span className="font-mono text-[#00d4ff]">18 / 25</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-emerald-500 to-[#00d4ff] rounded-full" style={{ width: '72%' }} />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Data Table */}
-                  <div className="overflow-x-auto">
-                    {activeTab === 'applications' ? (
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                          <tr>
-                            <th className="py-3 px-4">Startup & Founder</th>
-                            <th className="py-3 px-4">Program Type</th>
-                            <th className="py-3 px-4">Score</th>
-                            <th className="py-3 px-4">Status</th>
-                            <th className="py-3 px-4">Date</th>
-                            <th className="py-3 px-4 text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-700">
-                          {isLoading ? (
-                            [1, 2, 3, 4, 5].map((i) => (
-                              <tr key={i} className="animate-pulse">
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-slate-200 rounded-lg" />
-                                    <div className="space-y-1">
-                                      <div className="w-24 h-3 bg-slate-200 rounded" />
-                                      <div className="w-16 h-2 bg-slate-100 rounded" />
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4"><div className="w-16 h-3 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4"><div className="w-12 h-4 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4"><div className="w-16 h-4 bg-slate-200 rounded-full" /></td>
-                                <td className="py-3 px-4"><div className="w-16 h-3 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4 text-right"><div className="w-12 h-6 bg-slate-200 rounded ml-auto" /></td>
-                              </tr>
-                            ))
-                          ) : filteredApplications.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="text-center py-10 px-4">
-                                <div className="max-w-sm mx-auto space-y-2">
-                                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-                                    <FolderOpen className="w-5 h-5" />
-                                  </div>
-                                  <p className="text-sm font-semibold text-slate-800">No applications received yet</p>
-                                  <p className="text-xs text-slate-500">
-                                    Submissions to <strong>{orgName || 'your incubator'}</strong> will appear here in real time.
-                                  </p>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredApplications.map((app) => (
-                              <tr key={app.id} className="hover:bg-slate-50/80 transition">
-                                <td className="py-3 px-4 font-medium text-slate-900">
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                                      {app.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-slate-900 leading-none">{app.name}</p>
-                                      <p className="text-[11px] text-slate-600 font-medium mt-0.5">
-                                        Founder: <span className="text-slate-900 font-semibold">{app.founder_name || 'Founder'}</span>
-                                      </p>
-                                      <p className="text-[10px] text-slate-400 mt-0.5">
-                                        {app.sector} • {app.id.slice(0, 8)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 text-slate-500">{app.type}</td>
-                                <td className="py-3 px-4">
-                                  <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${app.score >= 80
-                                        ? 'text-emerald-600 bg-emerald-50'
-                                        : app.score >= 60
-                                          ? 'text-amber-600 bg-amber-50'
-                                          : 'text-rose-600 bg-rose-50'
-                                      }`}
-                                  >
-                                    {app.score}/100
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span
-                                    className={`px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize ${app.status === 'admitted'
-                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : app.status === 'under_review'
-                                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                          : app.status === 'rejected'
-                                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                                      }`}
-                                  >
-                                    {app.status.replace('_', ' ')}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-slate-400">{app.date}</td>
-                                <td className="py-3 px-4 text-right">
-                                  <button
-                                    onClick={() => openEval(app)}
-                                    className="px-2.5 py-1 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition"
-                                  >
-                                    Evaluate
-                                  </button>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
-                          <tr>
-                            <th className="py-3 px-4">Startup & Founder</th>
-                            <th className="py-3 px-4">Sector</th>
-                            <th className="py-3 px-4">Stage</th>
-                            <th className="py-3 px-4">Funding Raised</th>
-                            <th className="py-3 px-4">Status</th>
-                            <th className="py-3 px-4 text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-700">
-                          {isLoading ? (
-                            [1, 2, 3].map((i) => (
-                              <tr key={i} className="animate-pulse">
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-slate-200 rounded-lg" />
-                                    <div className="space-y-1">
-                                      <div className="w-24 h-3 bg-slate-200 rounded" />
-                                      <div className="w-16 h-2 bg-slate-100 rounded" />
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4"><div className="w-16 h-3 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4"><div className="w-12 h-4 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4"><div className="w-16 h-4 bg-slate-200 rounded" /></td>
-                                <td className="py-3 px-4"><div className="w-16 h-4 bg-slate-200 rounded-full" /></td>
-                                <td className="py-3 px-4 text-right"><div className="w-12 h-6 bg-slate-200 rounded ml-auto" /></td>
-                              </tr>
-                            ))
-                          ) : filteredStartups.length === 0 ? (
-                            <tr>
-                              <td colSpan={6} className="text-center py-10 px-4">
-                                <div className="max-w-sm mx-auto space-y-2">
-                                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
-                                    <Rocket className="w-5 h-5" />
-                                  </div>
-                                  <p className="text-sm font-semibold text-slate-800">No startups in cohort yet</p>
-                                  <p className="text-xs text-slate-500">
-                                    Startups registered under <strong>{orgName || 'your incubator'}</strong> will appear here in real time.
-                                  </p>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredStartups.map((st) => (
-                              <tr key={st.id} className="hover:bg-slate-50/80 transition">
-                                <td className="py-3 px-4 font-medium text-slate-900">
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                                      {st.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-slate-900 leading-none">{st.name}</p>
-                                      <p className="text-[11px] text-slate-600 font-medium mt-0.5">
-                                        Founder: <span className="text-slate-900 font-semibold">{st.founder_name}</span>
-                                      </p>
-                                      <p className="text-[10px] text-slate-400 mt-0.5">
-                                        {st.email || 'No email provided'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 text-slate-500">{st.sector}</td>
-                                <td className="py-3 px-4">
-                                  <span className="px-2 py-0.5 text-[10px] font-semibold rounded bg-slate-100 text-slate-700">
-                                    {st.stage}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 font-medium text-slate-800">
-                                  {st.funding_raised > 0 ? `$${(st.funding_raised / 1000).toFixed(0)}k` : '$0'}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 capitalize">
-                                    {st.status}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-4 text-right">
-                                  <Link
-                                    href="/dashboard/startups"
-                                    className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded transition inline-block"
-                                  >
-                                    Manage
-                                  </Link>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
+                    {/* Quick Action Links */}
+                    <div className="mt-5 pt-4 border-t border-slate-700/80 space-y-1">
+                      <Link
+                        href="/dashboard/settings"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition"
+                      >
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        <span>Incubator Settings</span>
+                      </Link>
+                      <Link
+                        href="/dashboard/mentors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition"
+                      >
+                        <Users className="w-4 h-4 text-slate-400" />
+                        <span>Team & Mentors</span>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition mt-1 cursor-pointer"
+                      >
+                        <LogOut className="w-4 h-4 text-rose-400" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
 
-                  {/* Table Footer */}
-                  <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-500">
-                    {activeTab === 'applications' ? (
-                      <>
-                        <span>
-                          Showing <strong>{filteredApplications.length}</strong> of <strong>{applications.length}</strong>{' '}
-                          submissions
-                        </span>
-                        <Link
-                          href="/dashboard/applications"
-                          className="text-blue-600 font-medium hover:underline flex items-center gap-1"
-                        >
-                          View full application database <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <span>
-                          Showing <strong>{filteredStartups.length}</strong> of <strong>{startups.length}</strong>{' '}
-                          startups
-                        </span>
-                        <Link
-                          href="/dashboard/startups"
-                          className="text-blue-600 font-medium hover:underline flex items-center gap-1"
-                        >
-                          View full startups directory <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </>
-                    )}
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* Pending Decisions & Urgent Reviews Card */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                      <h2 className="text-base font-bold text-slate-900">Pending Final Decisions</h2>
-                    </div>
-                    <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">
-                      {pendingDecisions.length} Need Action
-                    </span>
-                  </div>
+          </div>
+        </header>
 
-                  <div className="space-y-3">
-                    {isLoading ? (
-                      [1, 2].map((i) => (
-                        <div key={i} className="p-3 bg-slate-50 rounded-lg border border-slate-200 animate-pulse flex items-center justify-between">
-                          <div className="space-y-1.5">
-                            <div className="w-24 h-3 bg-slate-200 rounded" />
-                            <div className="w-44 h-2.5 bg-slate-100 rounded" />
-                          </div>
-                          <div className="flex gap-1.5">
-                            <div className="w-12 h-6 bg-slate-200 rounded" />
-                            <div className="w-12 h-6 bg-slate-200 rounded" />
-                          </div>
-                        </div>
-                      ))
-                    ) : pendingDecisions.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-2">No pending decisions remaining.</p>
-                    ) : (
-                      pendingDecisions.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                        >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-xs text-slate-900">{item.name}</h4>
-                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-100 text-blue-700">
-                                Score: {item.score}
+      {/* =========================================================================
+          2. HERO & CONTENT SECTION
+         ========================================================================= */}
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 pt-8 pb-16 space-y-8 relative z-10">
+        
+        {/* HERO BANNER WITH DEEP NAVY GRADIENT */}
+        <div className="relative rounded-3xl bg-gradient-to-r from-[#1A2151] via-[#151a42] to-[#0d1230] p-6 sm:p-8 text-white border border-[#00d4ff]/20 shadow-xl overflow-hidden">
+          
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            
+            {/* Greetings Header */}
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#00d4ff] mb-2">
+                <span className="w-2 h-2 rounded-full bg-[#00d4ff] animate-ping" />
+                <span>{orgName} • Friday, Oct 23, 2026</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Welcome back, {founderName} 👋
+              </h1>
+              <p className="text-slate-300 text-sm mt-1 max-w-xl">
+                Cohort #8 is progressing through Validation. You have 4 pending startup reviews and 2 mentor syncs scheduled today.
+              </p>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => showToast('Opened Onboard Startup Modal')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-white text-xs font-bold shadow-lg shadow-[#0066ff]/30 hover:opacity-95 transition hover:scale-[1.02] cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Onboard Startup</span>
+              </button>
+              <button
+                onClick={() => showToast('Schedule Office Hours initiated')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-semibold backdrop-blur-md transition cursor-pointer"
+              >
+                <Calendar className="w-4 h-4 text-[#00d4ff]" />
+                <span>Schedule Hours</span>
+              </button>
+              <button
+                onClick={() => showToast('Exporting CRM dataset to CSV...')}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-slate-700 text-slate-300 text-xs font-medium transition cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-slate-400" />
+                <span className="hidden sm:inline">Export CRM</span>
+              </button>
+            </div>
+          </div>
+
+          {/* LIVE STATS TICKER ROW */}
+          <div className="mt-8 pt-6 border-t border-slate-700/60 grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            <div className="bg-white/5 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Active Cohorts</span>
+                <Layers className="w-4 h-4 text-[#00d4ff]" />
+              </div>
+              <div className="text-xl font-bold text-white mt-1">4 Batches</div>
+              <span className="text-[10px] text-emerald-400 font-medium">Cohort #8 in Progress</span>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Total Funding Raised</span>
+                <DollarSign className="w-4 h-4 text-[#00d4ff]" />
+              </div>
+              <div className="text-xl font-bold text-white mt-1">$12.4M SAFEs</div>
+              <span className="text-[10px] text-[#00d4ff] font-medium">+18% vs last quarter</span>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Acceptance Rate</span>
+                <TrendingUp className="w-4 h-4 text-[#00d4ff]" />
+              </div>
+              <div className="text-xl font-bold text-white mt-1">3.8%</div>
+              <span className="text-[10px] text-slate-400 font-medium">42 accepted / 1,100 applicants</span>
+            </div>
+
+            <div className="bg-white/5 rounded-2xl p-3.5 border border-white/5 backdrop-blur-sm">
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Demo Day Countdown</span>
+                <Clock className="w-4 h-4 text-[#00d4ff]" />
+              </div>
+              <div className="text-xl font-bold text-white mt-1">14 Days</div>
+              <span className="text-[10px] text-amber-400 font-medium">Nov 6, 2026 • Demo Hall</span>
+            </div>
+
+          </div>
+        </div>
+
+        {/* SEARCH, FILTER & VIEW TOGGLE BAR */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+          
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Filter startups by name, mentor, or sector..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066ff] focus:bg-white transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Sector Filters & View Mode Toggle */}
+          <div className="flex items-center gap-3 justify-between sm:justify-end">
+            
+            {/* Sector Pill Filter */}
+            <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-xs">
+              {['All', 'Fintech', 'Healthtech', 'AI/SaaS', 'Clean Energy'].map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => setSelectedSectorFilter(sec)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
+                    selectedSectorFilter === sec
+                      ? 'bg-[#1A2151] text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {sec}
+                </button>
+              ))}
+            </div>
+
+            <div className="h-5 w-[1px] bg-slate-200 hidden sm:block" />
+
+            {/* View Mode Toggle (Kanban vs List) */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                  viewMode === 'kanban' ? 'bg-white text-[#0066ff] shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Kanban Board View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition cursor-pointer ${
+                  viewMode === 'list' ? 'bg-white text-[#0066ff] shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="List View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        {/* STARTUP PIPELINE BOARD / LIST */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* Main Pipeline Column */}
+          <div className="lg:col-span-3 space-y-6">
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-[#0066ff]" />
+                <h2 className="text-lg font-bold text-[#1A2151]">Cohort Startup Pipeline</h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold">
+                  {filteredStartups.length} Active
+                </span>
+              </div>
+            </div>
+
+            {/* KANBAN BOARD VIEW */}
+            {viewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {stages.map((stage) => {
+                  const stageStartups = filteredStartups.filter((s) => s.stage === stage);
+                  return (
+                    <div
+                      key={stage}
+                      className="bg-slate-100/80 rounded-2xl p-3 border border-slate-200/80 flex flex-col min-h-[500px]"
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 px-1">
+                        <span className="text-xs font-bold text-[#1A2151]">{stage}</span>
+                        <span className="w-5 h-5 rounded-full bg-white text-slate-700 text-[10px] font-bold flex items-center justify-center border border-slate-200">
+                          {stageStartups.length}
+                        </span>
+                      </div>
+
+                      {/* Cards Container */}
+                      <div className="space-y-3 flex-1 overflow-y-auto">
+                        {stageStartups.map((startup) => (
+                          <div
+                            key={startup.id}
+                            className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs hover:shadow-md transition group cursor-pointer hover:border-[#0066ff]/40"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                                  {startup.logo}
+                                </span>
+                                <div>
+                                  <h4 className="text-xs font-bold text-slate-900 group-hover:text-[#0066ff] transition">
+                                    {startup.name}
+                                  </h4>
+                                  <span className="text-[10px] text-slate-500 font-medium">{startup.sector}</span>
+                                </div>
+                              </div>
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-mono font-bold">
+                                Score {startup.leadScore}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{item.recommendation}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => quickDecision(item.id, 'admitted')}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 rounded transition shadow-2xs"
-                            >
-                              Admit
-                            </button>
-                            <button
-                              onClick={() => quickDecision(item.id, 'rejected')}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-slate-200 text-slate-700 hover:bg-rose-600 hover:text-white rounded transition"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Right 1 Column: Upcoming Mentorship & Activity Log */}
-              <div className="space-y-6">
-                {/* Upcoming Mentorship Sessions */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-blue-600" /> Mentorship Sessions
-                    </h2>
-                    <button
-                      onClick={() => setScheduleModalOpen(true)}
-                      className="text-xs text-blue-600 font-medium hover:underline"
-                    >
-                      + New
-                    </button>
-                  </div>
+                            {/* Funding & Progress */}
+                            <div className="mt-3 space-y-2">
+                              <div className="flex justify-between items-center text-[11px] text-slate-600">
+                                <span>Target Ask:</span>
+                                <span className="font-semibold text-slate-800">{startup.fundingAsk}</span>
+                              </div>
 
-                  <div className="space-y-3.5">
-                    {isLoading ? (
-                      [1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 animate-pulse"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-slate-200" />
-                            <div className="space-y-1">
-                              <div className="w-24 h-3 bg-slate-200 rounded" />
-                              <div className="w-20 h-2 bg-slate-100 rounded" />
+                              <div>
+                                <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                                  <span>Milestone Progress</span>
+                                  <span>{startup.progress}%</span>
+                                </div>
+                                <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] rounded-full"
+                                    style={{ width: `${startup.progress}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Footer / Mentor Avatar */}
+                            <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+                              <div className="flex items-center gap-1.5">
+                                <img
+                                  src={startup.mentorAvatar}
+                                  alt={startup.mentor}
+                                  className="w-4 h-4 rounded-full object-cover"
+                                />
+                                <span className="truncate max-w-[100px]">{startup.mentor}</span>
+                              </div>
+                              <span className="text-slate-400">{startup.batch}</span>
                             </div>
                           </div>
-                          <div className="w-14 h-3 bg-slate-200 rounded" />
-                        </div>
-                      ))
-                    ) : mentorshipSessions.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-2">No mentorship sessions scheduled.</p>
-                    ) : (
-                      mentorshipSessions.map((session, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
-                              {session.mentor.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-xs text-slate-900">{session.mentor}</p>
-                              <p className="text-[10px] text-slate-500">
-                                Startup: <strong className="text-slate-700">{session.startup}</strong>
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-[10px] block font-medium text-slate-600">{session.time}</span>
-                            <a
-                              href={session.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-semibold mt-0.5"
-                            >
-                              <Video className="w-3 h-3" /> Join Call
-                            </a>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                        ))}
 
-                {/* Recent Activity Stream */}
-                <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs space-y-4">
-                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                    <Clock className="w-4 h-4 text-slate-400" /> Audit & Activity Log
-                  </h2>
-
-                  <div className="relative pl-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 text-xs">
-                    {liveNotifications.length > 0 ? (
-                      liveNotifications.slice(0, 4).map((n, i) => (
-                        <div key={n.id || i} className="relative">
-                          <span
-                            className={`absolute -left-4 top-1 w-2.5 h-2.5 rounded-full ring-4 ring-white ${
-                              n.notification_type === 'application_decision'
-                                ? 'bg-emerald-500'
-                                : n.notification_type === 'mentorship_booking'
-                                ? 'bg-blue-500'
-                                : 'bg-indigo-500'
-                            }`}
-                          />
-                          <p className="text-slate-800 font-medium">{n.message}</p>
-                          <span className="text-[10px] text-slate-400">
-                            {n.created_at
-                              ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                              : 'Just now'}{' '}
-                            • In-App
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <>
-                        {applications.length > 0 && (
-                          <div className="relative">
-                            <span className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white" />
-                            <p className="text-slate-800 font-medium">
-                              <strong className="font-bold">{applications[0].name}</strong> submitted application.
-                            </p>
-                            <span className="text-[10px] text-slate-400">{applications[0].date}</span>
+                        {stageStartups.length === 0 && (
+                          <div className="py-8 text-center text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                            No startups in {stage}
                           </div>
                         )}
-                        {startups.length > 0 && (
-                          <div className="relative">
-                            <span className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-white" />
-                            <p className="text-slate-800 font-medium">
-                              <strong className="font-bold">{startups[0].name}</strong> registered in cohort.
-                            </p>
-                            <span className="text-[10px] text-slate-400">{startups[0].date}</span>
-                          </div>
-                        )}
-                        <div className="relative">
-                          <span className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-slate-400 ring-4 ring-white" />
-                          <p className="text-slate-800 font-medium">
-                            Live telemetry online for <strong className="font-bold">{orgName || 'Incubator'}</strong>.
-                          </p>
-                          <span className="text-[10px] text-slate-400">System Ready</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* LIST VIEW */
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3 px-4">Startup</th>
+                        <th className="py-3 px-4">Sector</th>
+                        <th className="py-3 px-4">Stage</th>
+                        <th className="py-3 px-4">Funding Target</th>
+                        <th className="py-3 px-4">Lead Mentor</th>
+                        <th className="py-3 px-4">Lead Score</th>
+                        <th className="py-3 px-4">Progress</th>
+                        <th className="py-3 px-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+                      {filteredStartups.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                          <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-2">
+                            <span>{item.logo}</span>
+                            <span>{item.name}</span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">{item.sector}</td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium text-[11px]">
+                              {item.stage}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-medium">{item.fundingAsk}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <img src={item.mentorAvatar} className="w-4 h-4 rounded-full object-cover" alt="" />
+                              <span>{item.mentor}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-mono font-bold text-emerald-600">{item.leadScore}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="w-24">
+                              <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
+                                <span>{item.progress}%</span>
+                              </div>
+                              <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-[#0066ff] rounded-full"
+                                  style={{ width: `${item.progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => showToast(`Reviewing ${item.name}`)}
+                              className="text-[#0066ff] hover:text-[#1A2151] font-semibold text-xs cursor-pointer"
+                            >
+                              Review
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </div>
-          </main>
+            )}
 
-          {/* Modal 1: Evaluation & Scoring Dialog */}
-          {evalModalOpen && evalApp && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-150">
-                <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-900">Evaluate: {evalApp.name}</h3>
-                    <p className="text-xs text-slate-500">
-                      {evalApp.sector} • {evalApp.id}
-                    </p>
-                  </div>
-                  <button onClick={() => setEvalModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+          </div>
 
-                <form onSubmit={handleEvalSubmit} className="p-5 space-y-4">
-                  {/* Criteria Sliders */}
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-xs font-medium mb-1">
-                        <span>Team & Execution</span>
-                        <span className="text-blue-600 font-bold">{evalScores.team}/25</span>
+          {/* Sidebar Section (1/4 width) - MENTORS & COHORT HIGHLIGHTS */}
+          <div className="space-y-6">
+            
+            {/* Active Mentors Widget */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-[#1A2151] flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-[#0066ff]" />
+                  <span>Featured Mentors</span>
+                </h3>
+                <Link href="/dashboard/mentors" className="text-[10px] font-semibold text-[#0066ff] cursor-pointer hover:underline">
+                  View All (18)
+                </Link>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    name: 'Dr. Tariq Al-Hassan',
+                    role: 'Fintech & Regulatory',
+                    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+                    slots: '2 Slots Left'
+                  },
+                  {
+                    name: 'Elena Rostova',
+                    role: 'VC Partner • CleanTech',
+                    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
+                    slots: 'Available Today'
+                  },
+                  {
+                    name: 'Faisal Al-Khouri',
+                    role: 'Scaleup Advisor',
+                    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+                    slots: 'Busy'
+                  }
+                ].map((m, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition">
+                    <div className="flex items-center gap-2.5">
+                      <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">{m.name}</div>
+                        <div className="text-[10px] text-slate-500">{m.role}</div>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="25"
-                        value={evalScores.team}
-                        onChange={(e) => setEvalScores({ ...evalScores, team: Number(e.target.value) })}
-                        className="w-full accent-blue-600 cursor-pointer"
-                      />
                     </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs font-medium mb-1">
-                        <span>Market Opportunity & TAM</span>
-                        <span className="text-blue-600 font-bold">{evalScores.market}/25</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="25"
-                        value={evalScores.market}
-                        onChange={(e) => setEvalScores({ ...evalScores, market: Number(e.target.value) })}
-                        className="w-full accent-blue-600 cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs font-medium mb-1">
-                        <span>Tech Innovation & Moat</span>
-                        <span className="text-blue-600 font-bold">{evalScores.tech}/25</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="25"
-                        value={evalScores.tech}
-                        onChange={(e) => setEvalScores({ ...evalScores, tech: Number(e.target.value) })}
-                        className="w-full accent-blue-600 cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-xs font-medium mb-1">
-                        <span>Traction & Business Model</span>
-                        <span className="text-blue-600 font-bold">{evalScores.traction}/25</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="25"
-                        value={evalScores.traction}
-                        onChange={(e) => setEvalScores({ ...evalScores, traction: Number(e.target.value) })}
-                        className="w-full accent-blue-600 cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Total Score Gauge Banner */}
-                  <div className="bg-slate-100 p-3 rounded-lg flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-700">Total Calculated Score</span>
-                    <span className="text-lg font-extrabold text-blue-600">
-                      {evalScores.team + evalScores.market + evalScores.tech + evalScores.traction}/100
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      {m.slots}
                     </span>
                   </div>
-
-                  {/* Decision Toggle */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Admission Decision</label>
-                    <select
-                      value={evalDecision}
-                      onChange={(e) => setEvalDecision(e.target.value as any)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900 focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="under_review">Keep Under Review</option>
-                      <option value="admitted">Admit to Incubator</option>
-                      <option value="rejected">Reject Application</option>
-                    </select>
-                  </div>
-
-                  {/* Feedback Text */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Reviewer Feedback Notes</label>
-                    <textarea
-                      rows={3}
-                      value={evalNotes}
-                      onChange={(e) => setEvalNotes(e.target.value)}
-                      placeholder="Enter evaluation notes and recommendations..."
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEvalModalOpen(false)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
-                    >
-                      Save Evaluation
-                    </button>
-                  </div>
-                </form>
+                ))}
               </div>
             </div>
-          )}
 
-          {/* Modal 2: Schedule Mentor Session Modal */}
-          {scheduleModalOpen && (
-            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-5 space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-200 pb-3">
-                  <h3 className="font-bold text-sm text-slate-900">Schedule Mentor Session</h3>
-                  <button onClick={() => setScheduleModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <form onSubmit={handleScheduleSubmit} className="space-y-3 text-xs">
-                  <div>
-                    <label className="block font-medium text-slate-700 mb-1">Select Mentor</label>
-                    <select
-                      value={scheduleMentor}
-                      onChange={(e) => setScheduleMentor(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                    >
-                      <option>Dr. Marcus Vance (Fintech Specialist)</option>
-                      <option>Elena Rostova (AI & ML Advisor)</option>
-                      <option>David Chen (Growth & Venture Capital)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-medium text-slate-700 mb-1">Select Startup</label>
-                    <select
-                      value={scheduleStartup}
-                      onChange={(e) => setScheduleStartup(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                    >
-                      {startups.length === 0 && applications.length === 0 ? (
-                        <option value="">No startups or applicants in cohort yet</option>
-                      ) : (
-                        Array.from(new Set([...startups.map((s) => s.name), ...applications.map((a) => a.name)])).map(
-                          (name) => (
-                            <option key={name} value={name}>
-                              {name}
-                            </option>
-                          )
-                        )
-                      )}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block font-medium text-slate-700 mb-1">Date</label>
-                      <input
-                        type="date"
-                        value={scheduleDate}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="block font-medium text-slate-700 mb-1">Time</label>
-                      <input
-                        type="time"
-                        value={scheduleTime}
-                        onChange={(e) => setScheduleTime(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2"
-                      />
-                    </div>
-                  </div>
-                  <div className="pt-2 flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setScheduleModalOpen(false)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100"
-                    >
-                      Cancel
-                    </button>
-                    <button type="submit" className="px-4 py-1.5 rounded-lg bg-blue-600 text-white font-medium">
-                      Confirm Schedule
-                    </button>
-                  </div>
-                </form>
+            {/* Upcoming Hub Events Widget */}
+            <div className="bg-[#1A2151] rounded-2xl p-5 border border-[#00d4ff]/20 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#00d4ff]/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="flex items-center justify-between mb-3 relative z-10">
+                <span className="text-xs font-bold text-[#00d4ff] uppercase tracking-wider">Demo Day Milestone</span>
+                <Award className="w-4 h-4 text-[#00d4ff]" />
               </div>
+
+              <h4 className="text-sm font-bold text-white relative z-10">Riyadh Venture Showcase 2026</h4>
+              <p className="text-xs text-slate-300 mt-1 relative z-10">
+                21 startups presenting to 60+ global investors.
+              </p>
+
+              <div className="mt-4 pt-3 border-t border-slate-700/80 flex items-center justify-between text-xs relative z-10">
+                <span className="text-slate-400">Target Date:</span>
+                <span className="font-mono font-bold text-[#00d4ff]">Nov 06, 2026</span>
+              </div>
+
+              <button
+                onClick={() => showToast('Demo Day registration link generated')}
+                className="w-full mt-4 py-2 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-white text-xs font-bold shadow-md hover:opacity-95 transition cursor-pointer"
+              >
+                Manage RSVP List
+              </button>
             </div>
-          )}
+
+          </div>
+
         </div>
+
+      </main>
+
+      {/* =========================================================================
+          INTERACTIVE COMMAND PALETTE MODAL (Cmd + K)
+         ========================================================================= */}
+      {isCmdKOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-20 px-4">
+          <div className="w-full max-w-lg bg-[#1A2151] rounded-2xl border border-[#00d4ff]/30 text-white shadow-2xl overflow-hidden">
+            
+            {/* Input Header */}
+            <div className="p-4 border-b border-slate-700/80 flex items-center gap-3">
+              <Search className="w-5 h-5 text-[#00d4ff]" />
+              <input
+                type="text"
+                placeholder="Type a command or search startups, mentors, reports..."
+                className="w-full bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none"
+                autoFocus
+              />
+              <button onClick={() => setIsCmdKOpen(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Actions List */}
+            <div className="p-3 space-y-1 text-xs">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Actions</div>
+              <button
+                onClick={() => {
+                  setIsCmdKOpen(false);
+                  showToast('Opened Onboard Startup Modal');
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-slate-200 transition cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-[#00d4ff]" />
+                <span>Onboard New Startup to Cohort</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsCmdKOpen(false);
+                  showToast('Scheduling mentor session');
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-slate-200 transition cursor-pointer"
+              >
+                <GraduationCap className="w-4 h-4 text-[#0066ff]" />
+                <span>Assign Mentor Session</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsCmdKOpen(false);
+                  showToast('Exporting analytics report');
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/10 text-slate-200 transition cursor-pointer"
+              >
+                <BarChart3 className="w-4 h-4 text-emerald-400" />
+                <span>Generate Cohort Performance Report</span>
+              </button>
+            </div>
+
+            <div className="p-3 border-t border-slate-700/80 text-[10px] text-slate-400 flex justify-between bg-[#0d1230]">
+              <span>Use <strong>ESC</strong> to exit</span>
+              <span>Arba360 Console v4.2</span>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       </div>
-    </ProtectedRoute>
+    </div>
   );
 }
