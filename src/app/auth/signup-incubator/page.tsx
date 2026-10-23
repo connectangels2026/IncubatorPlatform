@@ -214,11 +214,23 @@ function SignupIncubatorContent() {
     try {
       const res = await apiClient.post('/incubators', {
         name: formData.name.trim(),
-        website: formData.website?.trim() || null,
-        city: formData.city?.trim() || null,
+        slug: formData.slug?.trim() || null,
         description: formData.description?.trim() || null,
-        founderName: formData.founder_name?.trim() || user?.email?.split('@')[0],
+        logo_url: formData.logo_url?.trim() || null,
+        primary_color: formData.primary_color || '#1A2151',
+        secondary_color: formData.secondary_color || '#0066ff',
+        founder_name: formData.founder_name?.trim() || user?.email?.split('@')[0],
+        founder_email: formData.founder_email?.trim() || user?.email,
+        billing_email: formData.billing_email?.trim() || user?.email,
+        phone: formData.phone?.trim() ? `${formData.phone_country} ${formData.phone.trim()}` : null,
+        website: formData.website?.trim() || null,
+        address: formData.address?.trim() || null,
+        city: formData.city?.trim() || null,
+        state: formData.state?.trim() || null,
+        country: formData.country?.trim() || 'India',
+        postal_code: formData.postal_code?.trim() || null,
         tier: selectedPlan,
+        billing_cycle: billingCycle,
       });
 
       if (!res.data?.success && res.data?.error) {
