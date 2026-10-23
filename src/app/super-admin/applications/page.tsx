@@ -20,6 +20,7 @@ import {
   UserCheck,
   LogOut,
   RefreshCw,
+  Building2,
 } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
 import { apiClient } from '@/services/apiClient';
@@ -37,6 +38,7 @@ interface ApplicationRecord {
   stage: string;
   traction: string;
   status: 'Pending Decision' | 'Admitted' | 'Rejected' | string;
+  incubatorName: string;
   submittedTimestamp: string;
   rawRecord: any;
   dossier: {
@@ -68,11 +70,17 @@ export default function SuperAdminApplicationsPage() {
   const [dossierTab, setDossierTab] = useState<number>(1);
   const [activeApp, setActiveApp] = useState<ApplicationRecord | null>(null);
 
-  const [admitPopupOpen, setAdmitPopupOpen] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [rejectPopupOpen, setRejectPopupOpen] = useState(false);
   const [targetApp, setTargetApp] = useState<ApplicationRecord | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Incubator Assignment State
+  const [incubators, setIncubators] = useState<any[]>([]);
+  const [incubatorSearch, setIncubatorSearch] = useState('');
+  const [selectedIncubatorId, setSelectedIncubatorId] = useState<string | null>(null);
+  const [isLoadingIncubators, setIsLoadingIncubators] = useState(false);
 
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'emerald' | 'rose' | 'cyan' }>({
     show: false,
@@ -122,6 +130,13 @@ export default function SuperAdminApplicationsPage() {
         })
       : 'Recently';
 
+    const incubatorName =
+      r.incubator_name ||
+      r.incubator_name_text ||
+      fd.incubatorName ||
+      r.organization?.name ||
+      'General Application';
+
     return {
       id: r.id,
       refId,
@@ -134,6 +149,7 @@ export default function SuperAdminApplicationsPage() {
       stage,
       traction,
       status: displayStatus,
+      incubatorName,
       submittedTimestamp,
       rawRecord: r,
       dossier: {
@@ -240,10 +256,16 @@ export default function SuperAdminApplicationsPage() {
     setDossierModalOpen(true);
   };
 
-  const openAdmitPopup = (app: ApplicationRecord) => {
-    setTargetApp(app);
-    setAdmitPopupOpen(true);
-  };
+  const filteredIncubators = useMemo(() => {
+    if (!incubatorSearch.trim()) return incubators;
+    const q = incubatorSearch.toLowerCase().trim();
+    return incubators.filter(
+      (inc) =>
+        (inc.name || '').toLowerCase().includes(q) ||
+        (inc.description || '').toLowerCase().includes(q) ||
+        (inc.slug || '').toLowerCase().includes(q)
+    );
+  }, [incubators, incubatorSearch]);
 
   const openRejectPopup = (app: ApplicationRecord) => {
     setTargetApp(app);
@@ -251,9 +273,37 @@ export default function SuperAdminApplicationsPage() {
     setRejectPopupOpen(true);
   };
 
-  // Decision actions
-  const confirmAdmission = async () => {
-    if (!targetApp || isProcessing) return;
+  const openAssignModal = async (app: ApplicationRecord) => {
+    setTargetApp(app);
+    setSelectedIncubatorId(null);
+    setIncubatorSearch('');
+    setAssignModalOpen(true);
+    if (incubators.length === 0) {
+      setIsLoadingIncubators(true);
+      try {
+        const res = await fetch('/api/v1/incubators');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setIncubators(json.data);
+        } else {
+          const { data } = await supabase
+            .from('organizations')
+            .select('id, name, slug, description, logo_url')
+            .order('name');
+          if (data && data.length > 0) {
+            setIncubators(data);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching incubators:', e);
+      } finally {
+        setIsLoadingIncubators(false);
+      }
+    }
+  };
+
+  const confirmAssignment = async () => {
+    if (!targetApp || !selectedIncubatorId || isProcessing) return;
     setIsProcessing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -264,20 +314,21 @@ export default function SuperAdminApplicationsPage() {
       await apiClient.put(
         `/applications/${targetApp.id}`,
         {
-          status: 'admitted',
-          super_admin_status: 'approved',
-          reviewer_comments: 'Admitted into cohort by Super Admin',
+          organization_id: selectedIncubatorId,
+          status: 'under_review',
+          reviewer_comments: 'Assigned to incubator by Super Admin for evaluation',
         },
         { headers }
       );
 
+      const targetInc = incubators.find((i) => i.id === selectedIncubatorId);
       setApplications((prev) =>
-        prev.map((a) => (a.id === targetApp.id ? { ...a, status: 'Admitted' } : a))
+        prev.map((a) => (a.id === targetApp.id ? { ...a, status: 'Under Review' } : a))
       );
-      setAdmitPopupOpen(false);
-      triggerToast(`Admitted ${targetApp.founderName} (${targetApp.startupName}) to Arba360 Cohort!`, 'emerald');
+      setAssignModalOpen(false);
+      triggerToast(`Forwarded ${targetApp.startupName} to ${targetInc?.name || 'Incubator'} for evaluation!`, 'emerald');
     } catch (err: any) {
-      triggerToast(err?.response?.data?.error || 'Failed to record admission', 'rose');
+      triggerToast(err?.response?.data?.error || 'Failed to forward application', 'rose');
     } finally {
       setIsProcessing(false);
     }
@@ -670,15 +721,15 @@ export default function SuperAdminApplicationsPage() {
                               <span>Inspect</span>
                             </button>
 
-                            {/* Approve */}
+                            {/* Assign / Forward to Incubator */}
                             <button
-                              onClick={() => openAdmitPopup(app)}
-                              disabled={app.status === 'Admitted'}
-                              title="Admit Founder to Cohort"
-                              className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-600 disabled:opacity-30 disabled:pointer-events-none font-bold text-xs transition-all border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                              onClick={() => openAssignModal(app)}
+                              disabled={app.status === 'Admitted' || app.status === 'Rejected'}
+                              title="Assign to Incubator"
+                              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 disabled:opacity-30 disabled:pointer-events-none font-bold text-xs transition-all border border-blue-200 flex items-center gap-1 cursor-pointer"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Approve</span>
+                              <Building2 className="w-3.5 h-3.5" />
+                              <span>Assign Incubator</span>
                             </button>
 
                             {/* Reject */}
@@ -737,9 +788,24 @@ export default function SuperAdminApplicationsPage() {
                 </div>
               </div>
 
+              {/* DESIGN B: TARGET INCUBATOR SHOWCASE PANEL */}
+              <div className="flex items-center gap-3 bg-white/10 border border-cyan-400/30 rounded-2xl px-4 py-2 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-cyan-400/20 text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  <Building2 className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-cyan-300 block">
+                    Target Incubator
+                  </span>
+                  <span className="text-sm sm:text-base font-black text-white tracking-tight">
+                    {activeApp.incubatorName}
+                  </span>
+                </div>
+              </div>
+
               <button
                 onClick={() => setDossierModalOpen(false)}
-                className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -862,12 +928,12 @@ export default function SuperAdminApplicationsPage() {
                 <button
                   onClick={() => {
                     setDossierModalOpen(false);
-                    openAdmitPopup(activeApp);
+                    openAssignModal(activeApp);
                   }}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Admit Applicant to Cohort</span>
+                  <Building2 className="w-4 h-4" />
+                  <span>Forward to Incubator</span>
                 </button>
               </div>
             </div>
@@ -875,45 +941,119 @@ export default function SuperAdminApplicationsPage() {
         </div>
       )}
 
-      {/* MODAL 2: APPROVE ADMISSION DIALOG */}
-      {admitPopupOpen && targetApp && (
+      {/* MODAL 2: ASSIGN / FORWARD TO INCUBATOR MODAL */}
+      {assignModalOpen && targetApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0E26]/70 backdrop-blur-xs">
-          <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-inner">
-              <Award className="w-6 h-6" />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-lg font-black text-[#1A2151]">Approve Admission</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Confirm admitting <strong className="text-[#1A2151]">{targetApp.founderName}</strong> (
-                {targetApp.startupName}) to the <strong className="text-emerald-700">Arba360 Pre-Incubator Cohort 2026</strong>.
-              </p>
-            </div>
-
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-semibold space-y-1">
-              <p className="font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>System State Update:</span>
-              </p>
-              <p className="text-slate-600">
-                The founder's status page will instantly update to: <strong className="text-[#1A2151]">"Welcome to Arba360 Pre-Incubator"</strong>.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
+          <div className="bg-white max-w-lg w-full rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-inner">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-[#1A2151]">Forward to Incubator</h3>
+                  <p className="text-[11px] text-slate-500">
+                    Assign <strong className="text-slate-800">{targetApp.startupName}</strong> for partner incubator review
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => setAdmitPopupOpen(false)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 transition"
+                onClick={() => setAssignModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Search Box with Search Icon */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={incubatorSearch}
+                onChange={(e) => setIncubatorSearch(e.target.value)}
+                placeholder="Search incubator by name, location, or founder..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+              />
+            </div>
+
+            {/* Incubators List */}
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {isLoadingIncubators ? (
+                <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                  <span>Loading registered incubators...</span>
+                </div>
+              ) : filteredIncubators.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  No incubators found matching &quot;{incubatorSearch}&quot;
+                </div>
+              ) : (
+                filteredIncubators.map((inc) => {
+                  const isSelected = selectedIncubatorId === inc.id;
+                  return (
+                    <div
+                      key={inc.id}
+                      onClick={() => setSelectedIncubatorId(inc.id)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'border-blue-600 bg-blue-50/70 shadow-xs ring-1 ring-blue-600/30'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        {inc.logo_url ? (
+                          <img
+                            src={inc.logo_url}
+                            alt={inc.name}
+                            className="w-11 h-11 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div
+                            className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                              isSelected ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-[#1A2151]'
+                            }`}
+                          >
+                            <Building2 className="w-5 h-5 text-current" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-extrabold text-[#1A2151] truncate">{inc.name}</p>
+                          <p className="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">
+                            {inc.description || 'Verified Partner Incubator'}
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl text-[11px] text-blue-900 font-medium leading-relaxed">
+              The application request will be transferred to this incubator. The incubator admin will evaluate and make the final <strong>Accept</strong> or <strong>Reject</strong> decision.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                onClick={() => setAssignModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold text-xs text-slate-700 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmAdmission}
-                disabled={isProcessing}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer disabled:opacity-50"
+                onClick={confirmAssignment}
+                disabled={!selectedIncubatorId || isProcessing}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1.5"
               >
-                {isProcessing ? 'Confirming...' : 'Confirm Admission'}
+                {isProcessing ? 'Forwarding...' : 'Forward Request to Incubator'}
               </button>
             </div>
           </div>

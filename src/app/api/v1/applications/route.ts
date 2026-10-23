@@ -97,19 +97,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!targetOrgId || !isValidUUID(targetOrgId)) {
-      targetOrgId = DEFAULT_ORG_ID;
+      targetOrgId = null;
     }
 
-    if (!organizationRecord) {
-      const { data: orgData } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, email, founder_email')
-        .eq('id', targetOrgId)
-        .maybeSingle();
-      organizationRecord = orgData;
-    }
+    const targetIncubatorName = body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || null;
 
-    const payload = {
+    const payload: any = {
       organization_id: targetOrgId,
       applicant_name: body.applicant_name,
       applicant_email: body.applicant_email.toLowerCase().trim(),
@@ -121,6 +114,7 @@ export async function POST(req: NextRequest) {
       score: null,
       uploaded_documents: [],
       mou_signed: false,
+      incubator_name_text: targetIncubatorName,
     };
 
     const { data, error } = await supabaseAdmin

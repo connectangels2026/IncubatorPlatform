@@ -3,6 +3,7 @@
 import React, { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/context/AuthContext';
+import { supabase } from '@/backend/lib/supabase';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -38,21 +39,57 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
           return;
         }
 
-        // Check if user has an application pending review
+        // Check if user has an application pending review or missing organization
         try {
-          const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`);
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+          const authHeaders: Record<string, string> = token ? { Authorization: token } : {};
+
+          const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`, {
+            headers: authHeaders,
+          });
           const data = await res.json();
-          if (data?.success && data?.data) {
-            const app = data.data;
-            const status = (app.status || '').toLowerCase();
-            // If submitted or under review, founder must see the status review page
-            if (status === 'submitted' || status === 'under_review' || status === 'rejected') {
+          const app = data?.success && data?.data ? data.data : null;
+          const status = (app?.status || '').toLowerCase();
+
+          // 1. If application submitted, under review, or rejected -> route to status review page
+          if (app && (status === 'submitted' || status === 'under_review' || status === 'rejected')) {
+            router.push(`/programs/preincubator/status?id=${app.id}`);
+            return;
+          }
+
+          // 2. Check if user has an organization_id assigned
+          const meRes = await fetch('/api/v1/auth/me', { headers: authHeaders });
+          let hasOrg = false;
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            hasOrg = !!meData?.organization?.id;
+          }
+
+          // If no approved organization, strictly block dashboard access
+          if (!hasOrg) {
+            if (app) {
               router.push(`/programs/preincubator/status?id=${app.id}`);
               return;
             }
+            if (!role) {
+              router.push('/auth/choose-role');
+              return;
+            }
+            if (role === 'startup') {
+              router.push('/startup/application');
+              return;
+            }
+            if (role === 'incubator_admin') {
+              router.push('/auth/signup-incubator');
+              return;
+            }
+            // Default fallback
+            router.push('/auth/choose-role');
+            return;
           }
         } catch (e) {
-          console.warn('ProtectedRoute application check:', e);
+          console.warn('ProtectedRoute access check:', e);
         }
 
         if (isMounted) setIsCheckingApplication(false);

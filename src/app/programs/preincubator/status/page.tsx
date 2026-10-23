@@ -238,6 +238,7 @@ function StatusContent() {
   }, [application?.created_at]);
 
   const displayRefId = application?.id ? `#${application.id.slice(0, 8)}-${application.id.slice(9, 13)}` : '#24613676-8e4a';
+  const isPending = !application || application.status === 'submitted' || application.status === 'under_review';
 
   return (
     <div className="min-h-screen text-slate-800 bg-[#F8FAFC] flex flex-col justify-between antialiased selection:bg-blue-600 selection:text-white">
@@ -271,13 +272,30 @@ function StatusContent() {
 
           {/* Right Header Navigation */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/programs"
-              className="px-3.5 py-2 rounded-xl text-slate-600 hover:text-[#1A2151] hover:bg-slate-100 font-semibold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Programs</span>
-            </Link>
+            {isPending ? (
+              <div className="relative group">
+                <button
+                  type="button"
+                  disabled
+                  className="px-3.5 py-2 rounded-xl text-slate-400 bg-slate-100 font-semibold text-xs flex items-center gap-1.5 border border-slate-200/80 cursor-not-allowed opacity-80"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Programs</span>
+                </button>
+                {/* Tooltip on hover */}
+                <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 w-72 p-2.5 bg-[#101638] text-white text-[11px] font-medium leading-relaxed rounded-xl shadow-xl border border-slate-700 animate-in fade-in zoom-in-95 pointer-events-none">
+                  You cannot apply for a new program right now. Your active application (<span className="text-cyan-400 font-bold">{displayRefId}</span>) is currently pending evaluation.
+                </div>
+              </div>
+            ) : (
+              <Link
+                href="/programs"
+                className="px-3.5 py-2 rounded-xl text-slate-600 hover:text-[#1A2151] hover:bg-slate-100 font-semibold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Programs</span>
+              </Link>
+            )}
 
             <button
               onClick={handleLogout}
