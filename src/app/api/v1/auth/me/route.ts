@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       if (user.email) {
         const { data: uRec } = await supabaseAdmin
           .from('users')
-          .select('id, organization_id, email, full_name, first_name, last_name')
+          .select('id, organization_id, email, full_name, first_name, last_name, role')
           .eq('email', user.email)
           .maybeSingle();
 
@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
         success: true,
         user: {
           ...user,
+          role: userProfile?.role ?? null,
           full_name: userProfile?.full_name || orgData?.founder_name,
           founder_name: orgData?.founder_name || userProfile?.full_name,
         },

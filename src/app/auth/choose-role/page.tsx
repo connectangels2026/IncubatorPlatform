@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Rocket, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
+import { useAuth } from '@/frontend/context/AuthContext';
 import Logo from '@/frontend/components/ui/Logo';
 
 export default function ChooseRolePage() {
   const router = useRouter();
+  const { refreshOrg } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [selectedRole, setSelectedRole] = useState<'startup' | 'incubator_admin' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +80,8 @@ export default function ChooseRolePage() {
       const data = await response.json();
 
       if (data.success || data.code === 'ROLE_ALREADY_SET') {
+        // Refresh the profile so the new role is available to protected routes.
+        await refreshOrg();
         // Redirect based on role or backend suggestion
         const destination = data.redirect_to || (role === 'startup' ? '/startup/application' : '/auth/incubator-plans');
         router.push(destination);
