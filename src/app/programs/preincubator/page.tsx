@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/context/AuthContext';
+import { supabase } from '@/backend/lib/supabase';
 import {
   Rocket,
   ArrowLeft,
@@ -89,10 +90,12 @@ interface FormData {
   biggestMistake: string;
   activelyAvoiding: string;
 
+  incubatorName: string;
   declarationAgreed: boolean;
 }
 
 const INITIAL_FORM_DATA: FormData = {
+  incubatorName: '',
   fullName: '',
   email: '',
   phone: '',
@@ -217,24 +220,55 @@ export default function PreIncubatorApplicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [incubatorsList, setIncubatorsList] = useState<Array<{ id: string; name: string }>>([
+    { id: '1', name: 'Kalsekar Incubation' },
+    { id: '2', name: 'NurtureCave Foundation' },
+    { id: '3', name: 'Another Incubator' },
+  ]);
 
-  // Redirect to login if user is not authenticated
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push('/login?redirect=/programs/preincubator');
-    }
+    fetch('/api/v1/organizations')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.data && Array.isArray(d.data) && d.data.length > 0) {
+          setIncubatorsList(d.data.map((o: any) => ({ id: o.id, name: o.name })));
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  // Check auth session safely with Supabase to prevent premature redirect bounce
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (session?.user) {
+          const userMeta = session.user.user_metadata || {};
+          setFormData((prev) => ({
+            ...prev,
+            fullName: prev.fullName || userMeta.full_name || userMeta.name || '',
+            email: prev.email || session.user.email || '',
+          }));
+        } else if (!isLoading && !user) {
+          router.push('/login?redirect=/programs/preincubator');
+        }
+      } catch (e) {
+        if (!isLoading && !user && isMounted) {
+          router.push('/login?redirect=/programs/preincubator');
+        }
+      }
+    };
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, isLoading, router]);
-
-  // Pre-fill founder contact details if user is logged in
-  useEffect(() => {
-    if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: prev.fullName || (user as any).name || (user as any).user_metadata?.full_name || '',
-        email: prev.email || user.email || '',
-      }));
-    }
-  }, [user]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -325,6 +359,8 @@ export default function PreIncubatorApplicationPage() {
           applicant_name: formData.fullName,
           applicant_email: formData.email,
           applicant_phone: formData.phone,
+          incubator_name: formData.incubatorName,
+          incubator_name_text: formData.incubatorName,
           startup_name: formData.oneSentencePitch.split(' ').slice(0, 3).join(' ') || `${formData.fullName}'s Startup`,
           pitch: formData.oneSentencePitch,
           industry: formData.industryVertical || 'AI & DeepTech',
@@ -464,22 +500,20 @@ export default function PreIncubatorApplicationPage() {
                       key={index}
                       onClick={() => goToStep(stepNum)}
                       type="button"
-                      className={`w-full text-left p-3 rounded-2xl transition-all duration-200 flex items-center gap-3 group relative ${
-                        isActive
-                          ? 'bg-[#1A2151] text-white shadow-lg shadow-[#1A2151]/20'
-                          : completed
+                      className={`w-full text-left p-3 rounded-2xl transition-all duration-200 flex items-center gap-3 group relative ${isActive
+                        ? 'bg-[#1A2151] text-white shadow-lg shadow-[#1A2151]/20'
+                        : completed
                           ? 'bg-emerald-50/80 text-emerald-900 hover:bg-emerald-100/80 border border-emerald-200/60'
                           : 'hover:bg-slate-100/80 text-slate-600'
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-transform duration-200 group-hover:scale-105 ${
-                          isActive
-                            ? 'bg-cyan-400 text-[#1A2151]'
-                            : completed
+                        className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-transform duration-200 group-hover:scale-105 ${isActive
+                          ? 'bg-cyan-400 text-[#1A2151]'
+                          : completed
                             ? 'bg-emerald-500 text-white'
                             : 'bg-slate-200/80 text-slate-600'
-                        }`}
+                          }`}
                       >
                         {completed && !isActive ? (
                           <Check className="w-4 h-4" />
@@ -490,9 +524,8 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="flex-1 min-w-0">
                         <p
-                          className={`text-xs font-bold truncate ${
-                            isActive ? 'text-white' : 'text-slate-800'
-                          }`}
+                          className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-slate-800'
+                            }`}
                         >
                           {step.title}
                         </p>
@@ -538,6 +571,24 @@ export default function PreIncubatorApplicationPage() {
                   {/* SECTION 1: FOUNDER INFORMATION */}
                   {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
+                      {/* Target Incubator Input */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 to-cyan-50/50 border border-blue-200/80">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                            Target/Prefered Incubator Name *
+                          </span>
+
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.incubatorName}
+                          onChange={(e) => setFormData({ ...formData, incubatorName: e.target.value })}
+                          placeholder="e.g. Arba360 Incubation"
+                          className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
+                        />
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -660,19 +711,17 @@ export default function PreIncubatorApplicationPage() {
                                 key={reason}
                                 type="button"
                                 onClick={() => toggleArrayItem('reasonsForJoining', reason)}
-                                className={`p-3.5 rounded-2xl border text-left text-xs font-semibold flex items-center justify-between transition-all duration-200 ${
-                                  isSelected
-                                    ? 'bg-blue-50 border-blue-600 text-blue-600 font-bold shadow-xs'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                }`}
+                                className={`p-3.5 rounded-2xl border text-left text-xs font-semibold flex items-center justify-between transition-all duration-200 ${isSelected
+                                  ? 'bg-blue-50 border-blue-600 text-blue-600 font-bold shadow-xs'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                  }`}
                               >
                                 <span>{reason}</span>
                                 <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center border ${
-                                    isSelected
-                                      ? 'bg-blue-600 border-blue-600 text-white'
-                                      : 'border-slate-300'
-                                  }`}
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border ${isSelected
+                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    : 'border-slate-300'
+                                    }`}
                                 >
                                   {isSelected && <Check className="w-3 h-3" />}
                                 </div>
@@ -701,11 +750,10 @@ export default function PreIncubatorApplicationPage() {
                                 onClick={() =>
                                   setFormData({ ...formData, businessStage: stage.title })
                                 }
-                                className={`p-5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between ${
-                                  isSelected
-                                    ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-lg'
-                                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                                }`}
+                                className={`p-5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between ${isSelected
+                                  ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-lg'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                                  }`}
                               >
                                 <div>
                                   <div className="font-extrabold text-sm mb-1">{stage.title}</div>
@@ -713,11 +761,10 @@ export default function PreIncubatorApplicationPage() {
                                 </div>
                                 <div className="mt-4 flex justify-end">
                                   <span
-                                    className={`text-xs px-2.5 py-1 rounded-full font-bold ${
-                                      isSelected
-                                        ? 'bg-cyan-400 text-[#1A2151]'
-                                        : 'bg-slate-100 text-slate-500'
-                                    }`}
+                                    className={`text-xs px-2.5 py-1 rounded-full font-bold ${isSelected
+                                      ? 'bg-cyan-400 text-[#1A2151]'
+                                      : 'bg-slate-100 text-slate-500'
+                                      }`}
                                   >
                                     Select
                                   </span>
@@ -1325,22 +1372,20 @@ export default function PreIncubatorApplicationPage() {
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, seekingCoFounder: 'Yes' })}
-                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${
-                              formData.seekingCoFounder === 'Yes'
-                                ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
-                                : 'bg-white border-slate-200 text-slate-600'
-                            }`}
+                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${formData.seekingCoFounder === 'Yes'
+                              ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
+                              : 'bg-white border-slate-200 text-slate-600'
+                              }`}
                           >
                             Yes, looking for a Co-Founder
                           </button>
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, seekingCoFounder: 'No' })}
-                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${
-                              formData.seekingCoFounder === 'No'
-                                ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
-                                : 'bg-white border-slate-200 text-slate-600'
-                            }`}
+                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${formData.seekingCoFounder === 'No'
+                              ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
+                              : 'bg-white border-slate-200 text-slate-600'
+                              }`}
                           >
                             No, team complete
                           </button>
@@ -1446,11 +1491,10 @@ export default function PreIncubatorApplicationPage() {
                                 key={support}
                                 type="button"
                                 onClick={() => toggleArrayItem('supportAreasNeeded', support)}
-                                className={`p-3 rounded-2xl border text-xs font-semibold text-center transition-all duration-200 ${
-                                  isSelected
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                }`}
+                                className={`p-3 rounded-2xl border text-xs font-semibold text-center transition-all duration-200 ${isSelected
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                  }`}
                               >
                                 <span>{support}</span>
                               </button>
@@ -1733,11 +1777,10 @@ export default function PreIncubatorApplicationPage() {
             type="button"
             onClick={prevStep}
             disabled={currentStep === 1 || submitted}
-            className={`inline-flex items-center gap-2 text-xs font-bold px-5 py-3 rounded-2xl transition-all duration-200 ${
-              currentStep === 1 || submitted
-                ? 'opacity-40 cursor-not-allowed bg-slate-200 text-slate-400'
-                : 'bg-white hover:bg-slate-100 text-[#1A2151] border border-slate-300 shadow-xs'
-            }`}
+            className={`inline-flex items-center gap-2 text-xs font-bold px-5 py-3 rounded-2xl transition-all duration-200 ${currentStep === 1 || submitted
+              ? 'opacity-40 cursor-not-allowed bg-slate-200 text-slate-400'
+              : 'bg-white hover:bg-slate-100 text-[#1A2151] border border-slate-300 shadow-xs'
+              }`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Previous</span>
@@ -1765,11 +1808,10 @@ export default function PreIncubatorApplicationPage() {
                 type="button"
                 onClick={submitApplication}
                 disabled={!formData.declarationAgreed || isSubmitting || submitted}
-                className={`inline-flex items-center gap-2 text-xs font-black px-7 py-3.5 rounded-2xl transition-all duration-200 transform ${
-                  formData.declarationAgreed && !isSubmitting && !submitted
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-400 text-slate-900 shadow-xl shadow-cyan-400/30 hover:scale-105 cursor-pointer'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
-                }`}
+                className={`inline-flex items-center gap-2 text-xs font-black px-7 py-3.5 rounded-2xl transition-all duration-200 transform ${formData.declarationAgreed && !isSubmitting && !submitted
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-400 text-slate-900 shadow-xl shadow-cyan-400/30 hover:scale-105 cursor-pointer'
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
+                  }`}
               >
                 {isSubmitting ? (
                   <>

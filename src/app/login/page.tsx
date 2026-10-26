@@ -34,10 +34,10 @@ function LoginForm() {
       return;
     }
 
+    const role = (user as any)?.role || (user as any)?.user_metadata?.role;
     const emailToCheck = userEmail || user?.email;
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
-      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
       // Super Admin account routing
       if (
         emailLower === 'shadmannc0516@gmail.com' ||
@@ -73,8 +73,10 @@ function LoginForm() {
 
     if (orgId) {
       router.push(`/dashboard?org=${orgId}`);
+    } else if (role === 'startup') {
+      router.push('/startup/application');
     } else {
-      router.push('/dashboard');
+      router.push('/programs/preincubator/status');
     }
   };
 
@@ -355,14 +357,6 @@ function LoginForm() {
                 </button>
               </div>
             </form>
-
-            {/* Switch to Super Admin Portal matching image */}
-            <div className="text-center pt-5 mt-5 border-t border-slate-100 text-xs text-slate-500">
-              <span>Looking for Platform Governance? </span>
-              <Link href="/super-admin/login" className="font-semibold text-blue-600 hover:underline">
-                Switch to Super Admin Portal
-              </Link>
-            </div>
           </div>
         </div>
       </div>

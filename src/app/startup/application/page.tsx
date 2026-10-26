@@ -6,9 +6,25 @@ import { useAuth } from '@/frontend/context/AuthContext';
 import { Building2, Rocket, ArrowRight } from 'lucide-react';
 import Logo from '@/frontend/components/ui/Logo';
 
+import { useEffect } from 'react';
+import { supabase } from '@/backend/lib/supabase';
+
 export default function StartupApplicationPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSessionUser(session.user);
+      } else if (!authLoading && !user) {
+        router.push('/login?redirect=/startup/application');
+      }
+      setChecking(false);
+    });
+  }, [user, authLoading, router]);
 
   const handleFormSelect = (type: 'pre-incubator' | 'incubator') => {
     if (type === 'pre-incubator') {
@@ -18,7 +34,9 @@ export default function StartupApplicationPage() {
     }
   };
 
-  if (!user) {
+  const currentUser = user || sessionUser;
+
+  if (checking && !currentUser) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
