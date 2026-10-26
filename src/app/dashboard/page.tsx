@@ -85,19 +85,57 @@ export default function DashboardPage() {
   
   // Modals & Popups
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isHubSwitcherOpen, setIsHubSwitcherOpen] = useState(false);
   const [isCmdKOpen, setIsCmdKOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Profile Flyout Ref for outside click
+  // Profile and Hub Switcher Refs for outside click
   const profileRef = useRef<HTMLDivElement>(null);
+  const hubSwitcherRef = useRef<HTMLDivElement>(null);
 
   // Tenant / Organization Data
   const orgName = organization?.name || 'Silicon Oasis Innovation Hub';
   const orgSlug = organization?.slug || 'soih-dubai';
   const founderName = organization?.founder_name || user?.email?.split('@')[0] || 'Dr. Sarah Al-Mansoor';
   const founderEmail = organization?.founder_email || user?.email || 'director@incubator.org';
+
+  // Security Guard: Verify startup has accepted application for the requested incubator org
+  useEffect(() => {
+    const verifyAccess = async () => {
+      if (!user) return;
+      const role = (user as any)?.role?.toLowerCase() || '';
+      if (role === 'super-admin' || role === 'super_admin' || role === 'admin') return;
+
+      try {
+        const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(user.email || '')}`);
+        const data = await res.json();
+        const apps: any[] = data?.applications || (data?.data ? [data.data] : []);
+
+        const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const requestedOrgId = urlParams?.get('org') || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+        const hasAcceptedApp = apps.some((app: any) => {
+          const isAccepted = app.status === 'accepted' || app.status === 'admitted';
+          if (!isAccepted) return false;
+          if (requestedOrgId) {
+            return app.organization_id === requestedOrgId || app.organization?.id === requestedOrgId;
+          }
+          return !!app.organization_id;
+        });
+
+        if (!hasAcceptedApp) {
+          router.push('/programs/preincubator/status');
+        }
+      } catch (err) {
+        console.warn('Dashboard access verification error:', err);
+        router.push('/programs/preincubator/status');
+      }
+    };
+
+    verifyAccess();
+  }, [user, router]);
 
   // Sample Startups Data
   const [startups, setStartups] = useState<Startup[]>([
@@ -207,11 +245,15 @@ export default function DashboardPage() {
     }
   ]);
 
-  // Outside click handler for profile dropdown
+  // Outside click handler for profile & hub switcher dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (profileRef.current && !profileRef.current.contains(target)) {
         setIsProfileOpen(false);
+      }
+      if (hubSwitcherRef.current && !hubSwitcherRef.current.contains(target)) {
+        setIsHubSwitcherOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -294,16 +336,81 @@ export default function DashboardPage() {
             WHITE TOP NAVBAR (Clean, without the photo tab strip)
            ========================================================================= */}
         <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between transition-all">
-          {/* Left: Brand Logo + Incubator Console Tag */}
-          <div className="flex items-center gap-3">
-            <Logo variant="dark" size="md" href="/dashboard" />
+          {/* Left: Incubator Name & Hub Switcher */}
+          <div className="relative" ref={hubSwitcherRef}>
+            <button
+              onClick={() => setIsHubSwitcherOpen(!isHubSwitcherOpen)}
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition group cursor-pointer text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#1A2151] to-[#0066ff] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                <Building2 className="w-4 h-4 text-cyan-300" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-extrabold text-sm text-slate-800 tracking-tight truncate max-w-[200px] sm:max-w-[280px]">
+                    {orgName}
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition" />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-400 font-mono truncate max-w-[180px]">arba360.io/incubators/{orgSlug}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                </div>
+              </div>
+            </button>
 
-            <div className="h-4 w-[1px] bg-slate-200 hidden sm:block" />
+            {/* Hub Switcher Dropdown */}
+            {isHubSwitcherOpen && (
+              <div className="absolute left-0 mt-2 w-72 rounded-2xl bg-white border border-slate-200 text-slate-800 shadow-xl p-3 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Active Incubator Hub
+                </div>
+                
+                <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-200/60 flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#1A2151] flex items-center justify-center text-white shrink-0">
+                      <Building2 className="w-3.5 h-3.5 text-[#00d4ff]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">{orgName}</p>
+                      <p className="text-[10px] text-blue-600 font-mono">Current Workspace</p>
+                    </div>
+                  </div>
+                  <Check className="w-4 h-4 text-blue-600 shrink-0" />
+                </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/80 text-[11px] font-semibold text-blue-700">
-              <Sparkles className="w-3 h-3 text-blue-600" />
-              <span>Incubator Console</span>
-            </div>
+                <div className="space-y-1 pt-1 border-t border-slate-100 text-xs">
+                  <button
+                    onClick={() => {
+                      setIsHubSwitcherOpen(false);
+                      handleCopySlug();
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition cursor-pointer text-left"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                    <span>View Public Incubator Portal</span>
+                  </button>
+
+                  <Link
+                    href="/dashboard/settings"
+                    onClick={() => setIsHubSwitcherOpen(false)}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition cursor-pointer text-left"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Incubator Profile & Settings</span>
+                  </Link>
+
+                  <Link
+                    href="/auth/incubator-plans"
+                    onClick={() => setIsHubSwitcherOpen(false)}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-blue-600 font-semibold transition cursor-pointer text-left"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create / Register New Hub</span>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Section: Cmd+K, Tier Badge, Notifications, Radiant Avatar */}

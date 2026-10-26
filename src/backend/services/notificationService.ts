@@ -26,7 +26,7 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
 const preferenceCache = new Map<string, NotificationPreferences>();
 
 export interface CreateNotificationParams {
-  organization_id: string;
+  organization_id?: string | null;
   recipient_id: string;
   recipient_name?: string;
   recipient_email?: string;

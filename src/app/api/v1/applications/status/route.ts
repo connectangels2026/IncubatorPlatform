@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       if (cleanId.length === 36) {
         const { data, error } = await supabaseAdmin
           .from('applications')
-          .select('*')
+          .select('*, organization:organizations!organization_id(id, name, slug, description, logo_url)')
           .eq('id', cleanId)
           .is('deleted_at', null)
           .maybeSingle();
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       // If prefix search (e.g. #c40f0650-ffcf)
       const { data: list, error: listError } = await supabaseAdmin
         .from('applications')
-        .select('*')
+        .select('*, organization:organizations!organization_id(id, name, slug, description, logo_url)')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -51,15 +51,14 @@ export async function GET(req: NextRequest) {
       const cleanEmail = email.trim().toLowerCase();
       const { data, error } = await supabaseAdmin
         .from('applications')
-        .select('*')
+        .select('*, organization:organizations!organization_id(id, name, slug, description, logo_url)')
         .ilike('applicant_email', cleanEmail)
         .is('deleted_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data && data.length > 0) {
-        return NextResponse.json({ success: true, data: data[0] });
+        return NextResponse.json({ success: true, data: data[0], applications: data });
       }
     }
 

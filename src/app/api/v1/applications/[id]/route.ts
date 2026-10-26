@@ -6,10 +6,12 @@ import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  submitted: ['under_review', 'admitted', 'rejected'],
-  under_review: ['admitted', 'rejected', 'submitted'],
-  admitted: ['under_review', 'rejected'],
-  rejected: ['under_review', 'admitted', 'submitted'],
+  submitted: ['under_review', 'forwarded', 'admitted', 'accepted', 'rejected'],
+  forwarded: ['under_review', 'accepted', 'admitted', 'rejected', 'submitted'],
+  under_review: ['forwarded', 'admitted', 'accepted', 'rejected', 'submitted'],
+  accepted: ['under_review', 'admitted', 'rejected', 'forwarded'],
+  admitted: ['under_review', 'rejected', 'accepted'],
+  rejected: ['under_review', 'forwarded', 'admitted', 'accepted', 'submitted'],
 };
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -83,6 +85,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updated_at: new Date().toISOString(),
       ...body,
     };
+
+    // Assign incubator organization_id upon acceptance
+    if (newStatus === 'accepted' || newStatus === 'admitted') {
+      const acceptingOrgId = body.organization_id || user?.organization_id;
+      if (acceptingOrgId) {
+        updatePayload.organization_id = acceptingOrgId;
+      }
+    }
 
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('applications')

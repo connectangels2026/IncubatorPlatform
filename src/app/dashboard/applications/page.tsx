@@ -19,6 +19,8 @@ import {
   FileText,
   X,
   Send,
+  ChevronDown,
+  Check,
   Cpu,
   Leaf,
   Globe,
@@ -51,7 +53,7 @@ interface ApplicationItem {
   founderName: string;
   founderEmail: string;
   type: 'incubator' | 'pre_incubator';
-  status: 'submitted' | 'under_review' | 'admitted' | 'rejected';
+  status: 'submitted' | 'under_review' | 'admitted' | 'rejected' | 'forwarded' | 'accepted' | 'pending';
   score: number;
   submittedDate: string;
   pitchSummary: string;
@@ -61,9 +63,12 @@ interface ApplicationItem {
   scores: { team: number; market: number; innovation: number; traction: number };
   organizationName?: string;
   organizationSlug?: string;
+  superAdminNotes?: string;
 }
 
-const INITIAL_APPLICATIONS: ApplicationItem[] = [
+const INITIAL_APPLICATIONS: ApplicationItem[] = [];
+
+const LEGACY_MOCK_APPLICATIONS: ApplicationItem[] = [
   {
     id: "APP-1042",
     startupName: "Aether AI",
@@ -271,19 +276,34 @@ const INITIAL_APPLICATIONS: ApplicationItem[] = [
 ];
 
 const StatusBadge = ({ status }: { status: ApplicationItem['status'] }) => {
-  const configs = {
+  const configs: Record<string, { label: string; style: string; dot: string }> = {
     submitted: {
       label: "Submitted",
       style: "bg-slate-100 text-slate-700 border-slate-200",
       dot: "bg-slate-400"
     },
+    forwarded: {
+      label: "Pending",
+      style: "bg-amber-50 text-amber-800 border-amber-200",
+      dot: "bg-amber-500 animate-pulse"
+    },
     under_review: {
-      label: "Under Review",
-      style: "bg-blue-50 text-blue-700 border-blue-200",
-      dot: "bg-blue-500 animate-pulse"
+      label: "Pending",
+      style: "bg-amber-50 text-amber-800 border-amber-200",
+      dot: "bg-amber-500 animate-pulse"
+    },
+    pending: {
+      label: "Pending",
+      style: "bg-amber-50 text-amber-800 border-amber-200",
+      dot: "bg-amber-500 animate-pulse"
     },
     admitted: {
-      label: "Admitted",
+      label: "Accepted",
+      style: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      dot: "bg-emerald-500"
+    },
+    accepted: {
+      label: "Accepted",
       style: "bg-emerald-50 text-emerald-700 border-emerald-200",
       dot: "bg-emerald-500"
     },
@@ -297,7 +317,7 @@ const StatusBadge = ({ status }: { status: ApplicationItem['status'] }) => {
   const config = configs[status] || configs.submitted;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${config.style}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.style}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       {config.label}
     </span>
@@ -364,10 +384,14 @@ const ScoreBadge = ({ score }: { score: number }) => {
 
 export default function ApplicationsPage() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, organization, logout } = useAuth();
 
   // Sidebar & Navigation
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // User's Incubator Identity
+  const [currentOrgId, setCurrentOrgId] = useState<string>('');
+  const [currentOrgName, setCurrentOrgName] = useState<string>('');
 
   // Applications Data State
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
@@ -393,9 +417,17 @@ export default function ApplicationsPage() {
     const rawType = (record.application_type || fd.type || 'incubator').toLowerCase().replace('-', '_');
     const type: 'incubator' | 'pre_incubator' = rawType.includes('pre') ? 'pre_incubator' : 'incubator';
 
-    const status: ApplicationItem['status'] = ['submitted', 'under_review', 'admitted', 'rejected'].includes(record.status)
-      ? record.status
-      : 'submitted';
+    const rawStatus = (record.status || 'submitted').toLowerCase();
+    let status: ApplicationItem['status'] = 'submitted';
+    if (rawStatus === 'forwarded') {
+      status = 'pending';
+    } else if (rawStatus === 'admitted' || rawStatus === 'accepted') {
+      status = 'accepted';
+    } else if (rawStatus === 'rejected') {
+      status = 'rejected';
+    } else if (['submitted', 'under_review'].includes(rawStatus)) {
+      status = rawStatus as any;
+    }
 
     const submittedDate = record.created_at ? record.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
     const pitchSummary =
@@ -441,35 +473,37 @@ export default function ApplicationsPage() {
       scores,
       organizationName: record.organization?.name,
       organizationSlug: record.organization?.slug,
+      superAdminNotes: record.super_admin_notes || record.notes || '',
     };
   };
 
-  // Fetch applications from database with real-time sync
-  const fetchApplications = async () => {
+  // Fetch applications from database with real-time sync (scoped strictly to current user's incubator)
+  const fetchApplications = async (overrideOrgId?: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+      const orgId =
+        overrideOrgId ||
+        currentOrgId ||
+        (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null) ||
+        organization?.id ||
+        (user as any)?.organization_id ||
+        '32678e97-d281-4de9-b9e8-ec1b711b1648';
+
+      if (orgId && typeof window !== 'undefined') {
+        localStorage.setItem('org_id', orgId);
+      }
       
-      const endpoint = orgId && orgId !== 'all' ? `/applications?org_id=${orgId}&limit=100` : '/applications?limit=100';
-      const headers: Record<string, string> = {};
+      const endpoint = `/api/v1/applications?org_id=${orgId}&limit=100`;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = token;
       if (orgId) headers['x-org-id'] = orgId;
 
-      let res = await apiClient.get(endpoint, { headers });
-      let dbData = res.data?.data || [];
-
-      // If org-specific query returned 0, fetch all accessible applications
-      if (dbData.length === 0 && orgId && orgId !== 'all') {
-        const fallbackRes = await apiClient.get('/applications?limit=100', {
-          headers: { ...headers, 'x-org-id': 'all' },
-        });
-        if (fallbackRes.data?.data && fallbackRes.data.data.length > 0) {
-          dbData = fallbackRes.data.data;
-        }
-      }
+      const res = await fetch(endpoint, { headers });
+      const json = await res.json();
+      const dbData = json?.data || [];
 
       if (Array.isArray(dbData)) {
         if (dbData.length > 0) {
@@ -480,7 +514,7 @@ export default function ApplicationsPage() {
         }
       }
     } catch (err: any) {
-      console.warn('Real-time API fetch failed:', err?.message);
+      console.warn('Applications fetch failed:', err?.message);
       setApplications([]);
     } finally {
       setIsLoading(false);
@@ -488,7 +522,36 @@ export default function ApplicationsPage() {
   };
 
   useEffect(() => {
-    fetchApplications();
+    const initUserIncubator = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userEmail = (session?.user?.email || user?.email || '').toLowerCase();
+
+        const res = await fetch('/api/v1/incubators');
+        const json = await res.json();
+        const data = json.data || [];
+
+        // Match strictly to this user's incubator
+        const matched =
+          data.find((o: any) => o.founder_email?.toLowerCase() === userEmail) ||
+          data.find((o: any) => o.id === (user as any)?.organization_id) ||
+          data.find((o: any) => o.id === '32678e97-d281-4de9-b9e8-ec1b711b1648') ||
+          data[0];
+
+        if (matched) {
+          setCurrentOrgId(matched.id);
+          setCurrentOrgName(matched.name);
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', matched.id);
+          fetchApplications(matched.id);
+        } else {
+          fetchApplications('32678e97-d281-4de9-b9e8-ec1b711b1648');
+        }
+      } catch {
+        fetchApplications('32678e97-d281-4de9-b9e8-ec1b711b1648');
+      }
+    };
+
+    initUserIncubator();
 
     // Subscribe to Supabase real-time database changes on applications table
     const channel = supabase
@@ -496,7 +559,7 @@ export default function ApplicationsPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'applications' },
-        (payload) => {
+        () => {
           fetchApplications();
         }
       )
@@ -505,7 +568,7 @@ export default function ApplicationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
 
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
@@ -571,7 +634,11 @@ export default function ApplicationsPage() {
           app.founderEmail.toLowerCase().includes(searchLower) ||
           app.id.toLowerCase().includes(searchLower);
 
-        const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+        const matchesStatus =
+          statusFilter === 'all' ||
+          app.status === statusFilter ||
+          (statusFilter === 'pending' && (app.status === 'pending' || app.status === 'forwarded' || app.status === 'under_review')) ||
+          (statusFilter === 'accepted' && (app.status === 'accepted' || app.status === 'admitted'));
         const matchesType = typeFilter === 'all' || app.type === typeFilter;
 
         let matchesDate = true;
@@ -828,6 +895,14 @@ export default function ApplicationsPage() {
                   <span>/</span>
                   <span className="font-semibold text-slate-900">Applications</span>
                 </div>
+
+                {/* Incubator Workspace Identity */}
+                <div className="flex items-center gap-2 px-3 py-1.5 ml-2 sm:ml-4 rounded-xl bg-slate-100 border border-slate-200">
+                  <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="font-bold text-xs text-slate-800 truncate max-w-[180px] sm:max-w-[240px]">
+                    {currentOrgName || 'My Incubator'}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <Link href="/programs">
@@ -877,7 +952,7 @@ export default function ApplicationsPage() {
                 </div>
 
                 <button
-                  onClick={fetchApplications}
+                  onClick={() => fetchApplications()}
                   disabled={isLoading || isProcessing}
                   className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition"
                   title="Refresh applications"
@@ -942,10 +1017,10 @@ export default function ApplicationsPage() {
                     className="w-full py-2 px-3 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50 text-slate-700"
                   >
                     <option value="all">All Statuses</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="under_review">Under Review</option>
-                    <option value="admitted">Admitted</option>
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
                     <option value="rejected">Rejected</option>
+                    <option value="submitted">Submitted</option>
                   </select>
                 </div>
 
@@ -1069,7 +1144,7 @@ export default function ApplicationsPage() {
                   An error occurred while fetching application records. Please check your connection and retry.
                 </p>
                 <button
-                  onClick={fetchApplications}
+                  onClick={() => fetchApplications()}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-xs hover:bg-blue-700 shadow-xs transition"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Retry
@@ -1340,6 +1415,21 @@ export default function ApplicationsPage() {
                 </div>
               ) : (
                 <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto text-slate-700 text-xs">
+                  {/* Super Admin Notes Directives */}
+                  {detailsModalApp.superAdminNotes && (
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/90 shadow-2xs space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <h4 className="font-extrabold text-amber-950 text-xs uppercase tracking-wider">
+                          Super Admin Directives & Forwarding Notes
+                        </h4>
+                      </div>
+                      <p className="text-amber-900 font-medium text-xs leading-relaxed whitespace-pre-wrap pl-6">
+                        {detailsModalApp.superAdminNotes}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200">
                     <div>
                       <div className="text-slate-400">Founder</div>
@@ -1389,38 +1479,72 @@ export default function ApplicationsPage() {
 
                   <div className="pt-3 border-t border-slate-200">
                     <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                      Update Status
+                      Incubator Decision
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {(['submitted', 'under_review', 'admitted', 'rejected'] as const).map((statusVal) => (
-                        <button
-                          key={statusVal}
-                          disabled={isProcessing}
-                          onClick={async () => {
-                            if (isProcessing) return;
-                            setIsProcessing(true);
-                            try {
-                              await new Promise((r) => setTimeout(r, 300));
-                              setApplications((prev) =>
-                                prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: statusVal } : a))
-                              );
-                              setDetailsModalApp((prev) => (prev ? { ...prev, status: statusVal } : null));
-                              showToast(`Status updated to ${statusVal.replace('_', ' ')}`);
-                            } catch {
-                              showToast('Failed to update status. Please try again.', 'error');
-                            } finally {
-                              setIsProcessing(false);
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg font-semibold capitalize border transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                            detailsModalApp.status === statusVal
-                              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                          }`}
-                        >
-                          {statusVal.replace('_', ' ')}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-2.5">
+                      <button
+                        disabled={isProcessing}
+                        onClick={async () => {
+                          if (isProcessing) return;
+                          setIsProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+                            await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'accepted' }, {
+                              headers: token ? { Authorization: token } : {}
+                            });
+                            setApplications((prev) =>
+                              prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'accepted' } : a))
+                            );
+                            setDetailsModalApp((prev) => (prev ? { ...prev, status: 'accepted' } : null));
+                            showToast(`Application accepted into incubator!`, 'success');
+                          } catch (err: any) {
+                            showToast(err?.response?.data?.error || 'Failed to accept application', 'error');
+                          } finally {
+                            setIsProcessing(false);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                          detailsModalApp.status === 'accepted' || detailsModalApp.status === 'admitted'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Accept Application</span>
+                      </button>
+
+                      <button
+                        disabled={isProcessing}
+                        onClick={async () => {
+                          if (isProcessing) return;
+                          setIsProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+                            await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'rejected' }, {
+                              headers: token ? { Authorization: token } : {}
+                            });
+                            setApplications((prev) =>
+                              prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'rejected' } : a))
+                            );
+                            setDetailsModalApp((prev) => (prev ? { ...prev, status: 'rejected' } : null));
+                            showToast(`Application rejected`, 'error');
+                          } catch (err: any) {
+                            showToast(err?.response?.data?.error || 'Failed to reject application', 'error');
+                          } finally {
+                            setIsProcessing(false);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                          detailsModalApp.status === 'rejected'
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-rose-50 text-rose-800 hover:bg-rose-600 hover:text-white border border-rose-200'
+                        }`}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject Application</span>
+                      </button>
                     </div>
                   </div>
                 </div>
