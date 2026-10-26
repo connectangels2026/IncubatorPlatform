@@ -61,7 +61,7 @@ function StatusContent() {
   };
 
   // Fetch application details from database
-  const loadApplication = async (isManualRefresh = false) => {
+  const loadApplication = async (isManualRefresh = false, targetId?: string) => {
     if (isManualRefresh) setRefreshing(true);
     else setIsLoading(true);
 
@@ -71,48 +71,36 @@ function StatusContent() {
       const headers: Record<string, string> = { 'x-org-id': 'all' };
       if (token) headers['Authorization'] = token;
 
-      // 1. Query dedicated status endpoint by queryId or stored ID
-      const effectiveId =
-        queryId ||
-        (typeof window !== 'undefined' ? localStorage.getItem('last_application_id') : null);
-
-      if (effectiveId) {
-        try {
-          const res = await apiClient.get(`/applications/status?id=${encodeURIComponent(effectiveId)}`);
-          if (res.data?.data) {
-            setApplication(res.data.data);
-            if (isManualRefresh) triggerToast('Status synced with admissions database.');
-            return;
-          }
-        } catch (e: any) {
-          console.warn('Status by ID lookup:', e?.message);
-        }
-      }
-
-      // 2. Query by user's email
       const searchEmail =
         user?.email ||
         (typeof window !== 'undefined' ? localStorage.getItem('last_applicant_email') : '');
 
-      if (searchEmail) {
-        try {
-          const res = await apiClient.get(`/applications/status?email=${encodeURIComponent(searchEmail)}`);
-          if (res.data?.applications && Array.isArray(res.data.applications)) {
-            setAllApplications(res.data.applications);
-          }
-          if (res.data?.data) {
-            setApplication(res.data.data);
-            if (isManualRefresh) triggerToast('Status synced with admissions database.');
-            return;
-          }
-        } catch (e: any) {
-          console.warn('Status by email lookup:', e?.message);
+      const effectiveId =
+        targetId ||
+        queryId ||
+        (typeof window !== 'undefined' ? localStorage.getItem('last_application_id') : null);
+
+      let url = '/applications/status?';
+      if (effectiveId) url += `id=${encodeURIComponent(effectiveId)}&`;
+      if (searchEmail) url += `email=${encodeURIComponent(searchEmail)}`;
+
+      try {
+        const res = await apiClient.get(url, { headers });
+        if (res.data?.applications && Array.isArray(res.data.applications)) {
+          setAllApplications(res.data.applications);
         }
+        if (res.data?.data) {
+          setApplication(res.data.data);
+          if (isManualRefresh) triggerToast('Status synced with admissions database.');
+          return;
+        }
+      } catch (e: any) {
+        console.warn('Status lookup:', e?.message);
       }
 
       // Fallback demo mock if completely offline
       setApplication({
-        id: queryId || '24613676-8e4a-4246-bf3c-9dc6e7070eaa',
+        id: effectiveId || '24613676-8e4a-4246-bf3c-9dc6e7070eaa',
         applicant_name: (user as any)?.name || (user as any)?.user_metadata?.full_name || 'Founder',
         applicant_email: user?.email || 'founder@arba360.com',
         application_type: 'pre-incubator',
@@ -133,7 +121,7 @@ function StatusContent() {
   };
 
   useEffect(() => {
-    loadApplication();
+    loadApplication(false, queryId || undefined);
 
     // Subscribe to real-time changes on applications table
     const channel = supabase
@@ -174,6 +162,16 @@ function StatusContent() {
     triggerToast('Query submitted! Our admissions desk will respond via email.');
   };
 
+  const targetIncubatorName = useMemo(() => {
+    return (
+      (application as any)?.incubator_name_text ||
+      (application as any)?.organization?.name ||
+      application?.form_data?.incubatorName ||
+      application?.form_data?.targetIncubator?.name ||
+      'Incubator Workspace'
+    );
+  }, [application]);
+
   // Status configuration details
   const statusInfo = useMemo(() => {
     const rawStatus = (application?.status || 'submitted').toLowerCase();
@@ -181,73 +179,72 @@ function StatusContent() {
     if (rawStatus === 'admitted' || rawStatus === 'accepted') {
       return {
         key: 'admitted',
-        badgeLabel: 'Status: Application Approved',
+        badgeLabel: `Status: Accepted by ${targetIncubatorName}`,
         badgeStyle: 'bg-emerald-500/10 text-emerald-800 border-emerald-300/60',
         pingBg: 'bg-emerald-400',
         dotBg: 'bg-emerald-500',
         iconContainerBg: 'bg-emerald-50 text-emerald-600 border border-emerald-200/60',
         iconName: 'check-circle-2',
-        title: 'Welcome to Arba360 Pre-Incubator!',
-        message: 'Congratulations! Your application has been reviewed and accepted. Check your email for cohort onboarding details.',
+        title: `Welcome to ${targetIncubatorName}!`,
+        message: `Congratulations! Your application to ${targetIncubatorName} has been reviewed and accepted. Check your email for cohort onboarding details.`,
       };
     }
 
     if (rawStatus === 'forwarded') {
-      const incubatorName = (application as any)?.organization?.name || (application as any)?.form_data?.incubatorName || 'Partner Incubator';
       return {
         key: 'forwarded',
-        badgeLabel: `Status: Forwarded to ${incubatorName}`,
+        badgeLabel: `Status: Forwarded to ${targetIncubatorName}`,
         badgeStyle: 'bg-blue-500/10 text-blue-800 border-blue-300/60',
         pingBg: 'bg-blue-400',
         dotBg: 'bg-blue-600',
         iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200/60',
         iconName: 'building-2',
-        title: `Forwarded to ${incubatorName}`,
-        message: `Your application has passed initial Super Admin evaluation and has been forwarded to ${incubatorName} for final cohort admission review.`,
+        title: `Forwarded to ${targetIncubatorName}`,
+        message: `Your application has passed initial Super Admin evaluation and has been forwarded to ${targetIncubatorName} for final cohort admission review.`,
       };
     }
 
     if (rawStatus === 'under_review') {
       return {
         key: 'under_review',
-        badgeLabel: 'Status: Under Super Admin Review',
+        badgeLabel: `Status: Under Review for ${targetIncubatorName}`,
         badgeStyle: 'bg-blue-500/10 text-blue-800 border-blue-300/60',
         pingBg: 'bg-blue-400',
         dotBg: 'bg-blue-600',
         iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200/60',
         iconName: 'clock',
-        title: 'Application Under Active Review',
-        message: 'The admissions committee is actively reviewing your rubric scores and pitch materials. Decisions are dispatched shortly.',
+        title: `Review in Progress for ${targetIncubatorName}`,
+        message: `The admissions committee is actively reviewing your rubric scores and pitch materials for ${targetIncubatorName}. Decisions are dispatched shortly.`,
       };
     }
 
     if (rawStatus === 'rejected') {
       return {
         key: 'rejected',
-        badgeLabel: 'Status: Decision Completed',
+        badgeLabel: `Status: Decision Completed (${targetIncubatorName})`,
         badgeStyle: 'bg-rose-500/10 text-rose-800 border-rose-300/60',
         pingBg: 'bg-rose-400',
         dotBg: 'bg-rose-600',
         iconContainerBg: 'bg-rose-50 text-rose-600 border border-rose-200/60',
         iconName: 'alert-circle',
-        title: 'Application Status Update',
-        message: 'Thank you for your application. The current cohort is at full capacity, but you are welcome to reapply for the next cycle.',
+        title: `${targetIncubatorName} Cohort Decision`,
+        message: `Thank you for your application to ${targetIncubatorName}. The current cohort is at full capacity, but you are welcome to reapply for future cycles.`,
       };
     }
 
     // Default 'submitted'
     return {
       key: 'submitted',
-      badgeLabel: 'Status: Pending Super Admin Review',
+      badgeLabel: `Status: Submitted to ${targetIncubatorName}`,
       badgeStyle: 'bg-amber-500/10 text-amber-800 border-amber-300/60',
       pingBg: 'bg-amber-400',
       dotBg: 'bg-amber-500',
       iconContainerBg: 'bg-amber-50 text-amber-600 border border-amber-200/60',
       iconName: 'clock',
-      title: 'Your Application Has Been Received',
-      message: 'Thank you for applying to the Arba360 Pre-Incubator Program (₹6,500). Our team is currently reviewing your submission.',
+      title: `Application Submitted to ${targetIncubatorName}`,
+      message: `Thank you for applying to ${targetIncubatorName} via Arba360. Our admissions desk and committee are reviewing your submission.`,
     };
-  }, [application?.status]);
+  }, [application?.status, targetIncubatorName]);
 
   const formattedDate = useMemo(() => {
     if (!application?.created_at) return 'Recently';
@@ -354,6 +351,51 @@ function StatusContent() {
 
       {/* Main Status Container */}
       <main className="max-w-2xl w-full mx-auto px-4 py-8 sm:py-12 flex-1 flex flex-col justify-center gap-6">
+        {/* MULTI-INCUBATOR QUICK SWITCHER */}
+        {allApplications.length > 1 && (
+          <div className="bg-white/90 backdrop-blur-md p-2.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center gap-2 overflow-x-auto">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 px-2 flex items-center gap-1">
+              <Building2 className="w-3 h-3 text-blue-600" />
+              <span>Incubators:</span>
+            </span>
+            <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+              {allApplications.map((app) => {
+                const name = app.incubator_name_text || app.organization?.name || app.form_data?.incubatorName || 'Incubator';
+                const isSelected = app.id === application?.id;
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    onClick={() => {
+                      setApplication(app);
+                      if (typeof window !== 'undefined') localStorage.setItem('last_application_id', app.id);
+                      router.push(`/programs/preincubator/status?id=${app.id}`);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-sm shadow-[#1A2151]/30'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
+                    }`}
+                  >
+                    <span className="truncate max-w-[130px]">{name}</span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold uppercase ${
+                      app.status === 'accepted' || app.status === 'admitted'
+                        ? 'bg-emerald-500 text-white'
+                        : app.status === 'rejected'
+                        ? 'bg-rose-500 text-white'
+                        : isSelected
+                        ? 'bg-cyan-400 text-slate-950'
+                        : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {app.status || 'pending'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* MAIN CENTERED APPLICATION STATUS CARD */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-200/50 p-6 sm:p-10 space-y-8 relative overflow-hidden">
           {/* Top Status Header & Pulsing Badge */}
@@ -555,6 +597,79 @@ function StatusContent() {
                     ({application?.applicant_email || user?.email || 'N/A'})
                   </span>
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* INDIVIDUAL INCUBATOR REVIEW & FEEDBACK BOX */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-4 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span className="font-extrabold text-[#1A2151] uppercase tracking-wider text-[11px]">
+                  Admissions Review & Feedback
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
+                {targetIncubatorName}
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {/* Super Admin Review Feedback */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Super Admin Evaluation
+                  </span>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    (application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : (application as any)?.super_admin_status === 'rejected'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-slate-700 text-xs leading-relaxed">
+                  {(application as any)?.super_admin_notes ||
+                    'Your application is undergoing initial administrative screening and eligibility verification by the admissions desk.'}
+                </p>
+              </div>
+
+              {/* Incubator Cohort Review Feedback */}
+              <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
+                    {targetIncubatorName} Decision & Notes
+                  </span>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    statusInfo.key === 'admitted'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : statusInfo.key === 'rejected'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {(application?.status || 'pending').toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-slate-700 text-xs leading-relaxed">
+                  {(application as any)?.reviewer_comments ||
+                    (statusInfo.key === 'admitted'
+                      ? `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
+                      : statusInfo.key === 'rejected'
+                      ? `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected.`
+                      : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`)}
+                </p>
+                {(application as any)?.score !== undefined && (application as any)?.score !== null && (
+                  <div className="pt-1 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
+                    <span>Rubric Score:</span>
+                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-200">
+                      {(application as any).score} / 100
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
