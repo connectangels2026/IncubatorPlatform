@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -20,21 +20,24 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams ? (searchParams.get('redirect') || searchParams.get('returnUrl')) : null;
-  const { login, user } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const redirectingToRole = useRef(false);
 
-  const routeUserAfterAuth = async (userEmail?: string, orgId?: string) => {
+  const routeUserAfterAuth = async (userEmail?: string, orgId?: string, roleOverride?: string) => {
+    if (redirectingToRole.current) return;
+
     if (redirectTo) {
       router.push(redirectTo);
       return;
     }
 
-    const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+    const role = roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role;
     const emailToCheck = userEmail || user?.email;
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
@@ -117,10 +120,10 @@ function LoginForm() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (user && !isLoading && !authLoading && !redirectingToRole.current) {
       routeUserAfterAuth(user.email);
     }
-  }, [user, router, redirectTo]);
+  }, [user, isLoading, authLoading, router, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,20 +133,16 @@ function LoginForm() {
 
     if (res.success) {
       const orgId = res.organization?.id;
-      await routeUserAfterAuth(email, orgId);
+      await routeUserAfterAuth(email, orgId, res.user?.role);
+    } else if (res.code === 'ROLE_NOT_SELECTED') {
+      redirectingToRole.current = true;
+      setIsLoading(false);
+      window.location.replace(res.next_step || '/auth/choose-role');
+      return;
+    } else if (res.error?.includes('verify')) {
+      setError(res.error || 'Please verify your email before logging in');
     } else {
-      // Check for specific error codes to provide better guidance
-      if (res.error?.includes('role') || res.code === 'ROLE_NOT_SELECTED') {
-        setError('Please select your role to continue. Redirecting to role selection...');
-        // Use a longer timeout to ensure page is stable
-        setTimeout(() => {
-          router.push('/auth/choose-role');
-        }, 2000);
-      } else if (res.error?.includes('verify')) {
-        setError(res.error || 'Please verify your email before logging in');
-      } else {
-        setError(res.error || 'Invalid credentials');
-      }
+      setError(res.error || 'Invalid credentials');
     }
     setIsLoading(false);
   };

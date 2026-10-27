@@ -21,7 +21,7 @@ interface AuthContextType {
   organization: Organization | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization; user?: any; next_step?: string }>;
   signup: (founder_name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -50,6 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.user) {
+          setUser((prev) => ({ ...(prev ?? {}), ...data.user }) as any);
+        }
         if (data.organization) {
           setOrganization(data.organization);
           if (typeof window !== 'undefined') {
@@ -143,13 +146,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
 
       if (!res.ok) {
-        // Return error response with code for better handling
+        // The API verified the credentials but the user still needs to pick a
+        // role. Establish the browser session so /auth/choose-role can call
+        // the protected choose-role endpoint.
+        if (data.code === 'ROLE_NOT_SELECTED' && password) {
+          const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
+          if (sessionError) {
+            return {
+              success: false,
+              error: 'Please sign in again to select your role.',
+              code: 'SESSION_FAILED',
+              organization: data.organization,
+            };
+          }
+        }
+
         return {
           success: false,
           error: data.error || 'Failed to login',
           code: data.code,
-          organization: data.organization
+          organization: data.organization,
+          next_step: data.next_step,
         };
+      }
+
+      // Keep the browser Supabase client in sync with the API session so
+      // protected routes and client-side queries can authenticate.
+      if (password) {
+        const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
+        if (sessionError) {
+          return {
+            success: false,
+            error: 'Could not start your session. Please try again.',
+            code: 'SESSION_FAILED',
+          };
+        }
       }
 
       setUser(data.user || null);
@@ -168,7 +199,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      return { success: true, organization: data.organization };
+      return {
+        success: true,
+        organization: data.organization,
+        user: data.user,
+        next_step: data.next_step,
+      };
     } catch (err: any) {
       const msg = err.message || 'Failed to login';
       setError(msg);
