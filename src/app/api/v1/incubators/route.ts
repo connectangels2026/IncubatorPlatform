@@ -62,14 +62,30 @@ export async function POST(req: NextRequest) {
     const cleanTier = ['free', 'pro', 'enterprise'].includes(tier) ? tier : 'free';
     const cleanCycle = billing_cycle === 'monthly' ? 'monthly' : 'annual';
 
-    // Generate or sanitize slug
-    const rawSlug = customSlug || name;
-    const baseSlug = rawSlug
+    // Generate URL-friendly slug automatically from organization name
+    const baseSlug = name
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    const finalSlug = `${baseSlug || 'incubator'}-${Math.random().toString(36).substring(2, 6)}`;
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'incubator';
+
+    // Ensure slug is unique, handling collisions gracefully
+    let finalSlug = baseSlug;
+    let suffix = 1;
+    while (true) {
+      const { data: existing } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .eq('slug', finalSlug)
+        .maybeSingle();
+
+      if (!existing) {
+        break;
+      }
+      suffix += 1;
+      finalSlug = `${baseSlug}-${suffix}`;
+    }
 
     const maxStartups = cleanTier === 'enterprise' ? 9999 : cleanTier === 'pro' ? 100 : 20;
     const maxMentors = cleanTier === 'enterprise' ? 9999 : cleanTier === 'pro' ? 25 : 10;
