@@ -35,8 +35,8 @@ export async function GET(req: NextRequest) {
     if (role === 'super-admin' || rawOrgId === 'all') {
       // Super admin or explicit 'all' shows all applications
     } else if (effectiveOrgId) {
-      // Incubator view: show applications forwarded/assigned to this incubator
-      query = query.eq('organization_id', effectiveOrgId);
+      // Incubator view: show applications assigned or accepted by this incubator
+      query = query.or(`organization_id.eq.${effectiveOrgId},form_data->>selected_incubator_id.eq.${effectiveOrgId}`);
     } else if (userEmail) {
       // Founder view: show applications submitted by this applicant email
       query = query.eq('applicant_email', userEmail);
@@ -109,18 +109,112 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Resolve user ID for created_by (must exist in public.users to satisfy foreign key)
+    let createdByUserId: string | null = null;
+    const targetUserId = user?.id;
+
+    if (targetUserId) {
+      // 1. Check if auth user ID exists in public.users
+      const { data: userById } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', targetUserId)
+        .maybeSingle();
+
+      if (userById?.id) {
+        createdByUserId = userById.id;
+      }
+    }
+
+    if (!createdByUserId && cleanEmail) {
+      // 2. Check if user with this email exists in public.users
+      const { data: userByEmail } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (userByEmail?.id) {
+        createdByUserId = userByEmail.id;
+      }
+    }
+
+    if (!createdByUserId && targetUserId && cleanEmail) {
+      // 3. Auto-provision record into public.users so foreign key constraint is satisfied
+      try {
+        const { data: newUser } = await supabaseAdmin
+          .from('users')
+          .insert({
+            id: targetUserId,
+            email: cleanEmail,
+            full_name: body.applicant_name,
+            role: 'founder',
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (newUser?.id) {
+          createdByUserId = newUser.id;
+        }
+      } catch (userProvisionErr) {
+        console.warn('Auto-provisioning public.users record skipped/failed:', userProvisionErr);
+      }
+    }
+
+    // 4. Final safety guard: If the resolved ID does not exist in public.users, set null to prevent foreign key violation
+    if (createdByUserId) {
+      const { data: verifyUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', createdByUserId)
+        .maybeSingle();
+
+      if (!verifyUser?.id) {
+        createdByUserId = null;
+      }
+    }
+
+    // Link to existing startup if founder already has one
+    let startupId: string | null = null;
+    try {
+      const { data: existingStartup } = await supabaseAdmin
+        .from('startups')
+        .select('id')
+        .ilike('founder_email', cleanEmail)
+        .maybeSingle();
+
+      if (existingStartup?.id) {
+        startupId = existingStartup.id;
+      }
+    } catch (startupErr) {
+      console.warn('Startup lookup error:', startupErr);
+    }
+
+    // Resolve uploaded documents & prototype links
+    const uploadedDocs: any[] = Array.isArray(body.uploaded_documents) ? [...body.uploaded_documents] : [];
+    if (body.form_data?.prototypeLink && typeof body.form_data.prototypeLink === 'string') {
+      uploadedDocs.push({
+        name: 'Prototype',
+        url: body.form_data.prototypeLink,
+        type: 'prototype',
+      });
+    }
+
     // 3. Organization ID must stay NULL until an incubator accepts the application
     const payload: any = {
       organization_id: null,
+      startup_id: startupId,
       applicant_name: body.applicant_name,
       applicant_email: cleanEmail,
       applicant_phone: body.applicant_phone || null,
-      application_type: body.application_type || 'Incubator',
+      application_type: body.application_type || 'pre-incubator',
       cohort_name: body.cohort_name || 'Cohort 2026',
       form_data: body.form_data || {},
       status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      created_by: createdByUserId,
       score: null,
-      uploaded_documents: [],
+      uploaded_documents: uploadedDocs,
       mou_signed: false,
       incubator_name_text: targetIncubatorName || null,
       super_admin_status: 'pending',
@@ -134,7 +228,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    const startupName = body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || body.applicant_name;
+    const startupName = body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || `${body.applicant_name}'s Startup`;
     const incubatorName = targetIncubatorName || 'Incubator';
 
     // 1. Send confirmation email to Startup Applicant

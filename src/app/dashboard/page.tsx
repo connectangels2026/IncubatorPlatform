@@ -95,19 +95,44 @@ export default function DashboardPage() {
   const profileRef = useRef<HTMLDivElement>(null);
   const hubSwitcherRef = useRef<HTMLDivElement>(null);
 
-  // Tenant / Organization Data
-  const orgName = organization?.name || 'Silicon Oasis Innovation Hub';
-  const orgSlug = organization?.slug || 'soih-dubai';
-  const founderName = organization?.founder_name || user?.email?.split('@')[0] || 'Dr. Sarah Al-Mansoor';
+  // Tenant & Startup Dynamic State
+  const [startupName, setStartupName] = useState<string | null>(null);
+  const [activeOrgName, setActiveOrgName] = useState<string>(organization?.name || 'Incubator Workspace');
+  const [activeOrgSlug, setActiveOrgSlug] = useState<string>(organization?.slug || 'hub');
+
+  const orgName = activeOrgName;
+  const orgSlug = activeOrgSlug;
+  const founderName = organization?.founder_name || user?.email?.split('@')[0] || 'Founder';
   const founderEmail = organization?.founder_email || user?.email || 'director@incubator.org';
 
-  // Security Guard: Verify startup has accepted application for the requested incubator org
+  // Sync active organization name from context
+  useEffect(() => {
+    if (organization?.name) {
+      setActiveOrgName(organization.name);
+      setActiveOrgSlug(organization.slug || 'hub');
+    }
+  }, [organization]);
+
+  // Security Guard: Incubator managers have direct access; only startups without an accepted app are redirected to the review page
   useEffect(() => {
     const verifyAccess = async () => {
       if (!user) return;
-      const role = (user as any)?.role?.toLowerCase() || '';
-      if (role === 'super-admin' || role === 'super_admin' || role === 'admin') return;
+      const role = (user as any)?.role?.toLowerCase() || (user as any)?.user_metadata?.role?.toLowerCase() || '';
+      
+      const isSuperAdmin =
+        role === 'super-admin' ||
+        role === 'super_admin' ||
+        user?.email?.toLowerCase() === 'shadmannc0516@gmail.com';
+      const isIncubator =
+        !isSuperAdmin &&
+        (role === 'admin' || role === 'incubator_admin' || role === 'incubator');
 
+      // Super Admins and Incubator staff have direct workspace access
+      if (isSuperAdmin || isIncubator) {
+        return;
+      }
+
+      // For startups / applicants: verify they have an accepted application
       try {
         const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(user.email || '')}`);
         const data = await res.json();
@@ -116,7 +141,7 @@ export default function DashboardPage() {
         const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         const requestedOrgId = urlParams?.get('org') || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
 
-        const hasAcceptedApp = apps.some((app: any) => {
+        const acceptedApp = apps.find((app: any) => {
           const isAccepted = app.status === 'accepted' || app.status === 'admitted';
           if (!isAccepted) return false;
           if (requestedOrgId) {
@@ -125,8 +150,31 @@ export default function DashboardPage() {
           return !!app.organization_id;
         });
 
-        if (!hasAcceptedApp) {
+        if (!acceptedApp) {
           router.push('/programs/preincubator/status');
+          return;
+        }
+
+        // Dynamically resolve startup's actual name and linked incubator
+        const resolvedStartupName =
+          acceptedApp.form_data?.startup_name ||
+          acceptedApp.form_data?.name ||
+          acceptedApp.form_data?.businessName ||
+          acceptedApp.form_data?.companyName ||
+          acceptedApp.startup?.name ||
+          `${acceptedApp.applicant_name}'s Startup`;
+
+        setStartupName(resolvedStartupName);
+
+        const incubatorOrgName =
+          acceptedApp.organization?.name ||
+          acceptedApp.incubator_name_text ||
+          acceptedApp.form_data?.targetIncubator?.name ||
+          acceptedApp.form_data?.incubatorName;
+
+        if (incubatorOrgName) {
+          setActiveOrgName(incubatorOrgName);
+          setActiveOrgSlug(acceptedApp.organization?.slug || 'hub');
         }
       } catch (err) {
         console.warn('Dashboard access verification error:', err);
@@ -135,7 +183,7 @@ export default function DashboardPage() {
     };
 
     verifyAccess();
-  }, [user, router]);
+  }, [user, organization, router]);
 
   // Sample Startups Data
   const [startups, setStartups] = useState<Startup[]>([
@@ -348,12 +396,14 @@ export default function DashboardPage() {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold text-sm text-slate-800 tracking-tight truncate max-w-[200px] sm:max-w-[280px]">
-                    {orgName}
+                    {startupName || orgName}
                   </span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition" />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-400 font-mono truncate max-w-[180px]">arba360.io/incubators/{orgSlug}</span>
+                  <span className="text-[10px] text-slate-400 font-mono truncate max-w-[180px]">
+                    {startupName ? `Incubated at ${orgName}` : `arba360.io/incubators/${orgSlug}`}
+                  </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                 </div>
               </div>
@@ -637,13 +687,15 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold text-[#00d4ff] mb-2">
                 <span className="w-2 h-2 rounded-full bg-[#00d4ff] animate-ping" />
-                <span>{orgName} • Friday, Oct 23, 2026</span>
+                <span>{startupName ? `${startupName} • ${orgName} Workspace` : `${orgName} • Cohort Portal`}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Welcome back, {founderName} 👋
+                Welcome back, {startupName || founderName} 👋
               </h1>
               <p className="text-slate-300 text-sm mt-1 max-w-xl">
-                Cohort #8 is progressing through Validation. You have 4 pending startup reviews and 2 mentor syncs scheduled today.
+                {startupName
+                  ? `Your startup "${startupName}" is active in the cohort with ${orgName}. Track your milestones, mentorship sessions, and incubation progress.`
+                  : 'Cohort #8 is progressing through Validation. You have 4 pending startup reviews and 2 mentor syncs scheduled today.'}
               </p>
             </div>
 

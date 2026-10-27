@@ -380,9 +380,15 @@ export default function PreIncubatorApplicationPage() {
 
     try {
       const targetName = formData.incubatorName.trim();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch('/api/v1/applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           incubator_name: targetName,
           incubator_name_text: targetName,

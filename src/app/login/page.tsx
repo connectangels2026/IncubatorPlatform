@@ -38,7 +38,7 @@ function LoginForm() {
     const emailToCheck = userEmail || user?.email;
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
-      // Super Admin account routing
+      // 1. Super Admin account routing
       if (
         emailLower === 'shadmannc0516@gmail.com' ||
         role === 'super-admin'
@@ -47,10 +47,42 @@ function LoginForm() {
         return;
       }
 
-      // Incubator admin routing
-      if (role === 'admin') {
-        router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+      // 2. Incubator admin routing (connect to incubator dashboard, separate from super-admin)
+      const isIncubatorRole =
+        role === 'admin' ||
+        role === 'incubator_admin' ||
+        role === 'incubator';
+
+      let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+      if (isIncubatorRole) {
+        if (!effectiveOrgId) {
+          try {
+            const meRes = await fetch('/api/v1/auth/me');
+            const meData = await meRes.json();
+            if (meData?.organization?.id) {
+              effectiveOrgId = meData.organization.id;
+              if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
+            }
+          } catch (e) {
+            console.warn('Could not fetch org for incubator routing:', e);
+          }
+        }
+        router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
         return;
+      }
+
+      // 3. Check if user owns an incubator organization in database
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        const meData = await meRes.json();
+        if (meData?.organization?.id) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
+          router.push(`/dashboard?org=${meData.organization.id}`);
+          return;
+        }
+      } catch (e) {
+        // Fallback to startup application checks
       }
 
       // Startup routing: check if any incubator has accepted an application

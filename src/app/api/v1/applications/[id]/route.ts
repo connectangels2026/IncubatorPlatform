@@ -53,15 +53,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
 
-    // Only admins can update application status
+    // Only admins, super-admins, and incubator staff can update application status
     const role = user?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'super-admin') {
+    const isStaff =
+      role === 'admin' ||
+      role === 'super-admin' ||
+      role === 'super_admin' ||
+      role === 'incubator_admin' ||
+      role === 'incubator';
+    if (!isStaff) {
       return NextResponse.json({ error: 'Forbidden: Only admins can review or update applications' }, { status: 403 });
     }
 
     const { data: currentApp, error: fetchError } = await supabaseAdmin
       .from('applications')
-      .select('status')
+      .select('status, form_data, organization_id, selected_incubator_id')
       .eq('id', id)
       .single();
 
@@ -86,9 +92,47 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ...body,
     };
 
-    // Assign incubator organization_id upon acceptance
+    const selectedIncId = body.selected_incubator_id || body.selected_id || (newStatus === 'forwarded' ? body.organization_id : null);
+    delete updatePayload.selected_id; // Strip alias to prevent PGRST204
+
+    if (selectedIncId) {
+      updatePayload.selected_incubator_id = selectedIncId; // Save to actual DB column
+      const currentFd = currentApp.form_data || {};
+      updatePayload.form_data = {
+        ...currentFd,
+        ...(body.form_data || {}),
+        selected_incubator_id: selectedIncId,
+        selected_id: selectedIncId,
+      };
+
+      if (!body.incubator_name_text) {
+        const { data: orgData } = await supabaseAdmin
+          .from('organizations')
+          .select('name')
+          .eq('id', selectedIncId)
+          .maybeSingle();
+        if (orgData?.name) {
+          updatePayload.incubator_name_text = orgData.name;
+        }
+      }
+
+      // During initial forwarding, keep organization_id null until incubator accepts
+      if (newStatus === 'forwarded') {
+        updatePayload.organization_id = currentApp.organization_id || null;
+      }
+    }
+
+    // When incubator accepts or admits the startup, take the selected incubator ID and set organization_id
     if (newStatus === 'accepted' || newStatus === 'admitted') {
-      const acceptingOrgId = body.organization_id || user?.organization_id;
+      updatePayload.incubator_response_status = 'accepted';
+      const acceptingOrgId =
+        body.organization_id ||
+        currentApp.selected_incubator_id ||
+        currentApp.form_data?.selected_incubator_id ||
+        currentApp.form_data?.selected_id ||
+        selectedIncId ||
+        user?.organization_id;
+
       if (acceptingOrgId) {
         updatePayload.organization_id = acceptingOrgId;
       }
@@ -103,70 +147,142 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (updateError) throw updateError;
 
-    // When admitted by Super Admin, create organization & assign organization_id to user
-    if (newStatus === 'admitted' && updated) {
+    // When admitted or accepted by Incubator, create organization & assign organization_id to user
+    if ((newStatus === 'admitted' || newStatus === 'accepted') && updated) {
       try {
         const applicantEmail = (updated.applicant_email || '').toLowerCase().trim();
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || `${updated.applicant_name}'s Startup`;
         const slug = startupName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `org-${Date.now()}`;
 
         let orgId = updated.organization_id;
-        if (!orgId || orgId === 'c9ab009d-110b-4f79-bfc1-171c5c718cd0') {
-          const { data: existingOrg } = await supabaseAdmin
-            .from('organizations')
-            .select('id')
-            .eq('founder_email', applicantEmail)
-            .maybeSingle();
+        // Check if organization already exists to prevent duplicate creation on retry
+        const { data: existingOrg } = await supabaseAdmin
+          .from('organizations')
+          .select('id')
+          .ilike('founder_email', applicantEmail)
+          .maybeSingle();
 
-          if (existingOrg) {
-            orgId = existingOrg.id;
-          } else {
-            const { data: newOrg } = await supabaseAdmin
-              .from('organizations')
-              .insert({
-                name: startupName,
-                slug: `${slug}-${Math.floor(1000 + Math.random() * 9000)}`,
+        if (existingOrg) {
+          orgId = existingOrg.id;
+        } else {
+          const { data: newOrg } = await supabaseAdmin
+            .from('organizations')
+            .insert({
+              name: startupName,
+              slug: `${slug}-${Math.floor(1000 + Math.random() * 9000)}`,
                 founder_name: updated.applicant_name,
                 founder_email: applicantEmail,
                 is_verified: true,
               })
               .select('id')
               .single();
-            if (newOrg) orgId = newOrg.id;
-          }
+          if (newOrg) orgId = newOrg.id;
         }
 
         if (orgId) {
           await supabaseAdmin.from('users').update({ organization_id: orgId }).ilike('email', applicantEmail);
-          await supabaseAdmin.from('applications').update({ organization_id: orgId }).eq('id', id);
+
+          // Ensure startup record exists for this organization & founder
+          const { data: existingStartup } = await supabaseAdmin
+            .from('startups')
+            .select('id')
+            .eq('organization_id', orgId)
+            .ilike('founder_email', applicantEmail)
+            .maybeSingle();
+
+          let startupId = existingStartup?.id;
+          if (!startupId) {
+            const { data: newStartup } = await supabaseAdmin
+              .from('startups')
+              .insert({
+                organization_id: orgId,
+                name: startupName,
+                founder_email: applicantEmail,
+                founder_phone: updated.applicant_phone || null,
+                sector: updated.form_data?.industryVertical || 'AI & DeepTech',
+                stage: updated.form_data?.businessStage || 'Idea Phase',
+                problem_statement: updated.form_data?.problemStatement || null,
+                solution_description: updated.form_data?.oneSentencePitch || updated.form_data?.solutionOverview || null,
+                target_market: updated.form_data?.targetAudience || null,
+                founder_id: updated.created_by || null,
+                is_active: true,
+              })
+              .select('id')
+              .single();
+            if (newStartup?.id) startupId = newStartup.id;
+          }
+
+          const appUpdates: any = { organization_id: orgId };
+          if (startupId) appUpdates.startup_id = startupId;
+
+          await supabaseAdmin.from('applications').update(appUpdates).eq('id', id);
           updated.organization_id = orgId;
+          if (startupId) updated.startup_id = startupId;
         }
       } catch (orgErr) {
         console.warn('Auto-create organization on admission error:', orgErr);
       }
     }
 
-    // Trigger application decision notification & email if status changed
+    // Trigger non-duplicate notifications to founder when assigned, accepted, or rejected
     if (newStatus && updated) {
       try {
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || updated.applicant_name;
-        const recipientId = updated.created_by || 'c9ab009d-110b-4f79-bfc1-171c5c718cd0';
+        const incubatorName = updated.incubator_name_text || 'Partner Incubator';
+
+        // Resolve founder user ID
+        let recipientId = updated.created_by;
+        const isValidUUID = (u: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(u);
+        if (!recipientId || !isValidUUID(recipientId)) {
+          const { data: founderUser } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .ilike('email', updated.applicant_email)
+            .maybeSingle();
+          if (founderUser?.id && isValidUUID(founderUser.id)) {
+            recipientId = founderUser.id;
+          }
+        }
+        if (!recipientId || !isValidUUID(recipientId)) {
+          recipientId = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
+        }
+
+        let notifTitle = `Application Status: ${newStatus.toUpperCase()}`;
+        let notifMessage = `Your application for ${startupName} status has been updated to ${newStatus}.`;
+        let notifType = 'application_decision';
+
+        if (newStatus === 'forwarded') {
+          notifTitle = `Application Assigned to ${incubatorName}`;
+          notifMessage = `Your application for ${startupName} has been evaluated by the Super Admin and forwarded to ${incubatorName} for cohort admission review.${updated.super_admin_notes ? ` Notes: "${updated.super_admin_notes}"` : ''}`;
+          notifType = 'application_forwarded';
+        } else if (newStatus === 'accepted' || newStatus === 'admitted') {
+          notifTitle = `Congratulations! Accepted by ${incubatorName}`;
+          notifMessage = `Great news! ${incubatorName} has approved your application for ${startupName}. You can now view your founder cohort dashboard.`;
+          notifType = 'application_accepted';
+        } else if (newStatus === 'rejected') {
+          notifTitle = `Application Update: ${incubatorName}`;
+          notifMessage = `Thank you for your interest in ${incubatorName}. Your application for ${startupName} was not selected for this cohort cycle.${updated.super_admin_notes || updated.reviewer_comments ? ` Notes: "${updated.super_admin_notes || updated.reviewer_comments}"` : ''}`;
+          notifType = 'application_rejected';
+        }
+
         await NotificationService.createNotification({
-          organization_id: updated.organization_id,
+          organization_id: updated.organization_id || null,
           recipient_id: recipientId,
           recipient_name: updated.applicant_name,
           recipient_email: updated.applicant_email,
-          title: `Application Decision: ${newStatus.toUpperCase()}`,
-          message: `Your application for ${startupName} status has been updated to ${newStatus}.`,
-          notification_type: 'application_decision',
+          title: notifTitle,
+          message: notifMessage,
+          notification_type: notifType,
           send_email: true,
           send_in_app: true,
           related_entity_type: 'application',
           related_entity_id: updated.id,
           metadata: {
             startup_name: startupName,
-            decision: newStatus,
-            comments: updated.reviewer_comments,
+            incubator_name: incubatorName,
+            status: newStatus,
+            super_admin_notes: updated.super_admin_notes,
+            reviewer_comments: updated.reviewer_comments,
           },
         });
       } catch (notifErr) {

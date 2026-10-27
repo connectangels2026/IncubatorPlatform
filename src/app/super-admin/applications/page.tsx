@@ -314,23 +314,32 @@ export default function SuperAdminApplicationsPage() {
       const headers: Record<string, string> = { 'x-org-id': 'all' };
       if (token) headers['Authorization'] = token;
 
+      const targetInc = incubators.find((i) => i.id === selectedIncubatorId);
+
       await apiClient.put(
         `/applications/${targetApp.id}`,
         {
-          organization_id: selectedIncubatorId,
+          selected_incubator_id: selectedIncubatorId,
+          selected_id: selectedIncubatorId,
           status: 'forwarded',
-          super_admin_notes: superAdminNotes,
-          reviewer_comments: superAdminNotes || 'Forwarded to incubator by Super Admin for evaluation',
+          super_admin_status: 'forwarded',
+          super_admin_notes: superAdminNotes?.trim() || null,
+          super_admin_reviewed_at: new Date().toISOString(),
+          incubator_name_text: targetInc?.name || null,
+          reviewer_comments: superAdminNotes?.trim() || `Forwarded to ${targetInc?.name || 'Incubator'} by Super Admin for evaluation`,
         },
         { headers }
       );
 
-      const targetInc = incubators.find((i) => i.id === selectedIncubatorId);
       setApplications((prev) =>
-        prev.map((a) => (a.id === targetApp.id ? { ...a, status: 'Forwarded' } : a))
+        prev.map((a) =>
+          a.id === targetApp.id
+            ? { ...a, status: 'Forwarded', incubatorName: targetInc?.name || a.incubatorName }
+            : a
+        )
       );
       setAssignModalOpen(false);
-      triggerToast(`Forwarded ${targetApp.startupName} to ${targetInc?.name || 'Incubator'} with notes!`, 'emerald');
+      triggerToast(`Assigned ${targetApp.startupName} to ${targetInc?.name || 'Incubator'}!`, 'emerald');
     } catch (err: any) {
       triggerToast(err?.response?.data?.error || 'Failed to forward application', 'rose');
     } finally {
