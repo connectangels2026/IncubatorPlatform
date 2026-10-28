@@ -176,8 +176,32 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updatePayload.admission_status = 'admitted';
       updatePayload.incubator_responded_at = new Date().toISOString();
       updatePayload.reviewed_at = new Date().toISOString();
+      // Safely assign reviewed_by only if the user ID exists in public.users table
       if (user?.id && isValidUUID(user.id)) {
-        updatePayload.reviewed_by = user.id;
+        const { data: dbUser } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (dbUser?.id) {
+          updatePayload.reviewed_by = dbUser.id;
+        } else if (user?.email) {
+          const { data: dbUserByEmail } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .ilike('email', user.email)
+            .maybeSingle();
+          if (dbUserByEmail?.id) {
+            updatePayload.reviewed_by = dbUserByEmail.id;
+          } else {
+            delete updatePayload.reviewed_by;
+          }
+        } else {
+          delete updatePayload.reviewed_by;
+        }
+      } else {
+        delete updatePayload.reviewed_by;
       }
 
       const acceptingOrgId =
