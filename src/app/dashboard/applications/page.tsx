@@ -1799,24 +1799,6 @@ export default function ApplicationsPage() {
                   Confirm Decision
                 </button>
               </div>
-
-              <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 text-xs">
-                <button
-                  onClick={() => setDecisionModalApp(null)}
-                  className="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-100 font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveDecision}
-                  className={`px-4 py-1.5 text-white rounded-lg font-semibold flex items-center gap-1.5 transition ${
-                    decisionType === 'admitted' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
-                  }`}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  Confirm Decision
-                </button>
-              </div>
             </div>
           </div>
         )}
