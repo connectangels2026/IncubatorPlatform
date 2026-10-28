@@ -101,18 +101,22 @@ export class NotificationService {
     recipientId: string,
     notificationType: string,
     relatedEntityId?: string,
-    title?: string
+    title?: string,
+    organizationId?: string | null
   ): Promise<boolean> {
-    if (!isValidUUID(recipientId)) return false;
-
     const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     let query = supabaseAdmin
       .from('notifications')
       .select('id')
-      .eq('recipient_id', recipientId)
       .eq('notification_type', notificationType)
       .gte('created_at', windowStart);
+
+    if (organizationId && isValidUUID(organizationId)) {
+      query = query.eq('organization_id', organizationId);
+    } else if (isValidUUID(recipientId)) {
+      query = query.eq('recipient_id', recipientId);
+    }
 
     if (relatedEntityId && isValidUUID(relatedEntityId)) {
       query = query.eq('related_entity_id', relatedEntityId);
@@ -152,8 +156,8 @@ export class NotificationService {
       metadata = {},
     } = params;
 
-    // 1. Check for duplicates (by entity ID or title within 24h)
-    const duplicate = await this.isDuplicate(recipient_id, notification_type, related_entity_id, title);
+    // 1. Check for duplicates (by entity ID or title within 24h, scoped to organization or recipient)
+    const duplicate = await this.isDuplicate(recipient_id, notification_type, related_entity_id, title, organization_id);
     if (duplicate) {
       return {
         success: true,
@@ -269,12 +273,10 @@ export class NotificationService {
     const { is_read, notification_type, limit = 50, offset = 0 } = options;
     const nowIso = new Date().toISOString();
 
-    const DEMO_USER_ID = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
     let query = supabaseAdmin
       .from('notifications')
       .select('*', { count: 'exact' })
       .eq('organization_id', orgId)
-      .in('recipient_id', Array.from(new Set([userId, DEMO_USER_ID].filter(isValidUUID))))
       .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);

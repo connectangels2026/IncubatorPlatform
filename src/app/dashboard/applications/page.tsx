@@ -64,6 +64,7 @@ interface ApplicationItem {
   organizationName?: string;
   organizationSlug?: string;
   superAdminNotes?: string;
+  dashboardAssigned?: boolean;
 }
 
 const INITIAL_APPLICATIONS: ApplicationItem[] = [];
@@ -418,12 +419,13 @@ export default function ApplicationsPage() {
     const type: 'incubator' | 'pre_incubator' = rawType.includes('pre') ? 'pre_incubator' : 'incubator';
 
     const rawStatus = (record.status || 'submitted').toLowerCase();
+    const incStatus = (record.incubator_response_status || '').toLowerCase();
     let status: ApplicationItem['status'] = 'submitted';
-    if (rawStatus === 'forwarded') {
-      status = 'pending';
-    } else if (rawStatus === 'admitted' || rawStatus === 'accepted') {
+    if (rawStatus === 'admitted' || rawStatus === 'accepted' || incStatus === 'accepted') {
       status = 'accepted';
-    } else if (rawStatus === 'rejected') {
+    } else if (rawStatus === 'forwarded') {
+      status = 'pending';
+    } else if (rawStatus === 'rejected' || incStatus === 'rejected') {
       status = 'rejected';
     } else if (['submitted', 'under_review'].includes(rawStatus)) {
       status = rawStatus as any;
@@ -455,6 +457,11 @@ export default function ApplicationsPage() {
           (scores.traction || 75) * 0.2
       );
 
+    const dashboardAssigned = Boolean(
+      record.admission_status === 'dashboard_assigned' ||
+      fd.dashboard_access_granted
+    );
+
     return {
       id: record.id,
       startupName,
@@ -474,6 +481,7 @@ export default function ApplicationsPage() {
       organizationName: record.organization?.name,
       organizationSlug: record.organization?.slug,
       superAdminNotes: record.super_admin_notes || record.notes || '',
+      dashboardAssigned,
     };
   };
 
@@ -838,28 +846,74 @@ export default function ApplicationsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ? `Bearer ${session.access_token}` : 'Bearer mock-admin';
 
-      await apiClient.put(`/applications/${decisionModalApp.id}`, {
+      const res = await apiClient.put(`/applications/${decisionModalApp.id}`, {
         status: decisionType,
         feedback: decisionFeedback,
+        reviewer_comments: decisionFeedback,
         notify_applicant: sendEmailNotification,
       }, {
         headers: { Authorization: token, 'x-org-id': 'all' }
-      }).catch((err) => console.warn('Decision update API warning:', err?.message));
+      });
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || 'Failed to update application');
+      }
 
       setApplications((prev) =>
         prev.map((app) => {
           if (app.id === decisionModalApp.id) {
-            return { ...app, status: decisionType };
+            return { ...app, status: decisionType === 'admitted' ? 'accepted' : decisionType };
           }
           return app;
         })
       );
 
+      if (detailsModalApp?.id === decisionModalApp.id) {
+        setDetailsModalApp((prev) =>
+          prev ? { ...prev, status: decisionType === 'admitted' ? 'accepted' : decisionType } : null
+        );
+      }
+
       const emailNote = sendEmailNotification ? " Notification email dispatched." : "";
-      showToast(`Application marked as ${decisionType}.${emailNote}`);
+      showToast(`Application marked as ${decisionType}.${emailNote}`, 'success');
       setDecisionModalApp(null);
-    } catch {
-      showToast('Failed to record cohort decision. Please try again.', 'error');
+    } catch (err: any) {
+      console.error('Decision update error:', err);
+      showToast(err?.response?.data?.error || 'Failed to record cohort decision. Please try again.', 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAssignDashboard = async (app: ApplicationItem) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ? `Bearer ${session.access_token}` : 'Bearer mock-admin';
+
+      const res = await apiClient.put(`/applications/${app.id}`, {
+        admission_status: 'dashboard_assigned',
+        action: 'assign_dashboard',
+        dashboard_access_granted: true,
+      }, {
+        headers: { Authorization: token, 'x-org-id': 'all' }
+      });
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || 'Failed to assign dashboard access');
+      }
+
+      setApplications((prev) =>
+        prev.map((a) => (a.id === app.id ? { ...a, dashboardAssigned: true } : a))
+      );
+      if (detailsModalApp?.id === app.id) {
+        setDetailsModalApp((prev) => (prev ? { ...prev, dashboardAssigned: true } : null));
+      }
+      showToast(`Dashboard access successfully assigned to ${app.startupName}!`, 'success');
+    } catch (err: any) {
+      console.error('Assign dashboard error:', err);
+      showToast(err?.response?.data?.error || err.message || 'Failed to assign dashboard access', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -1287,14 +1341,33 @@ export default function ApplicationsPage() {
                                 >
                                   <Eye className="w-4 h-4" />
                                 </button>
-                                <button
-                                  onClick={() => openDecisionModal(app, 'admitted')}
-                                  disabled={isProcessing}
-                                  title="Admit / Reject Decision"
-                                  className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
+                                {app.status === 'accepted' || app.status === 'admitted' ? (
+                                  app.dashboardAssigned ? (
+                                    <span className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-1">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>Dashboard Assigned</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleAssignDashboard(app)}
+                                      disabled={isProcessing}
+                                      title="Assign Dashboard Access"
+                                      className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs flex items-center gap-1 transition cursor-pointer"
+                                    >
+                                      <LayoutDashboard className="w-3.5 h-3.5" />
+                                      <span>Assign Dashboard</span>
+                                    </button>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => openDecisionModal(app, 'admitted')}
+                                    disabled={isProcessing}
+                                    title="Admit / Reject Decision"
+                                    className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1479,72 +1552,84 @@ export default function ApplicationsPage() {
 
                   <div className="pt-3 border-t border-slate-200">
                     <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-2">
-                      Incubator Decision
+                      Incubator Decision & Access
                     </label>
                     <div className="flex flex-wrap gap-2.5">
-                      <button
-                        disabled={isProcessing}
-                        onClick={async () => {
-                          if (isProcessing) return;
-                          setIsProcessing(true);
-                          try {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-                            await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'accepted' }, {
-                              headers: token ? { Authorization: token } : {}
-                            });
-                            setApplications((prev) =>
-                              prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'accepted' } : a))
-                            );
-                            setDetailsModalApp((prev) => (prev ? { ...prev, status: 'accepted' } : null));
-                            showToast(`Application accepted into incubator!`, 'success');
-                          } catch (err: any) {
-                            showToast(err?.response?.data?.error || 'Failed to accept application', 'error');
-                          } finally {
-                            setIsProcessing(false);
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-                          detailsModalApp.status === 'accepted' || detailsModalApp.status === 'admitted'
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200'
-                        }`}
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Accept Application</span>
-                      </button>
+                      {detailsModalApp.status === 'accepted' || detailsModalApp.status === 'admitted' ? (
+                        detailsModalApp.dashboardAssigned ? (
+                          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-xs">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span>Dashboard Access Assigned</span>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleAssignDashboard(detailsModalApp)}
+                            className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer"
+                          >
+                            <LayoutDashboard className="w-4 h-4" />
+                            <span>Assign Dashboard</span>
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button
+                            disabled={isProcessing}
+                            onClick={async () => {
+                              if (isProcessing) return;
+                              setIsProcessing(true);
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+                                await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'accepted' }, {
+                                  headers: token ? { Authorization: token, 'x-org-id': 'all' } : { 'x-org-id': 'all' }
+                                });
+                                setApplications((prev) =>
+                                  prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'accepted' } : a))
+                                );
+                                setDetailsModalApp((prev) => (prev ? { ...prev, status: 'accepted' } : null));
+                                showToast(`Application accepted into incubator!`, 'success');
+                              } catch (err: any) {
+                                showToast(err?.response?.data?.error || 'Failed to accept application', 'error');
+                              } finally {
+                                setIsProcessing(false);
+                              }
+                            }}
+                            className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer bg-emerald-50 text-emerald-800 hover:bg-emerald-600 hover:text-white border border-emerald-200"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>Accept Application</span>
+                          </button>
 
-                      <button
-                        disabled={isProcessing}
-                        onClick={async () => {
-                          if (isProcessing) return;
-                          setIsProcessing(true);
-                          try {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-                            await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'rejected' }, {
-                              headers: token ? { Authorization: token } : {}
-                            });
-                            setApplications((prev) =>
-                              prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'rejected' } : a))
-                            );
-                            setDetailsModalApp((prev) => (prev ? { ...prev, status: 'rejected' } : null));
-                            showToast(`Application rejected`, 'error');
-                          } catch (err: any) {
-                            showToast(err?.response?.data?.error || 'Failed to reject application', 'error');
-                          } finally {
-                            setIsProcessing(false);
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-                          detailsModalApp.status === 'rejected'
-                            ? 'bg-rose-600 text-white shadow-xs'
-                            : 'bg-rose-50 text-rose-800 hover:bg-rose-600 hover:text-white border border-rose-200'
-                        }`}
-                      >
-                        <XCircle className="w-4 h-4" />
-                        <span>Reject Application</span>
-                      </button>
+                          <button
+                            disabled={isProcessing}
+                            onClick={async () => {
+                              if (isProcessing) return;
+                              setIsProcessing(true);
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+                                await apiClient.put(`/applications/${detailsModalApp.id}`, { status: 'rejected' }, {
+                                  headers: token ? { Authorization: token, 'x-org-id': 'all' } : { 'x-org-id': 'all' }
+                                });
+                                setApplications((prev) =>
+                                  prev.map((a) => (a.id === detailsModalApp.id ? { ...a, status: 'rejected' } : a))
+                                );
+                                setDetailsModalApp((prev) => (prev ? { ...prev, status: 'rejected' } : null));
+                                showToast(`Application rejected`, 'error');
+                              } catch (err: any) {
+                                showToast(err?.response?.data?.error || 'Failed to reject application', 'error');
+                              } finally {
+                                setIsProcessing(false);
+                              }
+                            }}
+                            className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer bg-rose-50 text-rose-800 hover:bg-rose-600 hover:text-white border border-rose-200"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>Reject Application</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

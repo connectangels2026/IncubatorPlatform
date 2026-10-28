@@ -5,6 +5,9 @@ import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
 
+const isValidUUID = (s?: string | null): s is string =>
+  typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+
 const VALID_TRANSITIONS: Record<string, string[]> = {
   submitted: ['under_review', 'forwarded', 'admitted', 'accepted', 'rejected'],
   forwarded: ['under_review', 'accepted', 'admitted', 'rejected', 'submitted'],
@@ -55,12 +58,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Only admins, super-admins, and incubator staff can update application status
     const role = user?.role?.toLowerCase() || '';
-    const isStaff =
+    let isStaff =
       role === 'admin' ||
       role === 'super-admin' ||
       role === 'super_admin' ||
       role === 'incubator_admin' ||
       role === 'incubator';
+
+    if (!isStaff && user?.email) {
+      const emailLower = user.email.toLowerCase();
+      const orgFilter = user.organization_id && isValidUUID(user.organization_id)
+        ? `founder_email.ilike.${emailLower},id.eq.${user.organization_id}`
+        : `founder_email.ilike.${emailLower}`;
+
+      const { data: matchedOrg } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .or(orgFilter)
+        .maybeSingle();
+
+      if (matchedOrg) {
+        isStaff = true;
+      }
+    }
+
     if (!isStaff) {
       return NextResponse.json({ error: 'Forbidden: Only admins can review or update applications' }, { status: 403 });
     }
@@ -92,8 +113,35 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ...body,
     };
 
+    const isDashboardAction =
+      body.action === 'assign_dashboard' ||
+      body.admission_status === 'dashboard_assigned' ||
+      body.dashboard_access_granted === true;
+
+    if (isDashboardAction) {
+      updatePayload.admission_status = 'dashboard_assigned';
+      const currentFd = currentApp.form_data || {};
+      updatePayload.form_data = {
+        ...currentFd,
+        ...(body.form_data || {}),
+        dashboard_access_granted: true,
+        dashboard_assigned_at: new Date().toISOString(),
+      };
+      if (!updatePayload.status && (currentApp.status === 'accepted' || currentApp.status === 'admitted')) {
+        updatePayload.status = currentApp.status;
+      }
+    }
+
+    if (body.feedback) {
+      updatePayload.reviewer_comments = body.feedback;
+      delete updatePayload.feedback;
+    }
+    delete updatePayload.notify_applicant;
+    delete updatePayload.selected_id;
+    delete updatePayload.action;
+    delete updatePayload.dashboard_access_granted;
+
     const selectedIncId = body.selected_incubator_id || body.selected_id || (newStatus === 'forwarded' ? body.organization_id : null);
-    delete updatePayload.selected_id; // Strip alias to prevent PGRST204
 
     if (selectedIncId) {
       updatePayload.selected_incubator_id = selectedIncId; // Save to actual DB column
@@ -122,9 +170,40 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // When incubator accepts or admits the startup, take the selected incubator ID and set organization_id
+    // When incubator accepts or admits the startup, update incubator status & admission
     if (newStatus === 'accepted' || newStatus === 'admitted') {
       updatePayload.incubator_response_status = 'accepted';
+      updatePayload.admission_status = 'admitted';
+      updatePayload.incubator_responded_at = new Date().toISOString();
+      updatePayload.reviewed_at = new Date().toISOString();
+      // Safely assign reviewed_by only if the user ID exists in public.users table
+      if (user?.id && isValidUUID(user.id)) {
+        const { data: dbUser } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (dbUser?.id) {
+          updatePayload.reviewed_by = dbUser.id;
+        } else if (user?.email) {
+          const { data: dbUserByEmail } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .ilike('email', user.email)
+            .maybeSingle();
+          if (dbUserByEmail?.id) {
+            updatePayload.reviewed_by = dbUserByEmail.id;
+          } else {
+            delete updatePayload.reviewed_by;
+          }
+        } else {
+          delete updatePayload.reviewed_by;
+        }
+      } else {
+        delete updatePayload.reviewed_by;
+      }
+
       const acceptingOrgId =
         body.organization_id ||
         currentApp.selected_incubator_id ||
@@ -138,14 +217,60 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    // Filter updatePayload to only actual database columns
+    const ALLOWED_DB_COLUMNS = new Set([
+      'organization_id',
+      'startup_id',
+      'application_type',
+      'cohort_name',
+      'applicant_name',
+      'applicant_email',
+      'applicant_phone',
+      'form_data',
+      'status',
+      'score',
+      'reviewer_comments',
+      'reviewed_by',
+      'reviewed_at',
+      'uploaded_documents',
+      'admission_status',
+      'admission_letter_url',
+      'admission_date',
+      'mou_signed',
+      'mou_signed_date',
+      'mou_document_url',
+      'submitted_at',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+      'created_by',
+      'super_admin_status',
+      'super_admin_notes',
+      'incubator_response_status',
+      'super_admin_reviewed_at',
+      'incubator_responded_at',
+      'incubator_name_text',
+      'selected_incubator_id',
+    ]);
+
+    const sanitizedDbPayload: any = {};
+    for (const [key, val] of Object.entries(updatePayload)) {
+      if (ALLOWED_DB_COLUMNS.has(key)) {
+        sanitizedDbPayload[key] = val;
+      }
+    }
+
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('applications')
-      .update(updatePayload)
+      .update(sanitizedDbPayload)
       .eq('id', id)
       .select()
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('Application update DB error:', updateError);
+      throw updateError;
+    }
 
     // When admitted or accepted by Incubator, create organization & assign organization_id to user
     if ((newStatus === 'admitted' || newStatus === 'accepted') && updated) {
@@ -224,8 +349,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Trigger non-duplicate notifications to founder when assigned, accepted, or rejected
-    if (newStatus && updated) {
+    // Trigger non-duplicate notifications to founder when assigned, accepted, or dashboard assigned
+    if ((newStatus || isDashboardAction) && updated) {
       try {
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || updated.applicant_name;
         const incubatorName = updated.incubator_name_text || 'Partner Incubator';
@@ -247,17 +372,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           recipientId = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
         }
 
-        let notifTitle = `Application Status: ${newStatus.toUpperCase()}`;
-        let notifMessage = `Your application for ${startupName} status has been updated to ${newStatus}.`;
+        let notifTitle = `Application Status: ${newStatus ? newStatus.toUpperCase() : 'UPDATED'}`;
+        let notifMessage = `Your application for ${startupName} status has been updated.`;
         let notifType = 'application_decision';
 
-        if (newStatus === 'forwarded') {
+        if (isDashboardAction) {
+          notifTitle = `Dashboard Access Assigned: ${incubatorName}`;
+          notifMessage = `Congratulations! ${incubatorName} has assigned dashboard access for ${startupName}. You can now access your founder cohort dashboard!`;
+          notifType = 'dashboard_assigned';
+        } else if (newStatus === 'forwarded') {
           notifTitle = `Application Assigned to ${incubatorName}`;
           notifMessage = `Your application for ${startupName} has been evaluated by the Super Admin and forwarded to ${incubatorName} for cohort admission review.${updated.super_admin_notes ? ` Notes: "${updated.super_admin_notes}"` : ''}`;
           notifType = 'application_forwarded';
         } else if (newStatus === 'accepted' || newStatus === 'admitted') {
           notifTitle = `Congratulations! Accepted by ${incubatorName}`;
-          notifMessage = `Great news! ${incubatorName} has approved your application for ${startupName}. You can now view your founder cohort dashboard.`;
+          notifMessage = `Great news! ${incubatorName} has approved your application for ${startupName}. Dashboard access will be activated by the incubator shortly.`;
           notifType = 'application_accepted';
         } else if (newStatus === 'rejected') {
           notifTitle = `Application Update: ${incubatorName}`;
@@ -285,6 +414,47 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             reviewer_comments: updated.reviewer_comments,
           },
         });
+
+        // Notify target incubator organization when forwarded
+        const targetIncubatorOrgId = updated.selected_incubator_id || selectedIncId;
+        if (newStatus === 'forwarded' && targetIncubatorOrgId && isValidUUID(targetIncubatorOrgId)) {
+          let incRecipientId = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
+          const { data: incUsers } = await supabaseAdmin
+            .from('users')
+            .select('id, email, first_name')
+            .eq('organization_id', targetIncubatorOrgId)
+            .limit(1);
+
+          if (incUsers && incUsers.length > 0 && incUsers[0].id) {
+            incRecipientId = incUsers[0].id;
+          }
+
+          const incTitle = `New Application Forwarded: ${startupName}`;
+          const incMsg = `Super Admin forwarded ${startupName}'s application to your incubator for review.${updated.super_admin_notes ? ` Notes: "${updated.super_admin_notes}"` : ''}`;
+
+          await NotificationService.createNotification({
+            organization_id: targetIncubatorOrgId,
+            recipient_id: incRecipientId,
+            recipient_name: incubatorName,
+            title: incTitle,
+            message: incMsg,
+            notification_type: 'application_forwarded',
+            send_email: true,
+            send_in_app: true,
+            related_entity_type: 'application',
+            related_entity_id: updated.id,
+            metadata: {
+              startup_name: startupName,
+              applicant_name: updated.applicant_name,
+              applicant_email: updated.applicant_email,
+              application_id: updated.id,
+              status: 'forwarded',
+              forwarded_at: new Date().toISOString(),
+              super_admin_notes: updated.super_admin_notes,
+              reviewer_comments: updated.reviewer_comments,
+            },
+          });
+        }
       } catch (notifErr) {
         console.warn('Failed to dispatch application decision notification:', notifErr);
       }

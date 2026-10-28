@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       // Super admin or explicit 'all' shows all applications
     } else if (effectiveOrgId) {
       // Incubator view: show applications assigned or accepted by this incubator
-      query = query.or(`organization_id.eq.${effectiveOrgId},form_data->>selected_incubator_id.eq.${effectiveOrgId}`);
+      query = query.or(`organization_id.eq.${effectiveOrgId},selected_incubator_id.eq.${effectiveOrgId},form_data->>selected_incubator_id.eq.${effectiveOrgId}`);
     } else if (userEmail) {
       // Founder view: show applications submitted by this applicant email
       query = query.eq('applicant_email', userEmail);
