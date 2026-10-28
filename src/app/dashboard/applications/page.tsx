@@ -418,12 +418,13 @@ export default function ApplicationsPage() {
     const type: 'incubator' | 'pre_incubator' = rawType.includes('pre') ? 'pre_incubator' : 'incubator';
 
     const rawStatus = (record.status || 'submitted').toLowerCase();
+    const incStatus = (record.incubator_response_status || '').toLowerCase();
     let status: ApplicationItem['status'] = 'submitted';
-    if (rawStatus === 'forwarded') {
-      status = 'pending';
-    } else if (rawStatus === 'admitted' || rawStatus === 'accepted') {
+    if (rawStatus === 'admitted' || rawStatus === 'accepted' || incStatus === 'accepted') {
       status = 'accepted';
-    } else if (rawStatus === 'rejected') {
+    } else if (rawStatus === 'forwarded') {
+      status = 'pending';
+    } else if (rawStatus === 'rejected' || incStatus === 'rejected') {
       status = 'rejected';
     } else if (['submitted', 'under_review'].includes(rawStatus)) {
       status = rawStatus as any;
@@ -838,28 +839,34 @@ export default function ApplicationsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ? `Bearer ${session.access_token}` : 'Bearer mock-admin';
 
-      await apiClient.put(`/applications/${decisionModalApp.id}`, {
+      const res = await apiClient.put(`/applications/${decisionModalApp.id}`, {
         status: decisionType,
         feedback: decisionFeedback,
+        reviewer_comments: decisionFeedback,
         notify_applicant: sendEmailNotification,
       }, {
         headers: { Authorization: token, 'x-org-id': 'all' }
-      }).catch((err) => console.warn('Decision update API warning:', err?.message));
+      });
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || 'Failed to update application');
+      }
 
       setApplications((prev) =>
         prev.map((app) => {
           if (app.id === decisionModalApp.id) {
-            return { ...app, status: decisionType };
+            return { ...app, status: decisionType === 'admitted' ? 'accepted' : decisionType };
           }
           return app;
         })
       );
 
       const emailNote = sendEmailNotification ? " Notification email dispatched." : "";
-      showToast(`Application marked as ${decisionType}.${emailNote}`);
+      showToast(`Application marked as ${decisionType}.${emailNote}`, 'success');
       setDecisionModalApp(null);
-    } catch {
-      showToast('Failed to record cohort decision. Please try again.', 'error');
+    } catch (err: any) {
+      console.error('Decision update error:', err);
+      showToast(err?.response?.data?.error || 'Failed to record cohort decision. Please try again.', 'error');
     } finally {
       setIsProcessing(false);
     }

@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { apiClient } from '@/services/apiClient';
+import { supabase } from '@/backend/lib/supabase';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
 
@@ -88,12 +89,16 @@ export default function DashboardPage() {
   const [isHubSwitcherOpen, setIsHubSwitcherOpen] = useState(false);
   const [isCmdKOpen, setIsCmdKOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState<boolean>(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Profile and Hub Switcher Refs for outside click
   const profileRef = useRef<HTMLDivElement>(null);
   const hubSwitcherRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   // Tenant & Startup Dynamic State
   const [startupName, setStartupName] = useState<string | null>(null);
@@ -349,6 +354,108 @@ export default function DashboardPage() {
     }
   };
 
+  // Notifications API integration
+  const fetchNotifications = async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const res = await apiClient.get('/notifications?limit=30');
+      if (res.data?.success && Array.isArray(res.data?.data)) {
+        setNotifications(res.data.data);
+        const unread = typeof res.data.unread_count === 'number'
+          ? res.data.unread_count
+          : res.data.data.filter((n: any) => !n.is_read).length;
+        setUnreadCount(unread);
+      }
+    } catch (err) {
+      console.warn('Failed to load notifications:', err);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    const channel = supabase
+      .channel('dashboard-notifications-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [organization?.id]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    if (isNotificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
+
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.is_read) {
+      try {
+        await apiClient.put(`/notifications/${notif.id}/read`, { is_read: true });
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      } catch (err) {
+        console.warn('Failed to mark notification as read:', err);
+      }
+    }
+
+    setIsNotificationsOpen(false);
+
+    // Open applications review
+    router.push('/dashboard/applications');
+  };
+
+  const handleMarkAllAsRead = async () => {
+    const unread = notifications.filter((n) => !n.is_read);
+    if (unread.length === 0) return;
+
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+
+    try {
+      await Promise.all(
+        unread.map((n) => apiClient.put(`/notifications/${n.id}/read`, { is_read: true }).catch(() => {}))
+      );
+    } catch (e) {
+      console.warn('Error marking all notifications as read:', e);
+    }
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDays = Math.floor(diffHour / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   // Filtered Startups
   const filteredStartups = startups.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -487,37 +594,101 @@ export default function DashboardPage() {
             </Link>
 
             {/* Notification Bell */}
-            <div className="relative">
+            <div className="relative" ref={notifRef}>
               <button
-                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                onClick={() => {
+                  setIsNotificationsOpen(!isNotificationsOpen);
+                  if (!isNotificationsOpen) fetchNotifications();
+                }}
                 className="relative p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                title="Notifications"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
+                  </span>
+                )}
               </button>
 
               {/* Notification Flyout */}
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-3 w-80 rounded-2xl bg-[#1A2151] border border-[#00d4ff]/30 text-white shadow-2xl p-4 z-50">
+                <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-[#1A2151] border border-[#00d4ff]/30 text-white shadow-2xl p-4 z-50">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-700/80">
-                    <span className="font-semibold text-xs text-slate-200">Notifications</span>
-                    <span className="text-[10px] bg-[#00d4ff]/20 text-[#00d4ff] px-2 py-0.5 rounded-full font-mono">3 New</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs text-slate-200">Notifications</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        unreadCount > 0 
+                          ? 'bg-[#00d4ff]/20 text-[#00d4ff] border border-[#00d4ff]/40' 
+                          : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {unreadCount} New
+                      </span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-[11px] text-[#00d4ff] hover:underline cursor-pointer transition font-medium"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
                   </div>
-                  <div className="space-y-3 py-3">
-                    <div className="flex gap-2.5 text-xs">
-                      <div className="w-2 h-2 rounded-full bg-[#00d4ff] mt-1.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-slate-200">OmniHealth AI submitted Batch 8 Pitch</p>
-                        <span className="text-[10px] text-slate-400">12 minutes ago</span>
+
+                  <div className="max-h-80 overflow-y-auto space-y-2 py-2 pr-1">
+                    {isLoadingNotifications && notifications.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-6">Loading notifications...</p>
+                    ) : notifications.length === 0 ? (
+                      <div className="text-center py-6">
+                        <Bell className="w-6 h-6 text-slate-600 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400">No notifications yet</p>
+                        <p className="text-[10px] text-slate-500 mt-1">Forwarded applications from Super Admin will appear here.</p>
                       </div>
-                    </div>
-                    <div className="flex gap-2.5 text-xs">
-                      <div className="w-2 h-2 rounded-full bg-[#0066ff] mt-1.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-slate-200">Dr. Tariq confirmed 3 mentor slots</p>
-                        <span className="text-[10px] text-slate-400">1 hour ago</span>
-                      </div>
-                    </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className={`flex gap-3 text-xs p-2.5 rounded-xl transition cursor-pointer border text-left ${
+                            !n.is_read
+                              ? 'bg-blue-950/40 border-[#00d4ff]/30 hover:bg-blue-900/50'
+                              : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/60 opacity-80'
+                          }`}
+                        >
+                          <div className="mt-1 flex-shrink-0">
+                            {!n.is_read ? (
+                              <div className="w-2 h-2 rounded-full bg-[#00d4ff] shadow-sm shadow-[#00d4ff]" />
+                            ) : (
+                              <div className="w-2 h-2 rounded-full bg-slate-600" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className={`font-semibold truncate ${!n.is_read ? 'text-white' : 'text-slate-300'}`}>
+                                {n.title}
+                              </p>
+                              <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2 flex-shrink-0">
+                                {formatTimeAgo(n.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 leading-relaxed">
+                              {n.message}
+                            </p>
+                            {n.notification_type === 'application_forwarded' && (
+                              <div className="mt-2 flex items-center justify-between">
+                                <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                  Forwarded Startup
+                                </span>
+                                <span className="text-[10px] text-[#00d4ff] flex items-center gap-0.5 font-medium hover:underline">
+                                  Review Application <ChevronRight className="w-3 h-3" />
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
