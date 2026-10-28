@@ -134,7 +134,7 @@ async function runTests() {
   const { createClient } = await import('@supabase/supabase-js');
   const s = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://knucyiahztcpqgsftiyc.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtudWN5aWFoenRjcHFnc2Z0aXljIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4OTUyMDY5MiwiZXhwIjoyMTA1MDk2NjkyfQ.JLOqBGkxBJM7GTfEpd8Euuhv6GGWPX3Xg3HhWJU2G8k'
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   );
   await s.from('applications').delete().eq('id', appId);
   console.log('13. Cleaned up test record from Supabase: PASS');
