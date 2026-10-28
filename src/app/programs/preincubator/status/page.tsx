@@ -23,6 +23,7 @@ import {
   Building2,
   MessageSquare,
   Send,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { supabase } from '@/backend/lib/supabase';
@@ -40,6 +41,10 @@ interface ApplicationData {
   form_data?: any;
   organization?: any;
   organization_id?: string;
+  admission_status?: string;
+  incubator_response_status?: string;
+  super_admin_status?: string;
+  incubator_name_text?: string;
 }
 
 function StatusContent() {
@@ -61,6 +66,15 @@ function StatusContent() {
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [showReplyForm, setShowReplyForm] = useState(false);
+
+  // Notify Incubator Cooldown State
+  const [notifyCooldown, setNotifyCooldown] = useState<number>(0);
+  const [isNotifying, setIsNotifying] = useState(false);
+
+  const isDashboardAssigned = Boolean(
+    application?.admission_status === 'dashboard_assigned' ||
+    application?.form_data?.dashboard_access_granted
+  );
 
   const userRole = (user as any)?.role?.toLowerCase() || (user as any)?.user_metadata?.role?.toLowerCase() || '';
   const emailLower = user?.email?.toLowerCase() || '';
@@ -212,6 +226,52 @@ function StatusContent() {
     }
   };
 
+  useEffect(() => {
+    if (!application?.id) return;
+    const storageKey = `last_notified_incubator_${application.id}`;
+    const lastTimeStr =
+      (typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null) ||
+      application.form_data?.last_incubator_notified_at;
+    if (lastTimeStr) {
+      const elapsed = Date.now() - new Date(lastTimeStr).getTime();
+      const remaining = Math.max(0, Math.ceil((600000 - elapsed) / 1000));
+      setNotifyCooldown(remaining);
+    }
+  }, [application?.id, application?.form_data?.last_incubator_notified_at]);
+
+  useEffect(() => {
+    if (notifyCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setNotifyCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [notifyCooldown]);
+
+  const handleNotifyIncubator = async () => {
+    if (!application?.id || notifyCooldown > 0 || isNotifying) return;
+    setIsNotifying(true);
+    try {
+      const res = await fetch(`/api/v1/applications/${application.id}/notify-incubator`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to notify incubator');
+      }
+      const storageKey = `last_notified_incubator_${application.id}`;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, new Date().toISOString());
+      }
+      setNotifyCooldown(600); // 10 minutes
+      triggerToast(json.message || 'Incubator notified! They will review and grant dashboard access.');
+    } catch (err: any) {
+      triggerToast(err.message || 'Could not notify incubator');
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
   const targetIncubatorName = useMemo(() => {
     return (
       (application as any)?.incubator_name_text ||
@@ -231,14 +291,16 @@ function StatusContent() {
     if (rawStatus === 'admitted' || rawStatus === 'accepted' || incubatorStatus === 'accepted') {
       return {
         key: 'admitted',
-        badgeLabel: 'Status: Accepted',
+        badgeLabel: isDashboardAssigned ? 'Status: Accepted & Active' : 'Status: Accepted (Dashboard Pending)',
         badgeStyle: 'bg-emerald-500/10 text-emerald-800 border-emerald-300/60',
         pingBg: 'bg-emerald-400',
         dotBg: 'bg-emerald-500',
         iconContainerBg: 'bg-emerald-50 text-emerald-600 border border-emerald-200/60',
         iconName: 'check-circle-2',
         title: `Welcome to ${targetIncubatorName}!`,
-        message: `Congratulations! Your application to ${targetIncubatorName} has been reviewed and accepted. Check your dashboard for cohort onboarding details.`,
+        message: isDashboardAssigned
+          ? `Congratulations! Your application to ${targetIncubatorName} has been reviewed and accepted. Check your dashboard for cohort onboarding details.`
+          : `Congratulations! Your application to ${targetIncubatorName} has been accepted. Dashboard access is currently being activated by the incubator. You can notify them below if you need faster activation.`,
       };
     }
 
@@ -804,8 +866,8 @@ function StatusContent() {
 
           {/* PRIMARY ACTIONS & SUPPORT LINK */}
           <div className="space-y-3 pt-2">
-            {/* APPLICANT ONLY: View Dashboard when admitted/accepted */}
-            {!isSuperAdmin && isApplicant && statusInfo.key === 'admitted' && (
+            {/* APPLICANT ONLY: View Dashboard ONLY after incubator assigns dashboard access */}
+            {!isSuperAdmin && isApplicant && statusInfo.key === 'admitted' && isDashboardAssigned && (
               <Link
                 href={
                   application?.organization_id
@@ -823,6 +885,29 @@ function StatusContent() {
                 <span>View Dashboard</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
+            )}
+
+            {/* APPLICANT ONLY: Notify Incubator with Cooldown when dashboard is not yet assigned */}
+            {!isSuperAdmin && isApplicant && !isDashboardAssigned && (
+              <button
+                type="button"
+                onClick={handleNotifyIncubator}
+                disabled={notifyCooldown > 0 || isNotifying}
+                className={`w-full py-4 px-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
+                  notifyCooldown > 0
+                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/30 cursor-pointer'
+                }`}
+              >
+                <Bell className="w-4 h-4" />
+                <span>
+                  {isNotifying
+                    ? 'Notifying Incubator...'
+                    : notifyCooldown > 0
+                    ? `Notified (Retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
+                    : 'Notify Incubator'}
+                </span>
+              </button>
             )}
 
             {/* SUPER ADMIN ONLY: Back to Super Admin Applications console */}

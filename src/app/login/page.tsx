@@ -98,13 +98,18 @@ function LoginForm() {
           (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
         );
 
-        if (acceptedApp) {
+        const hasDashboardAccess = Boolean(
+          acceptedApp &&
+          (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
+        );
+
+        if (hasDashboardAccess && acceptedApp) {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
           router.push(`/dashboard?org=${acceptedApp.organization_id}`);
           return;
         }
 
-        // If no incubator has accepted the application, redirect strictly to the Review page
+        // If no incubator has assigned dashboard access, redirect strictly to the Review page
         router.push('/programs/preincubator/status');
         return;
       } catch (e) {
@@ -309,6 +314,12 @@ function LoginForm() {
                 Or continue with work email
               </span>
             </div>
+
+            {searchParams?.get('expired') === 'true' && !error && (
+              <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl font-medium">
+                Your session has expired. Please sign in again to continue.
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">

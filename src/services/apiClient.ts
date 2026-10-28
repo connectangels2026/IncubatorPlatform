@@ -54,8 +54,23 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: any) => response,
   (error: any) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Handle unauthorized session
+    const status = error.response?.status;
+    const errorMsg = String(error.response?.data?.error || error.message || '').toLowerCase();
+    const isAuthExpired = status === 401 || errorMsg.includes('invalid token') || errorMsg.includes('session expired');
+
+    if (isAuthExpired && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('org_id');
+        localStorage.removeItem('org_founder_name');
+        localStorage.removeItem('org_name');
+        supabase.auth.signOut().catch(() => {});
+      } catch {}
+
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = '/login?expired=true';
+      }
     }
     return Promise.reject(error);
   }

@@ -58,12 +58,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Only admins, super-admins, and incubator staff can update application status
     const role = user?.role?.toLowerCase() || '';
-    const isStaff =
+    let isStaff =
       role === 'admin' ||
       role === 'super-admin' ||
       role === 'super_admin' ||
       role === 'incubator_admin' ||
       role === 'incubator';
+
+    if (!isStaff && user?.email) {
+      const emailLower = user.email.toLowerCase();
+      const orgFilter = user.organization_id && isValidUUID(user.organization_id)
+        ? `founder_email.ilike.${emailLower},id.eq.${user.organization_id}`
+        : `founder_email.ilike.${emailLower}`;
+
+      const { data: matchedOrg } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .or(orgFilter)
+        .maybeSingle();
+
+      if (matchedOrg) {
+        isStaff = true;
+      }
+    }
+
     if (!isStaff) {
       return NextResponse.json({ error: 'Forbidden: Only admins can review or update applications' }, { status: 403 });
     }
@@ -95,12 +113,33 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ...body,
     };
 
+    const isDashboardAction =
+      body.action === 'assign_dashboard' ||
+      body.admission_status === 'dashboard_assigned' ||
+      body.dashboard_access_granted === true;
+
+    if (isDashboardAction) {
+      updatePayload.admission_status = 'dashboard_assigned';
+      const currentFd = currentApp.form_data || {};
+      updatePayload.form_data = {
+        ...currentFd,
+        ...(body.form_data || {}),
+        dashboard_access_granted: true,
+        dashboard_assigned_at: new Date().toISOString(),
+      };
+      if (!updatePayload.status && (currentApp.status === 'accepted' || currentApp.status === 'admitted')) {
+        updatePayload.status = currentApp.status;
+      }
+    }
+
     if (body.feedback) {
       updatePayload.reviewer_comments = body.feedback;
       delete updatePayload.feedback;
     }
     delete updatePayload.notify_applicant;
     delete updatePayload.selected_id;
+    delete updatePayload.action;
+    delete updatePayload.dashboard_access_granted;
 
     const selectedIncId = body.selected_incubator_id || body.selected_id || (newStatus === 'forwarded' ? body.organization_id : null);
 
@@ -286,8 +325,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // Trigger non-duplicate notifications to founder when assigned, accepted, or rejected
-    if (newStatus && updated) {
+    // Trigger non-duplicate notifications to founder when assigned, accepted, or dashboard assigned
+    if ((newStatus || isDashboardAction) && updated) {
       try {
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || updated.applicant_name;
         const incubatorName = updated.incubator_name_text || 'Partner Incubator';
@@ -309,17 +348,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           recipientId = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
         }
 
-        let notifTitle = `Application Status: ${newStatus.toUpperCase()}`;
-        let notifMessage = `Your application for ${startupName} status has been updated to ${newStatus}.`;
+        let notifTitle = `Application Status: ${newStatus ? newStatus.toUpperCase() : 'UPDATED'}`;
+        let notifMessage = `Your application for ${startupName} status has been updated.`;
         let notifType = 'application_decision';
 
-        if (newStatus === 'forwarded') {
+        if (isDashboardAction) {
+          notifTitle = `Dashboard Access Assigned: ${incubatorName}`;
+          notifMessage = `Congratulations! ${incubatorName} has assigned dashboard access for ${startupName}. You can now access your founder cohort dashboard!`;
+          notifType = 'dashboard_assigned';
+        } else if (newStatus === 'forwarded') {
           notifTitle = `Application Assigned to ${incubatorName}`;
           notifMessage = `Your application for ${startupName} has been evaluated by the Super Admin and forwarded to ${incubatorName} for cohort admission review.${updated.super_admin_notes ? ` Notes: "${updated.super_admin_notes}"` : ''}`;
           notifType = 'application_forwarded';
         } else if (newStatus === 'accepted' || newStatus === 'admitted') {
           notifTitle = `Congratulations! Accepted by ${incubatorName}`;
-          notifMessage = `Great news! ${incubatorName} has approved your application for ${startupName}. You can now view your founder cohort dashboard.`;
+          notifMessage = `Great news! ${incubatorName} has approved your application for ${startupName}. Dashboard access will be activated by the incubator shortly.`;
           notifType = 'application_accepted';
         } else if (newStatus === 'rejected') {
           notifTitle = `Application Update: ${incubatorName}`;
