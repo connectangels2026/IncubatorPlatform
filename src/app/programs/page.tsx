@@ -14,13 +14,27 @@ export default function ProgramsPage() {
   const { user } = useAuth();
   const [selectedProgram, setSelectedProgram] = useState<Program>(null);
   const [mounted, setMounted] = useState(false);
+  const [appCount, setAppCount] = useState<number>(0);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const checkCount = async () => {
+      const email = user?.email || (typeof window !== 'undefined' ? localStorage.getItem('last_applicant_email') : '');
+      if (email) {
+        try {
+          const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(email)}`);
+          const data = await res.json();
+          const count = data?.applications?.length || (data?.data ? 1 : 0);
+          setAppCount(count);
+        } catch {}
+      }
+    };
+    checkCount();
+  }, [user]);
 
   const handleApplyPreIncubator = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (appCount >= 5) return;
     if (user) {
       router.push('/programs/preincubator');
     } else {
@@ -168,12 +182,21 @@ export default function ProgramsPage() {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={handleApplyPreIncubator}
-                        className="w-full bg-blue-500 hover:bg-blue-600 group-hover:scale-105 transition-transform"
-                      >
-                        Start Application →
-                      </Button>
+                      {appCount >= 5 ? (
+                        <Button
+                          disabled
+                          className="w-full bg-slate-300 text-slate-600 font-extrabold cursor-not-allowed opacity-85"
+                        >
+                          Application Limit Reached (5/5)
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleApplyPreIncubator}
+                          className="w-full bg-blue-500 hover:bg-blue-600 group-hover:scale-105 transition-transform font-bold"
+                        >
+                          {appCount > 0 ? `Apply to Another Incubator (${appCount}/5)` : 'Start Application →'}
+                        </Button>
+                      )}
                       </div>
                     </div>
                   </div>

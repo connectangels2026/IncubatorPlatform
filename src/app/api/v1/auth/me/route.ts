@@ -39,6 +39,16 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
           orgData = org2;
         }
+
+        // 4. Fallback to org matched by founder_email
+        if (!orgData && user.email) {
+          const { data: orgByEmail } = await supabaseAdmin
+            .from('organizations')
+            .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
+            .ilike('founder_email', user.email.trim())
+            .maybeSingle();
+          if (orgByEmail) orgData = orgByEmail;
+        }
       }
     }
 

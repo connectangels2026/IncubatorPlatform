@@ -26,7 +26,7 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
 const preferenceCache = new Map<string, NotificationPreferences>();
 
 export interface CreateNotificationParams {
-  organization_id: string;
+  organization_id?: string | null;
   recipient_id: string;
   recipient_name?: string;
   recipient_email?: string;
@@ -171,8 +171,14 @@ export class NotificationService {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // 4. Insert notification into database
+    let effectiveOrgId = organization_id;
+    if (!effectiveOrgId || !isValidUUID(effectiveOrgId)) {
+      const { data: defaultOrg } = await supabaseAdmin.from('organizations').select('id').limit(1).maybeSingle();
+      effectiveOrgId = defaultOrg?.id || '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
+    }
+
     const payload: any = {
-      organization_id,
+      organization_id: effectiveOrgId,
       recipient_id,
       title,
       message,

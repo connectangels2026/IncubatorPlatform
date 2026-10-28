@@ -12,8 +12,8 @@ const resolveOrg = (id: string | null) => (id && isValidUUID(id) ? id : DEFAULT_
 export async function GET(req: NextRequest) {
   try {
     const { user, errorResponse: authError } = await verifyAuth(req);
-    if (authError) return authError;
     const rawOrgId = req.headers.get('x-org-id') || req.nextUrl.searchParams.get('org_id');
+    if (authError && !rawOrgId) return authError;
     const searchParams = req.nextUrl.searchParams;
     const status = searchParams.get('status');
     const applicationType = searchParams.get('application_type');
@@ -30,16 +30,15 @@ export async function GET(req: NextRequest) {
 
     const role = user?.role?.toLowerCase() || '';
     const userEmail = user?.email?.toLowerCase();
+    const effectiveOrgId = (rawOrgId && isValidUUID(rawOrgId)) ? rawOrgId : (user?.organization_id && isValidUUID(user.organization_id) ? user.organization_id : null);
 
     if (role === 'super-admin' || rawOrgId === 'all') {
       // Super admin or explicit 'all' shows all applications
-    } else if (rawOrgId && isValidUUID(rawOrgId)) {
-      if (userEmail) {
-        query = query.or(`organization_id.eq.${rawOrgId},applicant_email.eq.${userEmail}`);
-      } else {
-        query = query.eq('organization_id', rawOrgId);
-      }
+    } else if (effectiveOrgId) {
+      // Incubator view: show applications assigned or accepted by this incubator
+      query = query.or(`organization_id.eq.${effectiveOrgId},form_data->>selected_incubator_id.eq.${effectiveOrgId}`);
     } else if (userEmail) {
+      // Founder view: show applications submitted by this applicant email
       query = query.eq('applicant_email', userEmail);
     }
 
@@ -78,43 +77,147 @@ export async function POST(req: NextRequest) {
 
     // Try optional auth or fallback to guest applicant
     const { user } = await verifyAuth(req);
-    const { orgId: headerOrgId } = requireOrg(req);
+    const cleanEmail = body.applicant_email.toLowerCase().trim();
+    const targetIncubatorName = (body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || '').trim();
 
-    // Resolve target incubator organization
-    let targetOrgId = body.organization_id || headerOrgId;
-    let organizationRecord: any = null;
+    // 1. Enforce 5-application limit on backend
+    const { data: existingApps, error: countErr } = await supabaseAdmin
+      .from('applications')
+      .select('id, incubator_name_text')
+      .ilike('applicant_email', cleanEmail)
+      .is('deleted_at', null);
 
-    if (body.incubator_slug) {
-      const { data: orgBySlug } = await supabaseAdmin
-        .from('organizations')
-        .select('id, name, email, founder_email')
-        .eq('slug', body.incubator_slug)
-        .maybeSingle();
-      if (orgBySlug) {
-        targetOrgId = orgBySlug.id;
-        organizationRecord = orgBySlug;
+    if (countErr) throw countErr;
+
+    if (existingApps && existingApps.length >= 5) {
+      return NextResponse.json(
+        { error: 'Application Limit Reached (5/5). You cannot submit applications to more than 5 incubators.' },
+        { status: 400 }
+      );
+    }
+
+    // 2. Prevent duplicate applications to the same incubator
+    if (targetIncubatorName && existingApps) {
+      const isDuplicate = existingApps.some(
+        (a) => (a.incubator_name_text || '').trim().toLowerCase() === targetIncubatorName.toLowerCase()
+      );
+      if (isDuplicate) {
+        return NextResponse.json(
+          { error: `You have already applied to "${targetIncubatorName}". Duplicate applications to the same incubator are prevented.` },
+          { status: 400 }
+        );
       }
     }
 
-    if (!targetOrgId || !isValidUUID(targetOrgId)) {
-      targetOrgId = null;
+    // Resolve user ID for created_by (must exist in public.users to satisfy foreign key)
+    let createdByUserId: string | null = null;
+    const targetUserId = user?.id;
+
+    if (targetUserId) {
+      // 1. Check if auth user ID exists in public.users
+      const { data: userById } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', targetUserId)
+        .maybeSingle();
+
+      if (userById?.id) {
+        createdByUserId = userById.id;
+      }
     }
 
-    const targetIncubatorName = body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || null;
+    if (!createdByUserId && cleanEmail) {
+      // 2. Check if user with this email exists in public.users
+      const { data: userByEmail } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
 
+      if (userByEmail?.id) {
+        createdByUserId = userByEmail.id;
+      }
+    }
+
+    if (!createdByUserId && targetUserId && cleanEmail) {
+      // 3. Auto-provision record into public.users so foreign key constraint is satisfied
+      try {
+        const { data: newUser } = await supabaseAdmin
+          .from('users')
+          .insert({
+            id: targetUserId,
+            email: cleanEmail,
+            full_name: body.applicant_name,
+            role: 'founder',
+          })
+          .select('id')
+          .maybeSingle();
+
+        if (newUser?.id) {
+          createdByUserId = newUser.id;
+        }
+      } catch (userProvisionErr) {
+        console.warn('Auto-provisioning public.users record skipped/failed:', userProvisionErr);
+      }
+    }
+
+    // 4. Final safety guard: If the resolved ID does not exist in public.users, set null to prevent foreign key violation
+    if (createdByUserId) {
+      const { data: verifyUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', createdByUserId)
+        .maybeSingle();
+
+      if (!verifyUser?.id) {
+        createdByUserId = null;
+      }
+    }
+
+    // Link to existing startup if founder already has one
+    let startupId: string | null = null;
+    try {
+      const { data: existingStartup } = await supabaseAdmin
+        .from('startups')
+        .select('id')
+        .ilike('founder_email', cleanEmail)
+        .maybeSingle();
+
+      if (existingStartup?.id) {
+        startupId = existingStartup.id;
+      }
+    } catch (startupErr) {
+      console.warn('Startup lookup error:', startupErr);
+    }
+
+    // Resolve uploaded documents & prototype links
+    const uploadedDocs: any[] = Array.isArray(body.uploaded_documents) ? [...body.uploaded_documents] : [];
+    if (body.form_data?.prototypeLink && typeof body.form_data.prototypeLink === 'string') {
+      uploadedDocs.push({
+        name: 'Prototype',
+        url: body.form_data.prototypeLink,
+        type: 'prototype',
+      });
+    }
+
+    // 3. Organization ID must stay NULL until an incubator accepts the application
     const payload: any = {
-      organization_id: targetOrgId,
+      organization_id: null,
+      startup_id: startupId,
       applicant_name: body.applicant_name,
-      applicant_email: body.applicant_email.toLowerCase().trim(),
+      applicant_email: cleanEmail,
       applicant_phone: body.applicant_phone || null,
-      application_type: body.application_type || 'Incubator',
+      application_type: body.application_type || 'pre-incubator',
       cohort_name: body.cohort_name || 'Cohort 2026',
       form_data: body.form_data || {},
       status: 'submitted',
+      submitted_at: new Date().toISOString(),
+      created_by: createdByUserId,
       score: null,
-      uploaded_documents: [],
+      uploaded_documents: uploadedDocs,
       mou_signed: false,
-      incubator_name_text: targetIncubatorName,
+      incubator_name_text: targetIncubatorName || null,
+      super_admin_status: 'pending',
     };
 
     const { data, error } = await supabaseAdmin
@@ -125,14 +228,14 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    const startupName = body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || body.applicant_name;
-    const incubatorName = organizationRecord?.name || 'Incubator';
+    const startupName = body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || `${body.applicant_name}'s Startup`;
+    const incubatorName = targetIncubatorName || 'Incubator';
 
     // 1. Send confirmation email to Startup Applicant
     try {
       const recipientId = user?.id && isValidUUID(user.id) ? user.id : 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
       await NotificationService.createNotification({
-        organization_id: targetOrgId,
+        organization_id: null,
         recipient_id: recipientId,
         recipient_name: body.applicant_name,
         recipient_email: body.applicant_email,
@@ -154,14 +257,20 @@ export async function POST(req: NextRequest) {
       console.warn('Failed to dispatch applicant confirmation notification:', applicantNotifErr);
     }
 
-    // 2. Send alert email to Incubator Admin
+    // 2. Alert Incubator Admin if matching organization exists
     try {
-      const adminEmail = organizationRecord?.founder_email || organizationRecord?.email;
+      const { data: orgFound } = await supabaseAdmin
+        .from('organizations')
+        .select('name, email, founder_email')
+        .ilike('name', `%${targetIncubatorName}%`)
+        .maybeSingle();
+
+      const adminEmail = orgFound?.founder_email || orgFound?.email;
       if (adminEmail) {
         await NotificationService.createNotification({
-          organization_id: targetOrgId,
+          organization_id: null,
           recipient_id: 'dfdb0d1a-24a3-4062-98aa-0d723fc23725',
-          recipient_name: organizationRecord.name || 'Incubator Admin',
+          recipient_name: orgFound?.name || 'Incubator Admin',
           recipient_email: adminEmail,
           title: `New Application Received: ${startupName}`,
           message: `A new application has been submitted by ${body.applicant_name} (${body.applicant_email}) for the ${payload.application_type} program.`,

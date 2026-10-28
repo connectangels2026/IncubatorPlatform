@@ -41,7 +41,7 @@ function LoginForm() {
     const emailToCheck = userEmail || user?.email;
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
-      // Super Admin account routing
+      // 1. Super Admin account routing
       if (
         emailLower === 'shadmannc0516@gmail.com' ||
         role === 'super-admin'
@@ -50,37 +50,72 @@ function LoginForm() {
         return;
       }
 
-      // Incubator admin routing
-      if (role === 'admin') {
-        router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+      // 2. Incubator admin routing (connect to incubator dashboard, separate from super-admin)
+      const isIncubatorRole =
+        role === 'admin' ||
+        role === 'incubator_admin' ||
+        role === 'incubator';
+
+      let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+      if (isIncubatorRole) {
+        if (!effectiveOrgId) {
+          try {
+            const meRes = await fetch('/api/v1/auth/me');
+            const meData = await meRes.json();
+            if (meData?.organization?.id) {
+              effectiveOrgId = meData.organization.id;
+              if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
+            }
+          } catch (e) {
+            console.warn('Could not fetch org for incubator routing:', e);
+          }
+        }
+        router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
         return;
       }
 
-      // Check if user has an active application
+      // 3. Check if user owns an incubator organization in database
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        const meData = await meRes.json();
+        if (meData?.organization?.id) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
+          router.push(`/dashboard?org=${meData.organization.id}`);
+          return;
+        }
+      } catch (e) {
+        // Fallback to startup application checks
+      }
+
+      // Startup routing: check if any incubator has accepted an application
       try {
         const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`);
         const data = await res.json();
-        if (data?.success && data?.data) {
-          const app = data.data;
-          const status = (app.status || '').toLowerCase();
-          // If not admitted yet, route to status tracking page
-          if (status === 'submitted' || status === 'under_review' || status === 'rejected') {
-            router.push(`/programs/preincubator/status?id=${app.id}`);
-            return;
-          }
+        const apps: any[] = data?.applications || (data?.data ? [data.data] : []);
+
+        const acceptedApp = apps.find(
+          (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
+        );
+
+        if (acceptedApp) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
+          router.push(`/dashboard?org=${acceptedApp.organization_id}`);
+          return;
         }
+
+        // If no incubator has accepted the application, redirect strictly to the Review page
+        router.push('/programs/preincubator/status');
+        return;
       } catch (e) {
         console.warn('Application status check error on login:', e);
+        router.push('/programs/preincubator/status');
+        return;
       }
     }
 
-    if (orgId) {
-      router.push(`/dashboard?org=${orgId}`);
-    } else if (role === 'startup') {
-      router.push('/startup/application');
-    } else {
-      router.push('/programs/preincubator/status');
-    }
+    // Default fallback
+    router.push('/programs/preincubator/status');
   };
 
   // Redirect if already logged in

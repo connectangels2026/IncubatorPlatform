@@ -50,15 +50,43 @@ export async function POST(req: Request) {
     const isSuperAdmin = userData.role === 'super-admin' || email.toLowerCase() === 'shadmannc0516@gmail.com';
     let orgData: any = null;
 
-    if (!isSuperAdmin && userData.organization_id) {
-      // Get organization details
-      const { data: oData } = await supabaseAdmin
-        .from('organizations')
-        .select('id, slug, name, founder_name, founder_email, is_verified')
-        .eq('id', userData.organization_id)
-        .single();
+    if (!isSuperAdmin) {
+      if (userData.organization_id) {
+        const { data: oData } = await supabaseAdmin
+          .from('organizations')
+          .select('id, slug, name, founder_name, founder_email, is_verified')
+          .eq('id', userData.organization_id)
+          .maybeSingle();
 
-      orgData = oData;
+        orgData = oData;
+      }
+
+      // Fallback 1: lookup by auth_user_id
+      if (!orgData && data.user?.id) {
+        const { data: oDataByAuth } = await supabaseAdmin
+          .from('organizations')
+          .select('id, slug, name, founder_name, founder_email, is_verified')
+          .eq('auth_user_id', data.user.id)
+          .maybeSingle();
+
+        if (oDataByAuth) orgData = oDataByAuth;
+      }
+
+      // Fallback 2: lookup by founder_email
+      if (!orgData && email) {
+        const { data: oDataByEmail } = await supabaseAdmin
+          .from('organizations')
+          .select('id, slug, name, founder_name, founder_email, is_verified')
+          .ilike('founder_email', email.trim())
+          .maybeSingle();
+
+        if (oDataByEmail) orgData = oDataByEmail;
+      }
+
+      // Sync organization_id back to users table if missing
+      if (orgData?.id && !userData.organization_id) {
+        await supabaseAdmin.from('users').update({ organization_id: orgData.id }).eq('id', userData.id);
+      }
     }
 
     // Check if email is verified (using users table, not organizations table)

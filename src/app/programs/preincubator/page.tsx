@@ -18,7 +18,11 @@ import {
   Sparkles,
   Link as LinkIcon,
   RotateCcw,
+  Building2,
+  Layers,
+  Clock,
 } from 'lucide-react';
+import MyApplicationsModal from '@/frontend/components/applications/MyApplicationsModal';
 
 interface FormData {
   fullName: string;
@@ -91,11 +95,13 @@ interface FormData {
   activelyAvoiding: string;
 
   incubatorName: string;
+  selectedIncubators: Array<{ id: string; name: string; slug?: string; description?: string; logo_url?: string }>;
   declarationAgreed: boolean;
 }
 
 const INITIAL_FORM_DATA: FormData = {
   incubatorName: '',
+  selectedIncubators: [],
   fullName: '',
   email: '',
   phone: '',
@@ -220,22 +226,43 @@ export default function PreIncubatorApplicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [applicationId, setApplicationId] = useState<string | null>(null);
-  const [incubatorsList, setIncubatorsList] = useState<Array<{ id: string; name: string }>>([
-    { id: '1', name: 'Kalsekar Incubation' },
-    { id: '2', name: 'NurtureCave Foundation' },
-    { id: '3', name: 'Another Incubator' },
-  ]);
+  const [myAppsModalOpen, setMyAppsModalOpen] = useState(false);
+  const [incubatorsList, setIncubatorsList] = useState<Array<{ id: string; name: string; slug?: string; description?: string; logo_url?: string }>>([]);
 
   useEffect(() => {
-    fetch('/api/v1/organizations')
+    fetch('/api/v1/incubators')
       .then((r) => r.json())
       .then((d) => {
         if (d?.data && Array.isArray(d.data) && d.data.length > 0) {
-          setIncubatorsList(d.data.map((o: any) => ({ id: o.id, name: o.name })));
+          setIncubatorsList(d.data);
         }
       })
       .catch(() => { });
   }, []);
+
+  const toggleIncubatorSelection = (incubator: { id: string; name: string; slug?: string; description?: string; logo_url?: string }) => {
+    setFormData((prev) => {
+      const exists = prev.selectedIncubators.some((i) => i.id === incubator.id);
+      if (exists) {
+        const nextList = prev.selectedIncubators.filter((i) => i.id !== incubator.id);
+        return {
+          ...prev,
+          selectedIncubators: nextList,
+          incubatorName: nextList.map((i) => i.name).join(', '),
+        };
+      }
+      if (prev.selectedIncubators.length >= 5) {
+        showToast('You can select a maximum of 5 incubators.');
+        return prev;
+      }
+      const nextList = [...prev.selectedIncubators, incubator];
+      return {
+        ...prev,
+        selectedIncubators: nextList,
+        incubatorName: nextList.map((i) => i.name).join(', '),
+      };
+    });
+  };
 
   // Check auth session safely with Supabase to prevent premature redirect bounce
   useEffect(() => {
@@ -293,6 +320,7 @@ export default function PreIncubatorApplicationPage() {
     const d = formData;
 
     if (step === 1) {
+      if (!d.incubatorName.trim()) errors.push('Target Incubator Name');
       if (!d.fullName.trim()) errors.push('Full Name');
       if (!d.email.trim()) errors.push('Email');
       if (!d.phone.trim()) errors.push('Phone');
@@ -351,16 +379,23 @@ export default function PreIncubatorApplicationPage() {
     setIsSubmitting(true);
 
     try {
+      const targetName = formData.incubatorName.trim();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const res = await fetch('/api/v1/applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
+          incubator_name: targetName,
+          incubator_name_text: targetName,
           application_type: 'pre-incubator',
           applicant_name: formData.fullName,
           applicant_email: formData.email,
           applicant_phone: formData.phone,
-          incubator_name: formData.incubatorName,
-          incubator_name_text: formData.incubatorName,
           startup_name: formData.oneSentencePitch.split(' ').slice(0, 3).join(' ') || `${formData.fullName}'s Startup`,
           pitch: formData.oneSentencePitch,
           industry: formData.industryVertical || 'AI & DeepTech',
@@ -370,20 +405,21 @@ export default function PreIncubatorApplicationPage() {
       });
 
       const json = await res.json();
-      if (res.ok && json.success) {
-        setSubmitted(true);
-        setApplicationId(json.data?.id || `APP-${Date.now().toString().slice(-6)}`);
-        showToast('Application submitted successfully!');
-      } else {
-        // Still present success for user flow if offline mock
-        setSubmitted(true);
-        setApplicationId(`APP-${Date.now().toString().slice(-6)}`);
-        showToast('Application submitted for review!');
+      if (!res.ok) {
+        showToast(json.error || 'Failed to submit application.');
+        return;
       }
-    } catch {
+
+      const effectiveAppId = json?.data?.id || `APP-${Date.now().toString().slice(-6)}`;
       setSubmitted(true);
-      setApplicationId(`APP-${Date.now().toString().slice(-6)}`);
-      showToast('Application recorded!');
+      setApplicationId(effectiveAppId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('last_application_id', effectiveAppId);
+        localStorage.setItem('last_applicant_email', formData.email);
+      }
+      showToast(`Application submitted successfully to ${targetName}!`);
+    } catch {
+      showToast('Network error submitting application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -571,22 +607,27 @@ export default function PreIncubatorApplicationPage() {
                   {/* SECTION 1: FOUNDER INFORMATION */}
                   {currentStep === 1 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                      {/* Target Incubator Input */}
-                      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/70 to-cyan-50/50 border border-blue-200/80">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-2 flex items-center justify-between">
+                      {/* Target Incubator Name Input */}
+                      <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-50/80 via-slate-50 to-cyan-50/60 border border-blue-200/80 space-y-2">
+                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center justify-between">
                           <span className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                            Target/Prefered Incubator Name *
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+                            Target Incubator Name *
                           </span>
-
                         </label>
-                        <input
-                          type="text"
-                          value={formData.incubatorName}
-                          onChange={(e) => setFormData({ ...formData, incubatorName: e.target.value })}
-                          placeholder="e.g. Arba360 Incubation"
-                          className="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
-                        />
+                        <p className="text-xs text-slate-500 font-medium">
+                          Enter the name of the incubator you are applying to. You can apply to up to 5 incubators independently.
+                        </p>
+                        <div className="relative mt-2">
+                          <Building2 className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={formData.incubatorName}
+                            onChange={(e) => setFormData({ ...formData, incubatorName: e.target.value })}
+                            placeholder="e.g. Arba360 Innovation Hub, NurtureCave, Kalsekar..."
+                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1635,14 +1676,49 @@ export default function PreIncubatorApplicationPage() {
                   {/* SECTION 14: FINAL REVIEW & SUBMISSION */}
                   {currentStep === 14 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="bg-gradient-to-r from-[#1A2151] to-blue-600 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                      <div className="bg-gradient-to-r from-[#1A2151] to-blue-600 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <Sparkles className="w-32 h-32 text-white/5 absolute -right-6 -bottom-6 pointer-events-none" />
-                        <h2 className="text-xl font-bold mb-1">
-                          Final Review & Founder Declaration
-                        </h2>
-                        <p className="text-xs text-blue-100">
-                          Please review your key application summary below before submitting.
-                        </p>
+                        <div>
+                          <h2 className="text-xl font-bold mb-1">
+                            Final Review & Founder Declaration
+                          </h2>
+                          <p className="text-xs text-blue-100">
+                            Please review your key application summary below before submitting.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMyAppsModalOpen(true)}
+                          className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-white font-extrabold text-xs flex items-center gap-2 shadow-sm transition shrink-0 cursor-pointer"
+                        >
+                          <Building2 className="w-4 h-4 text-cyan-400" />
+                          <span>My Applications</span>
+                        </button>
+                      </div>
+
+                      {/* Target Incubator Review Card */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-cyan-50/60 border border-blue-200">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-extrabold uppercase text-blue-800 tracking-wider flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                            Target Incubator
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => goToStep(1)}
+                            className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#1A2151] to-blue-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">
+                            {(formData.incubatorName || 'A').trim().charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-extrabold text-[#1A2151]">
+                            {formData.incubatorName || 'Not specified'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Summary Cards Grid */}
@@ -1829,6 +1905,13 @@ export default function PreIncubatorApplicationPage() {
           </div>
         </div>
       </footer>
+
+      {/* MY APPLICATIONS MODAL */}
+      <MyApplicationsModal
+        isOpen={myAppsModalOpen}
+        onClose={() => setMyAppsModalOpen(false)}
+        applicantEmail={formData.email || user?.email}
+      />
     </div>
   );
 }

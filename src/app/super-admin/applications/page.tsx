@@ -80,6 +80,7 @@ export default function SuperAdminApplicationsPage() {
   const [incubators, setIncubators] = useState<any[]>([]);
   const [incubatorSearch, setIncubatorSearch] = useState('');
   const [selectedIncubatorId, setSelectedIncubatorId] = useState<string | null>(null);
+  const [superAdminNotes, setSuperAdminNotes] = useState('');
   const [isLoadingIncubators, setIsLoadingIncubators] = useState(false);
 
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'emerald' | 'rose' | 'cyan' }>({
@@ -117,7 +118,8 @@ export default function SuperAdminApplicationsPage() {
     const traction = `${users} users • ${paying} paying`;
 
     let displayStatus = 'Pending Decision';
-    if (r.status === 'admitted' || r.super_admin_status === 'approved') displayStatus = 'Admitted';
+    if (r.status === 'admitted' || r.super_admin_status === 'approved' || r.status === 'accepted') displayStatus = 'Admitted';
+    else if (r.status === 'forwarded') displayStatus = 'Forwarded';
     else if (r.status === 'rejected' || r.super_admin_status === 'rejected') displayStatus = 'Rejected';
 
     const submittedTimestamp = r.created_at
@@ -277,6 +279,7 @@ export default function SuperAdminApplicationsPage() {
     setTargetApp(app);
     setSelectedIncubatorId(null);
     setIncubatorSearch('');
+    setSuperAdminNotes('');
     setAssignModalOpen(true);
     if (incubators.length === 0) {
       setIsLoadingIncubators(true);
@@ -311,22 +314,32 @@ export default function SuperAdminApplicationsPage() {
       const headers: Record<string, string> = { 'x-org-id': 'all' };
       if (token) headers['Authorization'] = token;
 
+      const targetInc = incubators.find((i) => i.id === selectedIncubatorId);
+
       await apiClient.put(
         `/applications/${targetApp.id}`,
         {
-          organization_id: selectedIncubatorId,
-          status: 'under_review',
-          reviewer_comments: 'Assigned to incubator by Super Admin for evaluation',
+          selected_incubator_id: selectedIncubatorId,
+          selected_id: selectedIncubatorId,
+          status: 'forwarded',
+          super_admin_status: 'forwarded',
+          super_admin_notes: superAdminNotes?.trim() || null,
+          super_admin_reviewed_at: new Date().toISOString(),
+          incubator_name_text: targetInc?.name || null,
+          reviewer_comments: superAdminNotes?.trim() || `Forwarded to ${targetInc?.name || 'Incubator'} by Super Admin for evaluation`,
         },
         { headers }
       );
 
-      const targetInc = incubators.find((i) => i.id === selectedIncubatorId);
       setApplications((prev) =>
-        prev.map((a) => (a.id === targetApp.id ? { ...a, status: 'Under Review' } : a))
+        prev.map((a) =>
+          a.id === targetApp.id
+            ? { ...a, status: 'Forwarded', incubatorName: targetInc?.name || a.incubatorName }
+            : a
+        )
       );
       setAssignModalOpen(false);
-      triggerToast(`Forwarded ${targetApp.startupName} to ${targetInc?.name || 'Incubator'} for evaluation!`, 'emerald');
+      triggerToast(`Assigned ${targetApp.startupName} to ${targetInc?.name || 'Incubator'}!`, 'emerald');
     } catch (err: any) {
       triggerToast(err?.response?.data?.error || 'Failed to forward application', 'rose');
     } finally {
@@ -395,6 +408,8 @@ export default function SuperAdminApplicationsPage() {
     switch (status) {
       case 'Pending Decision':
         return 'bg-amber-500/10 text-amber-900 border-amber-300/80';
+      case 'Forwarded':
+        return 'bg-blue-500/10 text-blue-900 border-blue-300/80';
       case 'Admitted':
         return 'bg-emerald-500/10 text-emerald-900 border-emerald-300/80';
       case 'Rejected':
@@ -694,6 +709,9 @@ export default function SuperAdminApplicationsPage() {
                           >
                             {app.status === 'Pending Decision' && (
                               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            )}
+                            {app.status === 'Forwarded' && (
+                              <Building2 className="w-3 h-3 text-blue-600" />
                             )}
                             {app.status === 'Admitted' && (
                               <Check className="w-3 h-3 text-emerald-600" />
@@ -1035,6 +1053,20 @@ export default function SuperAdminApplicationsPage() {
                   );
                 })
               )}
+            </div>
+
+            {/* Super Admin Notes for Incubator */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                Super Admin Notes / Evaluation Instructions
+              </label>
+              <textarea
+                value={superAdminNotes}
+                onChange={(e) => setSuperAdminNotes(e.target.value)}
+                rows={3}
+                placeholder="Write specific guidelines, referral context, or focal evaluation areas for the selected incubator review committee..."
+                className="w-full p-3 rounded-xl border border-slate-200 text-xs font-medium bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600 focus:border-transparent transition resize-none"
+              />
             </div>
 
             <div className="p-3 bg-blue-50/60 border border-blue-200/80 rounded-xl text-[11px] text-blue-900 font-medium leading-relaxed">
