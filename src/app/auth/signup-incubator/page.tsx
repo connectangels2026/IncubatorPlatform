@@ -115,6 +115,19 @@ function SignupIncubatorContent() {
     if (!authLoading && !user) {
       router.push('/login');
     } else if (user) {
+      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+      if (!role) {
+        fetch('/api/v1/auth/me')
+          .then((r) => r.json())
+          .then((d) => {
+            if (!d?.user?.role) {
+              router.replace('/auth/choose-role');
+            }
+          })
+          .catch(() => {
+            router.replace('/auth/choose-role');
+          });
+      }
       setFormData(prev => ({
         ...prev,
         founder_email: prev.founder_email || user.email || '',

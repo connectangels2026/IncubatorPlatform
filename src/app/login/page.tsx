@@ -39,6 +39,21 @@ function LoginForm() {
 
     const role = roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role;
     const emailToCheck = userEmail || user?.email;
+
+    // If user has not chosen a role yet, strictly route to /auth/choose-role
+    if (!role && emailToCheck?.toLowerCase() !== 'shadmannc0516@gmail.com') {
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        const meData = await meRes.json();
+        if (!meData?.user?.role) {
+          router.push('/auth/choose-role');
+          return;
+        }
+      } catch (e) {
+        router.push('/auth/choose-role');
+        return;
+      }
+    }
     if (emailToCheck) {
       const emailLower = emailToCheck.toLowerCase();
       // 1. Super Admin account routing

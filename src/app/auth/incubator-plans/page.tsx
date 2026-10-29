@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { supabase } from '@/backend/lib/supabase';
+import { useAuth } from '@/frontend/context/AuthContext';
 import {
   Check,
   Rocket,
@@ -123,11 +125,73 @@ const faqs = [
 
 export default function IncubatorPlansPage() {
   const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [isRoleVerified, setIsRoleVerified] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifyRole = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          if (!authLoading && !user) {
+            router.replace('/login?redirect=/auth/incubator-plans');
+          }
+          return;
+        }
+
+        // Check if role is selected
+        let role = session.user.user_metadata?.role || (user as any)?.role || null;
+
+        if (!role) {
+          try {
+            const res = await fetch('/api/v1/auth/me', {
+              headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+            });
+            if (res.ok) {
+              const data = await res.json();
+              role = data?.user?.role || null;
+            }
+          } catch (e) {
+            console.warn('Error checking role:', e);
+          }
+        }
+
+        // If user has not selected a role yet, DO NOT show pricing page!
+        if (!role) {
+          router.replace('/auth/choose-role');
+          return;
+        }
+
+        if (isMounted) {
+          setIsRoleVerified(true);
+        }
+      } catch (err) {
+        router.replace('/auth/choose-role');
+      }
+    };
+
+    verifyRole();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, authLoading, router]);
 
   const handleSelectPlan = (tier: 'free' | 'pro' | 'enterprise') => {
     router.push(`/auth/signup-incubator?tier=${tier}&billing=${billingCycle}`);
   };
+
+  if (!isRoleVerified) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-[#f8fafc] text-slate-800 font-sans overflow-hidden py-10 px-4 sm:px-6 lg:px-8">
@@ -149,13 +213,20 @@ export default function IncubatorPlansPage() {
         {/* Navigation Bar */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200/60">
           <Logo size="lg" href="/" />
-          <Link
-            href="/auth/choose-role"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#1A2151] px-3.5 py-2 rounded-xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50 transition"
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#1A2151] px-3.5 py-2 rounded-xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Role Selection</span>
-          </Link>
+            <span>Back</span>
+          </button>
         </div>
 
         {/* Header Section */}

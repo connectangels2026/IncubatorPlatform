@@ -58,7 +58,8 @@ export async function GET(req: NextRequest) {
         user: {
           ...user,
           role: userProfile?.role ?? null,
-          full_name: userProfile?.full_name || orgData?.founder_name,
+          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
+          user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
           founder_name: orgData?.founder_name || userProfile?.full_name,
         },
         organization: orgData,

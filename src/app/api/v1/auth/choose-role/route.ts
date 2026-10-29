@@ -158,6 +158,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Also synchronize user_metadata in Supabase Auth
+    if (userId) {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: { role },
+      }).catch((metaErr) => {
+        console.warn('Could not sync user_metadata role:', metaErr);
+      });
+    }
+
     // Determine redirect URL based on role
     const redirect_to = role === 'startup' ? '/startup/application' : '/auth/incubator-plans';
 

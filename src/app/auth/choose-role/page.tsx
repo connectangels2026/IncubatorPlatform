@@ -17,16 +17,83 @@ export default function ChooseRolePage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [userName, setUserName] = useState<string>('');
 
-  // Check if user is authenticated
+  // Check if user is authenticated and whether they already selected a role
   useEffect(() => {
-    const checkAuth = async () => {
+    let isMounted = true;
+
+    const checkAuthAndRole = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          router.push('/signup');
+          router.replace('/signup');
           return;
         }
+
+        const userEmail = (session.user.email || '').toLowerCase();
+
+        // 1. Super-Admin account shortcut
+        if (userEmail === 'shadmannc0516@gmail.com') {
+          router.replace('/super-admin/dashboard');
+          return;
+        }
+
+        let existingRole: string | null = session.user.user_metadata?.role || null;
+
+        // 2. Check profile in users table and organization via /api/v1/auth/me
+        try {
+          const res = await fetch('/api/v1/auth/me', {
+            headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.user?.role) {
+              existingRole = data.user.role;
+            }
+            if (data?.organization?.id) {
+              router.replace(`/dashboard?org=${data.organization.id}`);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Could not query /api/v1/auth/me in choose-role:', e);
+        }
+
+        // 3. Direct query fallback to users table
+        if (!existingRole && session.user.email) {
+          try {
+            const { data: uRec } = await supabase
+              .from('users')
+              .select('role')
+              .eq('email', session.user.email)
+              .maybeSingle();
+            if (uRec?.role) {
+              existingRole = uRec.role;
+            }
+          } catch (e) {
+            // Ignore query error
+          }
+        }
+
+        // IF ROLE IS ALREADY SELECTED: DO NOT SHOW CHOOSE-ROLE PAGE!
+        if (existingRole) {
+          if (existingRole === 'super-admin' || userEmail === 'shadmannc0516@gmail.com') {
+            router.replace('/super-admin/dashboard');
+            return;
+          }
+          if (existingRole === 'startup' || existingRole === 'founder') {
+            router.replace('/startup/application');
+            return;
+          }
+          if (existingRole === 'incubator_admin' || existingRole === 'admin' || existingRole === 'incubator') {
+            router.replace('/auth/incubator-plans');
+            return;
+          }
+          router.replace('/dashboard');
+          return;
+        }
+
+        if (!isMounted) return;
 
         setUser(session.user);
         // Extract user name from email or user metadata
@@ -38,11 +105,15 @@ export default function ChooseRolePage() {
         setAuthChecked(true);
       } catch (err) {
         console.error('Auth check error:', err);
-        router.push('/signup');
+        router.replace('/signup');
       }
     };
 
-    checkAuth();
+    checkAuthAndRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   const handleRoleSelection = async (role: 'startup' | 'incubator_admin') => {

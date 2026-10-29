@@ -16,14 +16,55 @@ export default function StartupApplicationPage() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    let isMounted = true;
+
+    const verifyAuthAndRole = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          if (!authLoading && !user) {
+            router.replace('/login?redirect=/startup/application');
+          }
+          return;
+        }
+
         setSessionUser(session.user);
-      } else if (!authLoading && !user) {
-        router.push('/login?redirect=/startup/application');
+
+        // Check if role is selected
+        let role = session.user.user_metadata?.role || (user as any)?.role || null;
+        if (!role) {
+          try {
+            const res = await fetch('/api/v1/auth/me', {
+              headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+            });
+            if (res.ok) {
+              const data = await res.json();
+              role = data?.user?.role || null;
+            }
+          } catch (e) {
+            console.warn('Error checking role:', e);
+          }
+        }
+
+        // If user has not selected a role yet, DO NOT show application page!
+        if (!role) {
+          router.replace('/auth/choose-role');
+          return;
+        }
+
+        if (isMounted) {
+          setChecking(false);
+        }
+      } catch (err) {
+        router.replace('/auth/choose-role');
       }
-      setChecking(false);
-    });
+    };
+
+    verifyAuthAndRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading, router]);
 
   const handleFormSelect = (type: 'pre-incubator' | 'incubator') => {
@@ -34,9 +75,7 @@ export default function StartupApplicationPage() {
     }
   };
 
-  const currentUser = user || sessionUser;
-
-  if (checking && !currentUser) {
+  if (checking) {
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />

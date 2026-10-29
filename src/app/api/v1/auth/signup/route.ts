@@ -191,9 +191,16 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    // Auto-confirm user in Supabase Auth to ensure session and login work
+    // Auto-confirm user in Supabase Auth and ensure role is explicitly null until user chooses a role
     if (data?.user?.id) {
-      await supabaseAdmin.auth.admin.updateUserById(data.user.id, { email_confirm: true }).catch(() => {});
+      await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
+        email_confirm: true,
+        user_metadata: {
+          full_name: founder_name.trim(),
+          name: founder_name.trim(),
+          role: null,
+        },
+      }).catch(() => {});
     }
 
     if (userError) {

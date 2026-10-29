@@ -81,12 +81,25 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('users').update({ email_verified: true }).eq('email', targetEmail);
     }
 
+    // Check if user already has a role selected
+    const { data: userRec } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .ilike('email', targetEmail)
+      .maybeSingle();
+
+    const redirect_to = !userRec?.role
+      ? '/auth/choose-role'
+      : (userRec.role === 'startup' || userRec.role === 'founder')
+      ? '/startup/application'
+      : '/auth/incubator-plans';
+
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully. Please select your role.',
+        message: userRec?.role ? 'Email verified successfully.' : 'Email verified successfully. Please select your role.',
         email: data.user.email,
-        redirect_to: '/auth/choose-role',
+        redirect_to,
       },
       { status: 200 }
     );
@@ -172,12 +185,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Check if user already has a role selected
+    const { data: userRec } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('email', data.user.email)
+      .maybeSingle();
+
+    const redirect_to = !userRec?.role
+      ? '/auth/choose-role'
+      : (userRec.role === 'startup' || userRec.role === 'founder')
+      ? '/startup/application'
+      : '/auth/incubator-plans';
+
     return NextResponse.json(
       {
         success: true,
-        message: 'Email verified successfully. Please select your role.',
+        message: userRec?.role ? 'Email verified successfully.' : 'Email verified successfully. Please select your role.',
         email: data.user.email,
-        redirect_to: '/auth/choose-role',
+        redirect_to,
       },
       { status: 200 }
     );

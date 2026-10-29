@@ -31,7 +31,12 @@ export default function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+      if (!role) {
+        router.push('/auth/choose-role');
+      } else {
+        router.push('/dashboard');
+      }
     }
   }, [user, router]);
 

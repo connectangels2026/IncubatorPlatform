@@ -28,6 +28,7 @@ import {
 import { useAuth } from '@/frontend/context/AuthContext';
 import { supabase } from '@/backend/lib/supabase';
 import { apiClient } from '@/services/apiClient';
+import Logo from '@/frontend/components/ui/Logo';
 import MyApplicationsModal from '@/frontend/components/applications/MyApplicationsModal';
 
 interface ApplicationData {
@@ -393,21 +394,12 @@ function StatusContent() {
       <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 px-4 sm:px-8 py-4 shadow-2xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           {/* Arba360 Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1A2151] to-blue-600 p-0.5 shadow-sm flex items-center justify-center">
-              <div className="w-full h-full bg-[#1A2151] rounded-[10px] flex items-center justify-center">
-                <Rocket className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-              </div>
-            </div>
-            <div>
-              <span className="text-lg font-extrabold tracking-tight text-[#1A2151]">
-                ARBA<span className="text-blue-600">360</span>
-              </span>
-              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 text-[10px] font-bold bg-cyan-400/10 text-cyan-700 rounded-md border border-cyan-400/20">
-                PRE-INCUBATOR
-              </span>
-            </div>
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <Logo size="md" href="/" />
+            <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold bg-cyan-400/10 text-cyan-700 rounded-md border border-cyan-400/20">
+              PRE-INCUBATOR
+            </span>
+          </div>
 
           {/* Right Header Navigation */}
           <div className="flex items-center gap-2">

@@ -137,6 +137,12 @@ export default function DashboardPage() {
         return;
       }
 
+      // If user has not chosen a role yet, strictly redirect to choose-role
+      if (!role) {
+        router.replace('/auth/choose-role');
+        return;
+      }
+
       // For startups / applicants: verify they have an accepted application
       try {
         const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(user.email || '')}`);
