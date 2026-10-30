@@ -1586,6 +1586,11 @@ export default function ApplicationsPage() {
                             <span>Assign Dashboard</span>
                           </button>
                         )
+                      ) : detailsModalApp.status === 'rejected' ? (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold shadow-xs">
+                          <XCircle className="w-4 h-4 text-rose-600" />
+                          <span>Application Rejected</span>
+                        </div>
                       ) : (
                         <>
                           <button

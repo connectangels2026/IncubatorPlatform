@@ -742,7 +742,7 @@ export default function SuperAdminApplicationsPage() {
                             {/* Assign / Forward to Incubator */}
                             <button
                               onClick={() => openAssignModal(app)}
-                              disabled={app.status === 'Admitted' || app.status === 'Rejected'}
+                              disabled={app.status === 'Forwarded' || app.status === 'Admitted' || app.status === 'Rejected'}
                               title="Assign to Incubator"
                               className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 disabled:opacity-30 disabled:pointer-events-none font-bold text-xs transition-all border border-blue-200 flex items-center gap-1 cursor-pointer"
                             >
@@ -753,7 +753,7 @@ export default function SuperAdminApplicationsPage() {
                             {/* Reject */}
                             <button
                               onClick={() => openRejectPopup(app)}
-                              disabled={app.status === 'Rejected'}
+                              disabled={app.status === 'Forwarded' || app.status === 'Admitted' || app.status === 'Rejected'}
                               title="Reject Application"
                               className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 disabled:opacity-30 disabled:pointer-events-none font-bold text-xs transition-all border border-rose-200 flex items-center gap-1 cursor-pointer"
                             >
@@ -934,21 +934,23 @@ export default function SuperAdminApplicationsPage() {
 
               <div className="flex items-center gap-2">
                 <button
+                  disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted' || activeApp.status === 'Rejected'}
                   onClick={() => {
                     setDossierModalOpen(false);
                     openRejectPopup(activeApp);
                   }}
-                  className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 font-extrabold text-xs transition-all border border-rose-200 flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs transition-all border border-rose-200 flex items-center gap-1.5 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                   <span>Reject Application</span>
                 </button>
                 <button
+                  disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted' || activeApp.status === 'Rejected'}
                   onClick={() => {
                     setDossierModalOpen(false);
                     openAssignModal(activeApp);
                   }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <Building2 className="w-4 h-4" />
                   <span>Forward to Incubator</span>
