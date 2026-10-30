@@ -37,7 +37,7 @@ export default function ChooseRolePage() {
             // If track is already saved, bypass selection and go straight to dashboard
             if (savedTrack) {
               const orgId = app.organization_id || app.organization?.id;
-              router.replace(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+              router.replace('/startup/dashboard');
               return;
             }
           }
@@ -84,11 +84,11 @@ export default function ChooseRolePage() {
         data: { startup_track: track },
       });
 
-      router.push('/dashboard');
+      router.push('/startup/dashboard');
     } catch (err: any) {
       console.error('Failed to save track:', err);
       // Fallback redirect
-      router.push('/dashboard');
+      router.push('/startup/dashboard');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,3 +246,4 @@ export default function ChooseRolePage() {
     </div>
   );
 }
+

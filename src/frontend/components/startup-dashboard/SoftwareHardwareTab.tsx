@@ -368,3 +368,4 @@ export function SoftwareHardwareTab({ track = 'both' }: Props) {
     </div>
   );
 }
+

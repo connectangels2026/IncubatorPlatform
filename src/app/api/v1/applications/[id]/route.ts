@@ -331,6 +331,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (updateError) {
       console.error('Application update DB error:', updateError);
+      if (updateError.code === '23505') {
+        const incName = sanitizedDbPayload.incubator_name_text || 'this incubator';
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This applicant already has an application registered with "${incName}". Multiple applications for the same incubator are not allowed.`,
+            code: 'DUPLICATE_INCUBATOR_APPLICATION',
+          },
+          { status: 409 }
+        );
+      }
       throw updateError;
     }
 

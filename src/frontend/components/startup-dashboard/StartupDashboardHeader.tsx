@@ -3,6 +3,9 @@
 import React from 'react';
 import {
   Sparkles,
+  Building2,
+  ChevronDown,
+  ExternalLink,
   Rocket,
   Download,
   Share2,
@@ -18,6 +21,7 @@ interface HeaderProps {
   profile: StartupProfile;
   activeTab: DashboardTab;
   onTabChange: (tab: DashboardTab) => void;
+  applications?: any[];
   milestoneCompletionText?: string;
   onExportReport?: () => void;
   onShare?: () => void;
@@ -27,10 +31,24 @@ export function StartupDashboardHeader({
   profile,
   activeTab,
   onTabChange,
+  applications = [],
   milestoneCompletionText = '7/10',
   onExportReport,
   onShare,
 }: HeaderProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Top Banner Row */}
@@ -77,7 +95,79 @@ export function StartupDashboardHeader({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
+            {/* Incubators Multi-App Dropdown */}
+            {applications.length > 0 && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-[#1A2151] font-bold text-xs flex items-center gap-2 shadow-2xs transition cursor-pointer"
+                >
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <span>Applied Incubators ({applications.length})</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-4 py-2 border-b border-slate-100">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                        Application Statuses
+                      </p>
+                      <p className="text-xs text-slate-500 font-medium">
+                        Click any incubator to view review details
+                      </p>
+                    </div>
+
+                    <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                      {applications.map((app: any) => {
+                        const incName =
+                          app.incubator_name_text ||
+                          app.organization?.name ||
+                          app.form_data?.incubatorName ||
+                          'Incubator';
+                        const status = app.status || 'pending';
+                        const isAccepted = status === 'accepted' || status === 'admitted';
+                        const isRejected = status === 'rejected';
+
+                        return (
+                          <a
+                            key={app.id}
+                            href={`/programs/preincubator/status?id=${app.id}`}
+                            className="p-3 hover:bg-slate-50 transition flex items-center justify-between gap-3 group"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-[#1A2151] truncate group-hover:text-blue-600">
+                                {incName}
+                              </p>
+                              <p className="text-[10px] text-slate-400">
+                                Ref: {app.id.slice(0, 8)}...
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span
+                                className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                  isAccepted
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : isRejected
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                              <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600" />
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={onExportReport}
@@ -165,3 +255,4 @@ export function StartupDashboardHeader({
     </div>
   );
 }
+

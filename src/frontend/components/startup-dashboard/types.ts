@@ -60,3 +60,16 @@ export interface ActivityLogItem {
     message: string;
   };
 }
+
+
+export interface ApplicationSummary {
+  id: string;
+  incubator_name_text?: string;
+  organization?: { id: string; name: string };
+  form_data?: any;
+  status: string;
+  super_admin_status?: string;
+  incubator_response_status?: string;
+  reviewer_comments?: string;
+  created_at?: string;
+}
