@@ -132,6 +132,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    // Handle Re-accept action for Super Admin and Incubator
+    const isReacceptAction = body.action === 'reaccept';
+    if (isReacceptAction) {
+      const isSuperAdminReaccept = body.reaccept_by === 'super_admin' || body.super_admin_status === 'pending';
+      if (isSuperAdminReaccept) {
+        updatePayload.status = 'submitted';
+        updatePayload.super_admin_status = 'pending';
+        updatePayload.super_admin_reviewed_at = null;
+        updatePayload.admission_status = 'pending';
+        updatePayload.reviewer_comments = null;
+      } else {
+        updatePayload.status = 'accepted';
+        updatePayload.admission_status = 'admitted';
+        updatePayload.incubator_response_status = 'accepted';
+        updatePayload.incubator_responded_at = new Date().toISOString();
+        updatePayload.reviewed_at = new Date().toISOString();
+      }
+      delete updatePayload.reaccept_by;
+    }
+
     if (body.feedback) {
       updatePayload.reviewer_comments = body.feedback;
       delete updatePayload.feedback;
@@ -434,6 +454,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           notifTitle = `Application Update: ${incubatorName}`;
           notifMessage = `Thank you for your interest in ${incubatorName}. Your application for ${startupName} was not selected for this cohort cycle.${updated.super_admin_notes || updated.reviewer_comments ? ` Notes: "${updated.super_admin_notes || updated.reviewer_comments}"` : ''}`;
           notifType = 'application_rejected';
+        } else if (isReacceptAction) {
+          const isSuperAdminReaccept = body.reaccept_by === 'super_admin';
+          if (isSuperAdminReaccept) {
+            notifTitle = `Application Reopened: Arba360`;
+            notifMessage = `Your application for ${startupName} has been reopened for review by Arba360 Central Admissions.`;
+          } else {
+            notifTitle = `Application Re-accepted: ${incubatorName}`;
+            notifMessage = `Congratulations! ${incubatorName} has re-accepted your application for ${startupName}.`;
+          }
+          notifType = 'application_reaccepted';
         }
 
         await NotificationService.createNotification({

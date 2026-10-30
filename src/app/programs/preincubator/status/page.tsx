@@ -361,6 +361,12 @@ function StatusContent() {
     };
   }, [application?.status, targetIncubatorName]);
 
+  const isAcceptedByIncubator = statusInfo.key === 'admitted' || application?.status === 'accepted' || application?.status === 'admitted';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const notifyHistory = (application as any)?.form_data?.notify_incubator_history;
+  const todayNotifyCount = notifyHistory?.date === todayStr ? (notifyHistory?.count || 0) : 0;
+  const isDailyLimitReached = todayNotifyCount >= 5;
+
   const formattedDate = useMemo(() => {
     if (!application?.created_at) return 'Recently';
     try {
@@ -720,57 +726,100 @@ function StatusContent() {
             </div>
 
             <div className="space-y-3">
-              {/* Super Admin Review Feedback */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Super Admin Evaluation
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    (application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : (application as any)?.super_admin_status === 'rejected'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
-                  </span>
+              {/* Dynamic Rejection & Evaluation Attribution */}
+              {(application as any)?.super_admin_status === 'rejected' ? (
+                /* Super Admin Rejection (Source: Arba360) */
+                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                      Rejection Source: Arba360 Central Admissions
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      REJECTED BY ARBA360
+                    </span>
+                  </div>
+                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
+                    {(application as any)?.super_admin_notes || (application as any)?.reviewer_comments || 'Your application did not meet eligibility or readiness requirements for cohort forwarding at this stage.'}
+                  </p>
+                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Next Steps & Support:</span> For questions, clarifications, or to appeal this platform decision, please contact Arba360 Central Admissions directly at <a href="mailto:admissions@arba360.com" className="font-bold underline text-rose-900 hover:text-black">admissions@arba360.com</a> or post a message in the appeal thread below.
+                    </div>
+                  </div>
                 </div>
-                <p className="text-slate-700 text-xs leading-relaxed">
-                  {(application as any)?.super_admin_notes ||
-                    'Your application is undergoing initial administrative screening and eligibility verification by the admissions desk.'}
-                </p>
-              </div>
+              ) : statusInfo.key === 'rejected' || (application as any)?.incubator_response_status === 'rejected' ? (
+                /* Incubator Rejection (Source: Actual Incubator Name) */
+                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                      Rejection Source: {targetIncubatorName}
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      NOT SELECTED BY INCUBATOR
+                    </span>
+                  </div>
+                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
+                    {(application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected for admission.`}
+                  </p>
+                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Next Steps & Contact:</span> For specific feedback regarding this cohort evaluation, please contact the admissions desk at <span className="font-bold text-slate-900">{targetIncubatorName}</span>.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Non-Rejected Status Review */
+                <>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Super Admin Evaluation (Arba360)
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        (application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      {(application as any)?.super_admin_notes ||
+                        'Your application is undergoing initial administrative screening and eligibility verification by Arba360.'}
+                    </p>
+                  </div>
 
-              {/* Incubator Cohort Review Feedback */}
-              <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
-                    {targetIncubatorName} Decision & Notes
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    statusInfo.key === 'admitted'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : statusInfo.key === 'rejected'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {statusInfo.key === 'admitted'
-                      ? 'ACCEPTED BY INCUBATOR'
-                      : statusInfo.key === 'forwarded'
-                      ? 'PENDING EVALUATION'
-                      : (application?.status || 'pending').toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-slate-700 text-xs leading-relaxed">
-                  {statusInfo.key === 'admitted'
-                    ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
-                    : statusInfo.key === 'rejected'
-                    ? (application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected.`
-                    : statusInfo.key === 'forwarded'
-                    ? `Application has been forwarded to ${targetIncubatorName} and is queued for cohort evaluation.`
-                    : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`}
-                </p>
+                  <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
+                        {targetIncubatorName} Decision & Notes
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        statusInfo.key === 'admitted'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {statusInfo.key === 'admitted'
+                          ? 'ACCEPTED BY INCUBATOR'
+                          : statusInfo.key === 'forwarded'
+                          ? 'PENDING EVALUATION'
+                          : (application?.status || 'pending').toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      {statusInfo.key === 'admitted'
+                        ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
+                        : statusInfo.key === 'forwarded'
+                        ? `Application has been forwarded to ${targetIncubatorName} and is queued for cohort evaluation.`
+                        : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`}
+                    </p>
+                  </div>
+                </>
+              )}
                 {(application as any)?.score !== undefined && (application as any)?.score !== null && (
                   <div className="pt-1 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
                     <span>Rubric Score:</span>
@@ -854,7 +903,6 @@ function StatusContent() {
                 )}
               </div>
             </div>
-          </div>
 
           {/* PRIMARY ACTIONS & SUPPORT LINK */}
           <div className="space-y-3 pt-2">
@@ -879,14 +927,14 @@ function StatusContent() {
               </Link>
             )}
 
-            {/* APPLICANT ONLY: Notify Incubator with Cooldown when dashboard is not yet assigned */}
-            {!isSuperAdmin && isApplicant && !isDashboardAssigned && (
+            {/* APPLICANT ONLY: Notify Incubator ONLY after acceptance and when dashboard is not yet assigned */}
+            {!isSuperAdmin && isApplicant && isAcceptedByIncubator && !isDashboardAssigned && (
               <button
                 type="button"
                 onClick={handleNotifyIncubator}
-                disabled={notifyCooldown > 0 || isNotifying}
+                disabled={notifyCooldown > 0 || isNotifying || isDailyLimitReached}
                 className={`w-full py-4 px-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
-                  notifyCooldown > 0
+                  isDailyLimitReached || notifyCooldown > 0
                     ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/30 cursor-pointer'
                 }`}
@@ -895,9 +943,11 @@ function StatusContent() {
                 <span>
                   {isNotifying
                     ? 'Notifying Incubator...'
+                    : isDailyLimitReached
+                    ? 'Daily Notification Limit Reached (5/5)'
                     : notifyCooldown > 0
                     ? `Notified (Retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
-                    : 'Notify Incubator'}
+                    : `Notify Incubator (${todayNotifyCount}/5 sent today)`}
                 </span>
               </button>
             )}

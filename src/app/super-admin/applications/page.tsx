@@ -10,6 +10,7 @@ import {
   CheckCircle,
   CheckCircle2,
   XCircle,
+  RotateCcw,
   X,
   Eye,
   Check,
@@ -273,6 +274,40 @@ export default function SuperAdminApplicationsPage() {
     setTargetApp(app);
     setRejectionReason('');
     setRejectPopupOpen(true);
+  };
+
+    const handleReaccept = async (app: ApplicationRecord) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+      const headers: Record<string, string> = { 'x-org-id': 'all' };
+      if (token) headers['Authorization'] = token;
+
+      await apiClient.put(
+        `/applications/${app.id}`,
+        {
+          action: 'reaccept',
+          reaccept_by: 'super_admin',
+          status: 'submitted',
+          super_admin_status: 'pending',
+        },
+        { headers }
+      );
+
+      setApplications((prev) =>
+        prev.map((a) => (a.id === app.id ? { ...a, status: 'Pending Decision' } : a))
+      );
+      if (activeApp?.id === app.id) {
+        setActiveApp((prev) => (prev ? { ...prev, status: 'Pending Decision' } : null));
+      }
+      triggerToast(`Re-accepted application for ${app.startupName}. Status reset to Pending Decision.`, 'emerald');
+    } catch (err: any) {
+      triggerToast(err?.response?.data?.error || 'Failed to re-accept application', 'rose');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const openAssignModal = async (app: ApplicationRecord) => {
@@ -760,6 +795,19 @@ export default function SuperAdminApplicationsPage() {
                               <XCircle className="w-3.5 h-3.5" />
                               <span>Reject</span>
                             </button>
+
+                            {/* Re-accept (Super Admin) */}
+                            {app.status === 'Rejected' && (
+                              <button
+                                onClick={() => handleReaccept(app)}
+                                disabled={isProcessing}
+                                title="Re-accept Application"
+                                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold text-xs transition-all border border-emerald-200 flex items-center gap-1 cursor-pointer"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Re-accept</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -933,28 +981,44 @@ export default function SuperAdminApplicationsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted' || activeApp.status === 'Rejected'}
-                  onClick={() => {
-                    setDossierModalOpen(false);
-                    openRejectPopup(activeApp);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs transition-all border border-rose-200 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                  <span>Reject Application</span>
-                </button>
-                <button
-                  disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted' || activeApp.status === 'Rejected'}
-                  onClick={() => {
-                    setDossierModalOpen(false);
-                    openAssignModal(activeApp);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Forward to Incubator</span>
-                </button>
+                {activeApp.status === 'Rejected' ? (
+                  <button
+                    disabled={isProcessing}
+                    onClick={() => {
+                      setDossierModalOpen(false);
+                      handleReaccept(activeApp);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Re-accept Application</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted'}
+                      onClick={() => {
+                        setDossierModalOpen(false);
+                        openRejectPopup(activeApp);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs transition-all border border-rose-200 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Reject Application</span>
+                    </button>
+                    <button
+                      disabled={activeApp.status === 'Forwarded' || activeApp.status === 'Admitted'}
+                      onClick={() => {
+                        setDossierModalOpen(false);
+                        openAssignModal(activeApp);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none font-extrabold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Building2 className="w-4 h-4" />
+                      <span>Forward to Incubator</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -130,7 +130,7 @@ export default function DashboardPage() {
         user?.email?.toLowerCase() === 'shadmannc0516@gmail.com';
       const isIncubator =
         !isSuperAdmin &&
-        (role === 'admin' || role === 'incubator_admin' || role === 'incubator');
+        (role === 'admin' || role === 'incubator_admin' || role === 'incubator' || Boolean(organization?.id || (user as any)?.organization_id));
 
       // Super Admins and Incubator staff have direct workspace access
       if (isSuperAdmin || isIncubator) {

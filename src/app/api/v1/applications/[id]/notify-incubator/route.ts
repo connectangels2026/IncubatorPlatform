@@ -32,7 +32,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
+    // Rule 1: Application must be accepted by incubator to send notifications
+    const isAccepted =
+      application.status === 'accepted' ||
+      application.status === 'admitted' ||
+      application.incubator_response_status === 'accepted';
+
+    if (!isAccepted) {
+      return NextResponse.json(
+        { error: 'Notifications can only be sent after your application has been accepted by an incubator.' },
+        { status: 400 }
+      );
+    }
+
     const currentFormData = application.form_data || {};
+
+    // Rule 2: Maximum 5 notifications per day per application
+    const today = new Date().toISOString().slice(0, 10);
+    const notifyHistory = currentFormData.notify_incubator_history || {};
+    const currentDailyCount = notifyHistory.date === today ? (notifyHistory.count || 0) : 0;
+
+    if (currentDailyCount >= 5) {
+      return NextResponse.json(
+        {
+          error: 'Daily notification limit reached (maximum 5 notifications per day). Please try again tomorrow.',
+          dailyLimitReached: true,
+          dailyCount: currentDailyCount,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Cooldown check (10 minutes)
     const lastNotified = currentFormData.last_incubator_notified_at;
     if (lastNotified) {
       const elapsed = Date.now() - new Date(lastNotified).getTime();
@@ -87,10 +118,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
 
-    // Update last_incubator_notified_at
+    // Update last_incubator_notified_at and daily count
     const updatedFormData = {
       ...currentFormData,
       last_incubator_notified_at: new Date().toISOString(),
+      notify_incubator_history: {
+        date: today,
+        count: currentDailyCount + 1,
+        last_notified_at: new Date().toISOString(),
+      },
     };
 
     await supabaseAdmin
@@ -102,6 +138,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       success: true,
       message: `Notification sent to ${incubatorName} successfully.`,
       cooldownSeconds: 600,
+      dailyCount: currentDailyCount + 1,
+      remainingDaily: 5 - (currentDailyCount + 1),
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to notify incubator' }, { status: 500 });
