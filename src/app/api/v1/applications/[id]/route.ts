@@ -217,6 +217,48 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
+    // When rejected by Super Admin or Incubator
+    if (newStatus === 'rejected') {
+      updatePayload.status = 'rejected';
+      updatePayload.admission_status = 'rejected';
+      updatePayload.reviewed_at = new Date().toISOString();
+
+      if (body.super_admin_status === 'rejected') {
+        updatePayload.super_admin_status = 'rejected';
+        updatePayload.super_admin_reviewed_at = new Date().toISOString();
+      } else {
+        updatePayload.incubator_response_status = 'rejected';
+        updatePayload.incubator_responded_at = new Date().toISOString();
+      }
+
+      if (user?.id && isValidUUID(user.id)) {
+        const { data: dbUser } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (dbUser?.id) {
+          updatePayload.reviewed_by = dbUser.id;
+        } else if (user?.email) {
+          const { data: dbUserByEmail } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .ilike('email', user.email)
+            .maybeSingle();
+          if (dbUserByEmail?.id) {
+            updatePayload.reviewed_by = dbUserByEmail.id;
+          } else {
+            delete updatePayload.reviewed_by;
+          }
+        } else {
+          delete updatePayload.reviewed_by;
+        }
+      } else {
+        delete updatePayload.reviewed_by;
+      }
+    }
+
     // Filter updatePayload to only actual database columns
     const ALLOWED_DB_COLUMNS = new Set([
       'organization_id',

@@ -1358,15 +1358,30 @@ export default function ApplicationsPage() {
                                       <span>Assign Dashboard</span>
                                     </button>
                                   )
+                                ) : app.status === 'rejected' ? (
+                                  <span className="px-2.5 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-1">
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Rejected</span>
+                                  </span>
                                 ) : (
-                                  <button
-                                    onClick={() => openDecisionModal(app, 'admitted')}
-                                    disabled={isProcessing}
-                                    title="Admit / Reject Decision"
-                                    className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
-                                  >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => openDecisionModal(app, 'admitted')}
+                                      disabled={isProcessing}
+                                      title="Admit Startup"
+                                      className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => openDecisionModal(app, 'rejected')}
+                                      disabled={isProcessing}
+                                      title="Reject Startup"
+                                      className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </td>
