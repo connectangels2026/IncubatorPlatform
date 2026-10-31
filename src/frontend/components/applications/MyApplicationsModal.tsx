@@ -237,12 +237,12 @@ export default function MyApplicationsModal({
                           type="button"
                           onClick={() => {
                             onClose();
-                            if (orgId) {
-                              if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
-                              router.push(`/dashboard?org=${orgId}`);
-                            } else {
-                              router.push('/dashboard');
+                            const hasTrack = (app as any)?.form_data?.startup_track || (typeof window !== 'undefined' && localStorage.getItem('startup_track'));
+                            if (!hasTrack) {
+                              router.push('/choose-role');
+                              return;
                             }
+                            router.push('/startup/dashboard');
                           }}
                           className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                         >

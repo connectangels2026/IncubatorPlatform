@@ -54,6 +54,7 @@ import { apiClient } from '@/services/apiClient';
 import { supabase } from '@/backend/lib/supabase';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import StartupDashboard from '@/frontend/components/startup-dashboard/StartupDashboard';
 
 // --- TYPES ---
 type NavTab = 'programs' | 'pipeline' | 'mentors' | 'demodays';
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const notifRef = useRef<HTMLDivElement>(null);
 
   // Tenant & Startup Dynamic State
+  const [isStartupUser, setIsStartupUser] = useState(false);
   const [startupName, setStartupName] = useState<string | null>(null);
   const [activeOrgName, setActiveOrgName] = useState<string>(organization?.name || 'Incubator Workspace');
   const [activeOrgSlug, setActiveOrgSlug] = useState<string>(organization?.slug || 'hub');
@@ -130,7 +132,7 @@ export default function DashboardPage() {
         user?.email?.toLowerCase() === 'shadmannc0516@gmail.com';
       const isIncubator =
         !isSuperAdmin &&
-        (role === 'admin' || role === 'incubator_admin' || role === 'incubator');
+        (role === 'admin' || role === 'incubator_admin' || role === 'incubator' || Boolean(organization?.id || (user as any)?.organization_id));
 
       // Super Admins and Incubator staff have direct workspace access
       if (isSuperAdmin || isIncubator) {
@@ -152,17 +154,29 @@ export default function DashboardPage() {
         const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         const requestedOrgId = urlParams?.get('org') || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
 
-        const acceptedApp = apps.find((app: any) => {
-          const isAccepted = app.status === 'accepted' || app.status === 'admitted';
-          if (!isAccepted) return false;
-          if (requestedOrgId) {
-            return app.organization_id === requestedOrgId || app.organization?.id === requestedOrgId;
-          }
-          return !!app.organization_id;
-        });
+        // Check if startup has at least one accepted application across any incubator
+        const anyAccepted = apps.some((app: any) => app.status === 'accepted' || app.status === 'admitted');
 
-        if (!acceptedApp) {
+        if (!anyAccepted) {
           router.push('/programs/preincubator/status');
+          return;
+        }
+
+        const acceptedApp =
+          apps.find((app: any) => {
+            const isAccepted = app.status === 'accepted' || app.status === 'admitted';
+            if (!isAccepted) return false;
+            if (requestedOrgId) {
+              return app.organization_id === requestedOrgId || app.organization?.id === requestedOrgId;
+            }
+            return !!app.organization_id;
+          }) || apps.find((app: any) => app.status === 'accepted' || app.status === 'admitted') || apps[0];
+
+        // Check if startup track is chosen; if not, route to /choose-role
+        setIsStartupUser(true);
+        const hasTrack = acceptedApp.form_data?.startup_track || (typeof window !== 'undefined' && localStorage.getItem('startup_track'));
+        if (!hasTrack) {
+          router.replace('/choose-role');
           return;
         }
 
@@ -472,6 +486,11 @@ export default function DashboardPage() {
   });
 
   const stages: Stage[] = ['Ideation', 'Validation', 'Scaling', 'Demo Day Ready'];
+
+  if (isStartupUser) {
+    router.replace('/startup/dashboard');
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans relative flex">

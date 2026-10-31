@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Rocket,
+  LayoutDashboard,
   LogOut,
   CheckCircle2,
   Clock,
@@ -172,7 +173,7 @@ function StatusContent() {
         (payload) => {
           if (payload.new && (payload.new as any).id === application?.id) {
             setApplication(payload.new as ApplicationData);
-            triggerToast('Application status updated by Super Admin!');
+            triggerToast('Application status updated by Arba360!');
           } else {
             loadApplication();
           }
@@ -361,6 +362,12 @@ function StatusContent() {
     };
   }, [application?.status, targetIncubatorName]);
 
+  const isAcceptedByIncubator = statusInfo.key === 'admitted' || application?.status === 'accepted' || application?.status === 'admitted';
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const notifyHistory = (application as any)?.form_data?.notify_incubator_history;
+  const todayNotifyCount = notifyHistory?.date === todayStr ? (notifyHistory?.count || 0) : 0;
+  const isDailyLimitReached = todayNotifyCount >= 5;
+
   const formattedDate = useMemo(() => {
     if (!application?.created_at) return 'Recently';
     try {
@@ -433,13 +440,24 @@ function StatusContent() {
                 </div>
               </div>
             ) : (
-              <Link
-                href="/programs"
-                className="px-3.5 py-2 rounded-xl text-slate-700 hover:text-[#1A2151] hover:bg-slate-100 font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80 shadow-2xs"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
-                <span>Programs {allApplications.length > 0 ? `(${allApplications.length}/5)` : ''}</span>
-              </Link>
+              <div className="flex items-center gap-2">
+                {allApplications.some((a) => a.status === 'accepted' || a.status === 'admitted') && (
+                  <Link
+                    href="/startup/dashboard"
+                    className="px-3 py-1.5 rounded-xl bg-[#1A2151] hover:bg-slate-800 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Dashboard</span>
+                  </Link>
+                )}
+                <Link
+                  href="/programs"
+                  className="px-3.5 py-2 rounded-xl text-slate-700 hover:text-[#1A2151] hover:bg-slate-100 font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80 shadow-2xs"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Programs {allApplications.length > 0 ? `(${allApplications.length}/5)` : ''}</span>
+                </Link>
+              </div>
             )}
 
             <button
@@ -477,22 +495,20 @@ function StatusContent() {
                       if (typeof window !== 'undefined') localStorage.setItem('last_application_id', app.id);
                       router.push(`/programs/preincubator/status?id=${app.id}`);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
-                      isSelected
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${isSelected
                         ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-sm shadow-[#1A2151]/30'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
-                    }`}
+                      }`}
                   >
                     <span className="truncate max-w-[130px]">{name}</span>
-                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold uppercase ${
-                      app.status === 'accepted' || app.status === 'admitted'
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold uppercase ${app.status === 'accepted' || app.status === 'admitted'
                         ? 'bg-emerald-500 text-white'
                         : app.status === 'rejected'
-                        ? 'bg-rose-500 text-white'
-                        : isSelected
-                        ? 'bg-cyan-400 text-slate-950'
-                        : 'bg-amber-100 text-amber-900'
-                    }`}>
+                          ? 'bg-rose-500 text-white'
+                          : isSelected
+                            ? 'bg-cyan-400 text-slate-950'
+                            : 'bg-amber-100 text-amber-900'
+                      }`}>
                       {app.status || 'pending'}
                     </span>
                   </button>
@@ -581,22 +597,20 @@ function StatusContent() {
 
               {/* Step 2: Super Admin Review */}
               <div
-                className={`p-3 rounded-2xl border text-center transition-all ${
-                  statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
+                className={`p-3 rounded-2xl border text-center transition-all ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
                     ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
                     : statusInfo.key === 'rejected'
-                    ? 'bg-rose-50/80 border-rose-200 text-rose-950'
-                    : 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
-                }`}
+                      ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                      : 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
+                  }`}
               >
                 <div
-                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${
-                    statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
+                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
                       ? 'bg-emerald-500 text-white'
                       : statusInfo.key === 'rejected'
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-blue-600 text-white'
-                  }`}
+                        ? 'bg-rose-500 text-white'
+                        : 'bg-blue-600 text-white'
+                    }`}
                 >
                   {statusInfo.key === 'forwarded' || statusInfo.key === 'admitted' ? (
                     <Check className="w-4 h-4" />
@@ -608,46 +622,43 @@ function StatusContent() {
                 </div>
                 <p className="text-xs font-bold text-[#1A2151]">Super Admin Review</p>
                 <p
-                  className={`text-[10px] font-medium mt-0.5 ${
-                    statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
+                  className={`text-[10px] font-medium mt-0.5 ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
                       ? 'text-emerald-700 font-bold'
                       : statusInfo.key === 'rejected'
-                      ? 'text-rose-600 font-bold'
-                      : 'text-blue-600 font-bold'
-                  }`}
+                        ? 'text-rose-600 font-bold'
+                        : 'text-blue-600 font-bold'
+                    }`}
                 >
                   {statusInfo.key === 'forwarded'
                     ? 'Forwarded'
                     : statusInfo.key === 'admitted'
-                    ? 'Passed'
-                    : statusInfo.key === 'rejected'
-                    ? 'Closed'
-                    : 'In Progress'}
+                      ? 'Passed'
+                      : statusInfo.key === 'rejected'
+                        ? 'Closed'
+                        : 'In Progress'}
                 </p>
               </div>
 
               {/* Step 3: Final Decision / Incubator Review */}
               <div
-                className={`p-3 rounded-2xl border text-center transition-all ${
-                  statusInfo.key === 'admitted'
+                className={`p-3 rounded-2xl border text-center transition-all ${statusInfo.key === 'admitted'
                     ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-xs'
                     : statusInfo.key === 'rejected'
-                    ? 'bg-rose-50/80 border-rose-200 text-rose-950'
-                    : statusInfo.key === 'forwarded'
-                    ? 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
-                    : 'bg-slate-50/80 border-slate-200/80 text-slate-400'
-                }`}
+                      ? 'bg-rose-50/80 border-rose-200 text-rose-950'
+                      : statusInfo.key === 'forwarded'
+                        ? 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
+                        : 'bg-slate-50/80 border-slate-200/80 text-slate-400'
+                  }`}
               >
                 <div
-                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${
-                    statusInfo.key === 'admitted'
+                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${statusInfo.key === 'admitted'
                       ? 'bg-emerald-500 text-white'
                       : statusInfo.key === 'rejected'
-                      ? 'bg-rose-500 text-white'
-                      : statusInfo.key === 'forwarded'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-200 text-slate-500'
-                  }`}
+                        ? 'bg-rose-500 text-white'
+                        : statusInfo.key === 'forwarded'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-200 text-slate-500'
+                    }`}
                 >
                   {statusInfo.key === 'admitted' ? (
                     <Check className="w-4 h-4" />
@@ -664,10 +675,10 @@ function StatusContent() {
                   {statusInfo.key === 'admitted'
                     ? 'Accepted by Incubator'
                     : statusInfo.key === 'rejected'
-                    ? 'Not Selected'
-                    : statusInfo.key === 'forwarded'
-                    ? 'In Progress'
-                    : 'Pending'}
+                      ? 'Not Selected'
+                      : statusInfo.key === 'forwarded'
+                        ? 'In Progress'
+                        : 'Pending'}
                 </p>
               </div>
             </div>
@@ -720,139 +731,179 @@ function StatusContent() {
             </div>
 
             <div className="space-y-3">
-              {/* Super Admin Review Feedback */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Super Admin Evaluation
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    (application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : (application as any)?.super_admin_status === 'rejected'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-slate-700 text-xs leading-relaxed">
-                  {(application as any)?.super_admin_notes ||
-                    'Your application is undergoing initial administrative screening and eligibility verification by the admissions desk.'}
-                </p>
-              </div>
-
-              {/* Incubator Cohort Review Feedback */}
-              <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
-                    {targetIncubatorName} Decision & Notes
-                  </span>
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    statusInfo.key === 'admitted'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : statusInfo.key === 'rejected'
-                      ? 'bg-rose-100 text-rose-800'
-                      : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {statusInfo.key === 'admitted'
-                      ? 'ACCEPTED BY INCUBATOR'
-                      : statusInfo.key === 'forwarded'
-                      ? 'PENDING EVALUATION'
-                      : (application?.status || 'pending').toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-slate-700 text-xs leading-relaxed">
-                  {statusInfo.key === 'admitted'
-                    ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
-                    : statusInfo.key === 'rejected'
-                    ? (application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected.`
-                    : statusInfo.key === 'forwarded'
-                    ? `Application has been forwarded to ${targetIncubatorName} and is queued for cohort evaluation.`
-                    : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`}
-                </p>
-                {(application as any)?.score !== undefined && (application as any)?.score !== null && (
-                  <div className="pt-1 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
-                    <span>Rubric Score:</span>
-                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-200">
-                      {(application as any).score} / 100
+              {/* Dynamic Rejection & Evaluation Attribution */}
+              {(application as any)?.super_admin_status === 'rejected' ? (
+                /* Super Admin Rejection (Source: Arba360) */
+                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                      Rejection Source: Arba360 Central Admissions
                     </span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      REJECTED BY ARBA360
+                    </span>
+                  </div>
+                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
+                    {(application as any)?.super_admin_notes || (application as any)?.reviewer_comments || 'Your application did not meet eligibility or readiness requirements for cohort forwarding at this stage.'}
+                  </p>
+                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Next Steps & Support:</span> For questions, clarifications, or to appeal this platform decision, please contact Arba360 Central Admissions directly at <a href="mailto:admissions@arba360.com" className="font-bold underline text-rose-900 hover:text-black">admissions@arba360.com</a> or post a message in the appeal thread below.
+                    </div>
+                  </div>
+                </div>
+              ) : statusInfo.key === 'rejected' || (application as any)?.incubator_response_status === 'rejected' ? (
+                /* Incubator Rejection (Source: Actual Incubator Name) */
+                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                      Rejection Source: {targetIncubatorName}
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      NOT SELECTED BY INCUBATOR
+                    </span>
+                  </div>
+                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
+                    {(application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected for admission.`}
+                  </p>
+                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Next Steps & Contact:</span> For specific feedback regarding this cohort evaluation, please contact the admissions desk at <span className="font-bold text-slate-900">{targetIncubatorName}</span>.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Non-Rejected Status Review */
+                <>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Super Admin Evaluation (Arba360)
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${(application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-blue-100 text-blue-800'
+                        }`}>
+                        {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      {(application as any)?.super_admin_notes ||
+                        'Your application is undergoing initial administrative screening and eligibility verification by Arba360.'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
+                        {targetIncubatorName} Decision & Notes
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${statusInfo.key === 'admitted'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                        }`}>
+                        {statusInfo.key === 'admitted'
+                          ? 'ACCEPTED BY INCUBATOR'
+                          : statusInfo.key === 'forwarded'
+                            ? 'PENDING EVALUATION'
+                            : (application?.status || 'pending').toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-slate-700 text-xs leading-relaxed">
+                      {statusInfo.key === 'admitted'
+                        ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
+                        : statusInfo.key === 'forwarded'
+                          ? `Application has been forwarded to ${targetIncubatorName} and is queued for cohort evaluation.`
+                          : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`}
+                    </p>
+                  </div>
+                </>
+              )}
+              {(application as any)?.score !== undefined && (application as any)?.score !== null && (
+                <div className="pt-1 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
+                  <span>Rubric Score:</span>
+                  <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-200">
+                    {(application as any).score} / 100
+                  </span>
+                </div>
+              )}
+
+              {/* Rejection Replies Conversation Thread */}
+              {Array.isArray((application as any)?.form_data?.rejection_replies) &&
+                (application as any).form_data.rejection_replies.length > 0 && (
+                  <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      Conversation & Appeal History
+                    </p>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {(application as any).form_data.rejection_replies.map((r: any) => (
+                        <div
+                          key={r.id}
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] space-y-0.5"
+                        >
+                          <div className="flex items-center justify-between font-bold text-[#1A2151]">
+                            <span>{r.sender}</span>
+                            <span className="text-[9px] text-slate-400 font-normal">
+                              {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent'}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 leading-relaxed">{r.message}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Rejection Replies Conversation Thread */}
-                {Array.isArray((application as any)?.form_data?.rejection_replies) &&
-                  (application as any).form_data.rejection_replies.length > 0 && (
-                    <div className="pt-2 border-t border-slate-200/80 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Conversation & Appeal History
-                      </p>
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                        {(application as any).form_data.rejection_replies.map((r: any) => (
-                          <div
-                            key={r.id}
-                            className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] space-y-0.5"
-                          >
-                            <div className="flex items-center justify-between font-bold text-[#1A2151]">
-                              <span>{r.sender}</span>
-                              <span className="text-[9px] text-slate-400 font-normal">
-                                {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent'}
-                              </span>
-                            </div>
-                            <p className="text-slate-600 leading-relaxed">{r.message}</p>
-                          </div>
-                        ))}
+              {/* Rejection Reply Button & Inline Form */}
+              {statusInfo.key === 'rejected' && (
+                <div className="pt-2 border-t border-rose-100">
+                  {!showReplyForm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowReplyForm(true)}
+                      className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Reply to Rejection / Request Feedback</span>
+                    </button>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-white border border-rose-200 space-y-2">
+                      <textarea
+                        rows={2}
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Write your clarification, updated milestone metrics, or appeal message..."
+                        className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-rose-500 transition resize-none"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowReplyForm(false);
+                            setReplyText('');
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px] cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!replyText.trim() || isSubmittingReply}
+                          onClick={handleSendReply}
+                          className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                        >
+                          <Send className="w-3 h-3" />
+                          <span>{isSubmittingReply ? 'Sending...' : 'Send Reply'}</span>
+                        </button>
                       </div>
                     </div>
                   )}
-
-                {/* Rejection Reply Button & Inline Form */}
-                {statusInfo.key === 'rejected' && (
-                  <div className="pt-2 border-t border-rose-100">
-                    {!showReplyForm ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowReplyForm(true)}
-                        className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5 text-rose-600" />
-                        <span>Reply to Rejection / Request Feedback</span>
-                      </button>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-white border border-rose-200 space-y-2">
-                        <textarea
-                          rows={2}
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Write your clarification, updated milestone metrics, or appeal message..."
-                          className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-rose-500 transition resize-none"
-                        />
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowReplyForm(false);
-                              setReplyText('');
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px] cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!replyText.trim() || isSubmittingReply}
-                            onClick={handleSendReply}
-                            className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                          >
-                            <Send className="w-3 h-3" />
-                            <span>{isSubmittingReply ? 'Sending...' : 'Send Reply'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -862,9 +913,9 @@ function StatusContent() {
             {!isSuperAdmin && isApplicant && statusInfo.key === 'admitted' && isDashboardAssigned && (
               <Link
                 href={
-                  application?.organization_id
-                    ? `/dashboard?org=${application.organization_id}`
-                    : '/dashboard'
+                  ((application as any)?.form_data?.startup_track || (typeof window !== 'undefined' && localStorage.getItem('startup_track')))
+                    ? '/startup/dashboard'
+                    : '/choose-role'
                 }
                 onClick={() => {
                   if (application?.organization_id && typeof window !== 'undefined') {
@@ -879,25 +930,26 @@ function StatusContent() {
               </Link>
             )}
 
-            {/* APPLICANT ONLY: Notify Incubator with Cooldown when dashboard is not yet assigned */}
-            {!isSuperAdmin && isApplicant && !isDashboardAssigned && (
+            {/* APPLICANT ONLY: Notify Incubator ONLY after acceptance and when dashboard is not yet assigned */}
+            {!isSuperAdmin && isApplicant && isAcceptedByIncubator && !isDashboardAssigned && (
               <button
                 type="button"
                 onClick={handleNotifyIncubator}
-                disabled={notifyCooldown > 0 || isNotifying}
-                className={`w-full py-4 px-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${
-                  notifyCooldown > 0
+                disabled={notifyCooldown > 0 || isNotifying || isDailyLimitReached}
+                className={`w-full py-4 px-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${isDailyLimitReached || notifyCooldown > 0
                     ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/30 cursor-pointer'
-                }`}
+                  }`}
               >
                 <Bell className="w-4 h-4" />
                 <span>
                   {isNotifying
                     ? 'Notifying Incubator...'
-                    : notifyCooldown > 0
-                    ? `Notified (Retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
-                    : 'Notify Incubator'}
+                    : isDailyLimitReached
+                      ? 'Daily Notification Limit Reached (5/5)'
+                      : notifyCooldown > 0
+                        ? `Notified (Retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
+                        : `Notify Incubator (${todayNotifyCount}/5 sent today)`}
                 </span>
               </button>
             )}
@@ -932,11 +984,10 @@ function StatusContent() {
               onClick={() => loadApplication(true)}
               type="button"
               disabled={refreshing || isLoading}
-              className={`w-full py-3.5 px-5 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer ${
-                statusInfo.key === 'admitted'
+              className={`w-full py-3.5 px-5 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer ${statusInfo.key === 'admitted'
                   ? 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs'
                   : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 hover:shadow-xl'
-              }`}
+                }`}
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               <span>{refreshing ? 'Checking Latest Status...' : 'Refresh Status'}</span>

@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, organization, isLoading } = useAuth();
   const router = useRouter();
   const [isCheckingApplication, setIsCheckingApplication] = React.useState(true);
 
@@ -28,12 +28,16 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
         const emailLower = (user.email || '').toLowerCase();
         const role = (user as any)?.role || (user as any)?.user_metadata?.role;
 
-        // Admins and super-admins bypass review gating
+        // Admins, super-admins, and incubator staff bypass review gating
         if (
           emailLower === 'arba1@gmail.com' ||
           emailLower === 'admin@nuturecave.com' ||
           role === 'admin' ||
-          role === 'super-admin'
+          role === 'super-admin' ||
+          role === 'super_admin' ||
+          role === 'incubator_admin' ||
+          role === 'incubator' ||
+          Boolean(organization?.id || (user as any)?.organization_id)
         ) {
           if (isMounted) setIsCheckingApplication(false);
           return;
