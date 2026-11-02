@@ -67,7 +67,7 @@ export default function SuperAdminDashboard() {
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Top Navbar */}
         <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
-        <div className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
           {/* Page Title */}
           <h1 className="text-base font-bold text-slate-900">Dashboard Overview</h1>
 
@@ -105,7 +105,7 @@ export default function SuperAdminDashboard() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-[1340px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Page Title & Filter Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3.5">
