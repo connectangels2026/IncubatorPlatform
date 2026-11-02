@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { signIn } from '@/backend/services/auth';
 import { storeActiveToken, logAuthEvent } from '@/backend/lib/session';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { isSuperAdminEmail } from '@/backend/lib/superadmin';
 
 export async function POST(req: Request) {
   try {
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
-    const isSuperAdmin = userData?.role === 'super-admin' || email.toLowerCase() === 'shadmannc0516@gmail.com';
+    const isSuperAdmin = (await isSuperAdminEmail(email)) || userData?.role === 'super-admin';
     if (!userData && isSuperAdmin) {
       const { data: newAdmin } = await supabaseAdmin
         .from('users')

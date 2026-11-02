@@ -15,6 +15,12 @@ import { useAuth } from '@/frontend/context/AuthContext';
 export default function Home() {
   const router = useRouter();
   const { user, logout, organization } = useAuth();
+
+  const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || '').toLowerCase();
+  const emailLower = (user?.email || '').toLowerCase().trim();
+  const isSuperAdmin = (user as any)?.is_super_admin === true || userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';
+  const isStartup = !isSuperAdmin && (userRole === 'startup' || userRole === 'founder');
+
   return (
     <div className="antialiased overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#EDF2FA', color: '#1A2151' }}>
       <ScrollRevealInit />
@@ -39,11 +45,13 @@ export default function Home() {
             {/* Right Actions */}
             <div className="flex items-center gap-4">
               {user ? (
-                // Logged in - show organization name and logout button
+                // Logged in - show actions based on verified role
                 <>
-                  <div className="text-sm font-medium text-slate-600 px-3 py-2 hidden sm:block">
-                    {organization?.name || 'Organization'}
-                  </div>
+                  {!isSuperAdmin && !isStartup && organization?.name && (
+                    <div className="text-sm font-medium text-slate-600 px-3 py-2 hidden sm:block">
+                      {organization.name}
+                    </div>
+                  )}
                   <button
                     onClick={async () => {
                       await logout();
@@ -54,13 +62,31 @@ export default function Home() {
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </button>
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    Dashboard
-                  </button>
+                  {isSuperAdmin ? (
+                    <button
+                      onClick={() => router.push('/super-admin/dashboard')}
+                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                      style={{ backgroundColor: '#1A2151' }}
+                    >
+                      Super Admin Dashboard
+                    </button>
+                  ) : isStartup ? (
+                    <button
+                      onClick={() => router.push('/programs/preincubator/status')}
+                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                      style={{ backgroundColor: '#2563EB' }}
+                    >
+                      Applications
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/dashboard')}
+                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                      style={{ backgroundColor: '#2563EB' }}
+                    >
+                      Dashboard
+                    </button>
+                  )}
                 </>
               ) : (
                 // Not logged in - show sign in and get started

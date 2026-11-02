@@ -56,7 +56,7 @@ export async function middleware(req: NextRequest) {
     !pathname.includes('/auth/verify-email') &&
     !pathname.includes('/auth/google-callback') &&
     !pathname.includes('/reports/dashboard') &&
-    !pathname.startsWith('/api/v1/incubators') &&
+    !(req.method === 'GET' && pathname === '/api/v1/incubators') &&
     !isPublicApplicationAction;
 
   if (isProtectedApiRoute) {
@@ -103,8 +103,10 @@ export async function middleware(req: NextRequest) {
     // Role check logic for Super Admin API routes
     if (pathname.startsWith('/api/v1/super-admin')) {
       const userRole = user.user_metadata?.role;
-      if (userRole !== 'admin') {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      const emailLower = (user.email || '').toLowerCase().trim();
+      const isSuperAdmin = userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';
+      if (!isSuperAdmin) {
+        return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
       }
     }
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { isSuperAdminEmail } from '@/backend/lib/superadmin';
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,12 +53,16 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const isSuperAdmin = await isSuperAdminEmail(user?.email);
+    const resolvedRole = isSuperAdmin ? 'super-admin' : (userProfile?.role ?? user?.role ?? null);
+
     return NextResponse.json(
       {
         success: true,
         user: {
           ...user,
-          role: userProfile?.role ?? null,
+          role: resolvedRole,
+          is_super_admin: isSuperAdmin,
           full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
           user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
           founder_name: orgData?.founder_name || userProfile?.full_name,

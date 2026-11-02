@@ -39,7 +39,25 @@ export default function SuperAdminLayout({
         }
 
         const emailLower = user.email.toLowerCase().trim();
-        if (emailLower !== AUTHORIZED_SUPER_ADMIN_EMAIL) {
+        let isSuperAdmin = emailLower === AUTHORIZED_SUPER_ADMIN_EMAIL;
+
+        if (!isSuperAdmin && session?.access_token) {
+          try {
+            const meRes = await fetch('/api/v1/auth/me', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (meRes.ok) {
+              const meData = await meRes.json();
+              if (meData?.user?.is_super_admin === true || meData?.user?.role === 'super-admin') {
+                isSuperAdmin = true;
+              }
+            }
+          } catch {
+            // me endpoint check failed
+          }
+        }
+
+        if (!isSuperAdmin) {
           if (isMounted) {
             setIsAuthorized(false);
             router.replace('/super-admin/login?error=unauthorized');

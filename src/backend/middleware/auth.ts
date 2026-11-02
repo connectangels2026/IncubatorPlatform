@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../lib/supabase';
-
 import { supabaseAdmin } from '../lib/supabaseAdmin';
+import { isSuperAdminEmail } from '../lib/superadmin';
 
 export interface AuthenticatedUser {
   id: string;
@@ -105,12 +105,15 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
     } else if (user.email) {
       const { data: uRec } = await supabaseAdmin
         .from('users')
-        .select('id, organization_id')
+        .select('id, organization_id, role')
         .eq('email', user.email)
         .maybeSingle();
 
       if (uRec) {
         organizationId = uRec.organization_id;
+        if (uRec.role) {
+          role = uRec.role;
+        }
         const { data: rRec } = await supabaseAdmin
           .from('user_roles')
           .select('role')
@@ -118,21 +121,14 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
           .eq('is_active', true)
           .maybeSingle();
         if (rRec?.role) {
-          role = role || rRec.role;
+          role = rRec.role;
         }
       }
     }
 
-    // Super Admin recognition from database super_admins table
-    const emailLower = (user.email || '').toLowerCase();
-    const { data: superAdminRow } = await supabaseAdmin
-      .from('super_admins')
-      .select('id, is_active')
-      .eq('email', emailLower)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (superAdminRow || emailLower === 'shadmannc0516@gmail.com') {
+    // Super Admin recognition from database superadmin / super_admins table
+    const isSA = await isSuperAdminEmail(user.email);
+    if (isSA) {
       role = 'super-admin';
     }
   } catch {
@@ -143,7 +139,7 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
     user: {
       id: user.id,
       email: user.email,
-      role: role || 'admin', // Default authenticated users to admin for incubator command center
+      role: role || (organizationId ? 'admin' : 'startup'),
       organization_id: organizationId,
     },
   };

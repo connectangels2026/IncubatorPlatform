@@ -1,6 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/backend/middleware/auth';
+import { isSuperAdminEmail } from '@/backend/lib/superadmin';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { user, errorResponse } = await verifyAuth(req);
+  if (errorResponse) return errorResponse;
+
+  const isSA = await isSuperAdminEmail(user?.email);
+  if (!isSA && user?.role !== 'super-admin') {
+    return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
+  }
   const data = {
     status: 'success',
     timestamp: new Date().toISOString(),
