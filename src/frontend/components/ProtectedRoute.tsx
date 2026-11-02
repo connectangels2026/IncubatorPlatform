@@ -53,16 +53,28 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
             headers: authHeaders,
           });
           const data = await res.json();
-          const app = data?.success && data?.data ? data.data : null;
-          const status = (app?.status || '').toLowerCase();
+          const appsList: any[] = data?.applications || (data?.data ? [data.data] : []);
 
-          // 1. If application submitted, under review, or rejected -> route to status review page
-          if (app && (status === 'submitted' || status === 'under_review' || status === 'rejected')) {
-            router.push(`/programs/preincubator/status?id=${app.id}`);
+          // 1. Check if user has at least one accepted or admitted application
+          const hasAcceptedApp = appsList.some((a: any) => {
+            const s = (a?.status || '').toLowerCase();
+            return s === 'accepted' || s === 'admitted';
+          });
+
+          if (hasAcceptedApp) {
+            // Admitted startup founder: grant access directly
+            if (isMounted) setIsCheckingApplication(false);
             return;
           }
 
-          // 2. Check if user has an organization_id assigned
+          // 2. If no accepted application but has pending/rejected applications -> route to status page
+          if (appsList.length > 0) {
+            const targetApp = appsList[0];
+            router.push(`/programs/preincubator/status?id=${targetApp.id}`);
+            return;
+          }
+
+          // 3. Check if user has an organization_id assigned (incubators / staff)
           const meRes = await fetch('/api/v1/auth/me', { headers: authHeaders });
           let hasOrg = false;
           if (meRes.ok) {
@@ -70,12 +82,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
             hasOrg = !!meData?.organization?.id;
           }
 
-          // If no approved organization, strictly block dashboard access
+          // If no approved organization and no applications, route to appropriate onboarding
           if (!hasOrg) {
-            if (app) {
-              router.push(`/programs/preincubator/status?id=${app.id}`);
-              return;
-            }
             if (!role) {
               router.push('/auth/choose-role');
               return;

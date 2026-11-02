@@ -134,10 +134,11 @@ export default function SuperAdminApplicationsPage() {
       : 'Recently';
 
     const incubatorName =
-      r.incubator_name ||
       r.incubator_name_text ||
-      fd.incubatorName ||
+      r.incubator_name ||
       r.organization?.name ||
+      fd.incubatorName ||
+      fd.selected_incubator_name ||
       'General Application';
 
     return {
@@ -737,22 +738,31 @@ export default function SuperAdminApplicationsPage() {
 
                         {/* Column 4: Super Admin Decision Status */}
                         <td className="py-4 px-4">
-                          <div
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border ${getStatusBadgeClass(
-                              app.status
-                            )}`}
-                          >
-                            {app.status === 'Pending Decision' && (
-                              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                          <div className="space-y-1">
+                            <div
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border ${getStatusBadgeClass(
+                                app.status
+                              )}`}
+                            >
+                              {app.status === 'Pending Decision' && (
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                              )}
+                              {app.status === 'Forwarded' && (
+                                <Building2 className="w-3 h-3 text-blue-600" />
+                              )}
+                              {app.status === 'Admitted' && (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              )}
+                              {app.status === 'Rejected' && <X className="w-3 h-3 text-rose-500" />}
+                              <span>{app.status}</span>
+                            </div>
+
+                            {app.status === 'Forwarded' && app.incubatorName && app.incubatorName !== 'General Application' && (
+                              <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1 max-w-[180px] truncate" title={app.incubatorName}>
+                                <span className="text-slate-400 font-medium">to</span>
+                                <span className="text-blue-900 font-black truncate">{app.incubatorName}</span>
+                              </p>
                             )}
-                            {app.status === 'Forwarded' && (
-                              <Building2 className="w-3 h-3 text-blue-600" />
-                            )}
-                            {app.status === 'Admitted' && (
-                              <Check className="w-3 h-3 text-emerald-600" />
-                            )}
-                            {app.status === 'Rejected' && <X className="w-3 h-3 text-rose-500" />}
-                            <span>{app.status}</span>
                           </div>
                         </td>
 
@@ -903,6 +913,23 @@ export default function SuperAdminApplicationsPage() {
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 space-y-4">
               {dossierTab === 1 && (
                 <div className="space-y-4">
+                  {activeApp.status === 'Forwarded' && activeApp.incubatorName && activeApp.incubatorName !== 'General Application' && (
+                    <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-black text-blue-950 text-xs">
+                            Forwarded to {activeApp.incubatorName}
+                          </p>
+                          <p className="text-[11px] text-blue-700 font-medium">
+                            Assigned by Super Admin for incubator evaluation & cohort admission decision.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-1">
                       <span className="text-[10px] font-extrabold text-slate-400 uppercase">Phone & WhatsApp</span>
@@ -972,12 +999,18 @@ export default function SuperAdminApplicationsPage() {
             </div>
 
             {/* Bottom Actions inside Modal */}
-            <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
+            <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold text-slate-500">Current Status:</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${getStatusBadgeClass(activeApp.status)}`}>
                   {activeApp.status}
                 </span>
+                {activeApp.status === 'Forwarded' && activeApp.incubatorName && activeApp.incubatorName !== 'General Application' && (
+                  <span className="text-xs font-bold text-blue-800 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 flex items-center gap-1.5">
+                    <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Forwarded to: <strong className="text-blue-950 font-black">{activeApp.incubatorName}</strong></span>
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
