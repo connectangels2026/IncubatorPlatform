@@ -17,6 +17,7 @@ export async function middleware(req: NextRequest) {
   const isProtectedUserPage =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/startup/dashboard') ||
+    pathname.includes('/status') ||
     pathname === '/choose-role';
 
   if (isSuperAdminPage || isProtectedUserPage) {
@@ -30,7 +31,7 @@ export async function middleware(req: NextRequest) {
     if (!hasAuthSession) {
       const redirectPath = isSuperAdminPage ? '/super-admin/login' : '/login';
       const loginUrl = new URL(redirectPath, req.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      loginUrl.searchParams.set('redirect', pathname + req.nextUrl.search);
       return NextResponse.redirect(loginUrl);
     }
 
@@ -40,6 +41,11 @@ export async function middleware(req: NextRequest) {
   // ---------------------------------------------------------------------------
   // 2. API ROUTE PROTECTION
   // ---------------------------------------------------------------------------
+  // Item 5: Only public initial application submission and status lookup are exempt
+  const isPublicApplicationAction =
+    (req.method === 'POST' && pathname === '/api/v1/applications') ||
+    pathname.startsWith('/api/v1/applications/status');
+
   const isProtectedApiRoute =
     pathname.startsWith('/api/v1/') &&
     !pathname.includes('/auth/login') &&
@@ -51,7 +57,7 @@ export async function middleware(req: NextRequest) {
     !pathname.includes('/auth/google-callback') &&
     !pathname.includes('/reports/dashboard') &&
     !pathname.startsWith('/api/v1/incubators') &&
-    !pathname.startsWith('/api/v1/applications');
+    !isPublicApplicationAction;
 
   if (isProtectedApiRoute) {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
@@ -65,10 +71,13 @@ export async function middleware(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
     }
 
-    // Support dev/test mock tokens
+    // Item 4: Support dev/test mock tokens strictly on localhost
+    const host = req.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
     const cleanToken = token.replace(/^(Bearer\s*)+/i, '').trim().toLowerCase();
     if (
       process.env.NODE_ENV !== 'production' &&
+      isLocalhost &&
       (cleanToken.includes('mock') || cleanToken.includes('admin') || cleanToken.includes('founder'))
     ) {
       return res;
@@ -113,5 +122,9 @@ export const config = {
     '/super-admin',
     '/super-admin/:path*',
     '/choose-role',
+    '/programs/preincubator/status',
+    '/programs/preincubator/status/:path*',
+    '/programs/:path*/status',
+    '/programs/:path*/status/:subpath*',
   ],
 };

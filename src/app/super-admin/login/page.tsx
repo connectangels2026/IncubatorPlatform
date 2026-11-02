@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 import { supabase } from '@/backend/lib/supabase';
+import { useAuth } from '@/frontend/context/AuthContext';
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,26 +23,30 @@ export default function SuperAdminLoginPage() {
     setError(null);
 
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail !== 'shadmannc0516@gmail.com') {
-
-      setError('Access Denied: Only authorized Super Admins can access this console.');
-      return;
-    }
-
     setIsLoading(true);
-    try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: password.trim(),
-      });
 
-      if (authError || !data.user) {
-        setError(authError?.message || 'Invalid credentials. Please verify your Super Admin password.');
+    try {
+      const res = await login(cleanEmail, password.trim());
+
+      if (!res.success) {
+        setError(res.error || 'Invalid credentials. Please verify your Super Admin password.');
         setIsLoading(false);
         return;
       }
 
-      router.push('/super-admin/dashboard');
+      const userRole = (res.user as any)?.role?.toLowerCase();
+      const isSuperAdmin =
+        userRole === 'super-admin' ||
+        userRole === 'super_admin' ||
+        cleanEmail === 'shadmannc0516@gmail.com';
+
+      if (!isSuperAdmin) {
+        setError('Access Denied: Only authorized Super Admins can access this console.');
+        setIsLoading(false);
+        return;
+      }
+
+      window.location.replace('/super-admin/dashboard');
     } catch (err: any) {
       setError(err?.message || 'Authentication failed. Please try again.');
       setIsLoading(false);

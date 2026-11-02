@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Upstash Redis session & token management
@@ -82,7 +83,27 @@ export const isValidToken = async (token: string): Promise<boolean> => {
   }
 
   const memSession = memorySessions.get(token);
-  return memSession ? memSession.is_active : true;
+  if (memSession) {
+    return Boolean(memSession.is_active);
+  }
+
+  // Cross-runtime verification fallback:
+  // If not explicitly recorded in local memory, cryptographically verify token signature with Supabase.
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (supabaseUrl && supabaseAnonKey) {
+      const sb = createClient(supabaseUrl, supabaseAnonKey);
+      const { data: { user }, error } = await sb.auth.getUser(token);
+      if (!error && user) {
+        return true;
+      }
+    }
+  } catch {
+    // Verification failed
+  }
+
+  return false;
 };
 
 /**

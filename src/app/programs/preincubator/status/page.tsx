@@ -53,7 +53,7 @@ function StatusContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryId = searchParams.get('id');
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
 
   const [application, setApplication] = useState<ApplicationData | null>(null);
   const [allApplications, setAllApplications] = useState<any[]>([]);
@@ -72,6 +72,7 @@ function StatusContent() {
   // Notify Incubator Cooldown State
   const [notifyCooldown, setNotifyCooldown] = useState<number>(0);
   const [isNotifying, setIsNotifying] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   const isDashboardAssigned = Boolean(
     application?.admission_status === 'dashboard_assigned' ||
@@ -87,14 +88,23 @@ function StatusContent() {
   // Access Guard: Incubator staff without a specific application ID redirect to their incubator workspace.
   // Super Admins and Startup Applicants stay on this Review page.
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      const redirectTarget = window.location.pathname + window.location.search;
+      if (typeof window !== 'undefined') {
+        window.location.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+      } else {
+        router.push(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+      }
+      return;
+    }
 
     if (isIncubator && !queryId) {
       const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
       router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
       return;
     }
-  }, [user, isIncubator, queryId, router]);
+  }, [user, authLoading, isIncubator, queryId, router]);
 
   const triggerToast = (message: string) => {
     setToast({ show: true, message });
@@ -103,6 +113,7 @@ function StatusContent() {
 
   // Fetch application details from database
   const loadApplication = async (isManualRefresh = false, targetId?: string) => {
+    if (!user) return;
     if (isManualRefresh) setRefreshing(true);
     else setIsLoading(true);
 
@@ -137,10 +148,22 @@ function StatusContent() {
         }
       } catch (e: any) {
         console.warn('Status lookup:', e?.message);
+        if (e?.response?.status === 401) {
+          const redirectTarget = window.location.pathname + window.location.search;
+          router.push(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+          return;
+        }
+        if (e?.response?.status === 403) {
+          triggerToast('You are not authorized to view this application.');
+          setIsUnauthorized(true);
+          setApplication(null);
+          return;
+        }
       }
 
       // Fallback demo mock if completely offline
-      setApplication({
+      if (process.env.NODE_ENV !== 'production' && user) {
+        setApplication({
         id: effectiveId || '24613676-8e4a-4246-bf3c-9dc6e7070eaa',
         applicant_name: (user as any)?.name || (user as any)?.user_metadata?.full_name || 'Founder',
         applicant_email: user?.email || 'founder@arba360.com',
@@ -153,6 +176,7 @@ function StatusContent() {
           businessStage: 'Idea / Validation Phase',
         },
       });
+      }
     } catch (err: any) {
       console.warn('Status load error:', err?.message);
     } finally {
@@ -162,6 +186,7 @@ function StatusContent() {
   };
 
   useEffect(() => {
+    if (!user) return;
     loadApplication(false, queryId || undefined);
 
     // Subscribe to real-time changes on applications table
@@ -386,6 +411,46 @@ function StatusContent() {
 
   const displayRefId = application?.id ? `#${application.id.slice(0, 8)}-${application.id.slice(9, 13)}` : '#24613676-8e4a';
   const isPending = !application || application.status === 'submitted' || application.status === 'under_review';
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h2>
+        <p className="text-sm text-slate-500 max-w-md mb-6">
+          You do not have permission to view this application. This reference belongs to another founder.
+        </p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/programs/preincubator/status"
+            onClick={() => {
+              setIsUnauthorized(false);
+              loadApplication();
+            }}
+            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-700 transition"
+          >
+            View My Application
+          </Link>
+          <Link
+            href="/dashboard"
+            className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-300 transition"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen text-slate-800 bg-[#F8FAFC] flex flex-col justify-between antialiased selection:bg-blue-600 selection:text-white">

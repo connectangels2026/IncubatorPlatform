@@ -11,7 +11,20 @@ export interface AuthenticatedUser {
 }
 
 export async function verifyAuth(req: NextRequest): Promise<{ user: AuthenticatedUser | null; errorResponse?: NextResponse }> {
-  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  let authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  if (!authHeader) {
+    const allCookies = req.cookies.getAll();
+    const sbCookie = allCookies.find((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
+    if (sbCookie) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(sbCookie.value));
+        const tokenVal = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+        if (tokenVal) authHeader = `Bearer ${tokenVal}`;
+      } catch {
+        // Continue if cookie cannot be parsed
+      }
+    }
+  }
   if (!authHeader) {
     return {
       user: null,
@@ -22,7 +35,10 @@ export async function verifyAuth(req: NextRequest): Promise<{ user: Authenticate
   // Strip all leading "Bearer" prefixes and trim
   const token = authHeader.replace(/^(Bearer\s*)+/i, '').trim();
 
-  if (process.env.NODE_ENV !== 'production') {
+  const host = req.headers.get('host') || '';
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+
+  if (process.env.NODE_ENV !== 'production' && isLocalhost) {
     const lower = token.toLowerCase();
     if (lower.includes('admin')) {
       return {

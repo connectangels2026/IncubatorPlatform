@@ -65,11 +65,12 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('org_id');
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
-        supabase.auth.signOut().catch(() => {});
-      } catch {}
+        supabase.auth.signOut().catch(() => { });
+      } catch { }
 
       if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/auth')) {
-        window.location.href = '/login?expired=true';
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.href = `/login?expired=true&redirect=${encodeURIComponent(currentUrl)}`;
       }
     }
     return Promise.reject(error);

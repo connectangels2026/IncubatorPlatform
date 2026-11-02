@@ -172,7 +172,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Keep the browser Supabase client in sync with the API session so
       // protected routes and client-side queries can authenticate.
-      if (password) {
+      if (data.session?.access_token && data.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      } else if (password) {
         const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
         if (sessionError) {
           return {

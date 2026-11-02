@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import SuperAdminSidebar from '@/frontend/components/super-admin/Sidebar';
+import { supabase } from '@/backend/lib/supabase';
 
 export default function SuperAdminDashboard() {
   const [activeFilter, setActiveFilter] = useState<'month' | 'quarter' | 'year'>('month');
@@ -31,10 +32,21 @@ export default function SuperAdminDashboard() {
   const [dashboardData, setDashboardData] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/v1/super-admin/dashboard')
-      .then((res) => res.json())
-      .then((data) => setDashboardData(data))
-      .catch((err) => console.error('Error loading dashboard KPIs:', err));
+    async function loadKPIs() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        const res = await fetch('/api/v1/super-admin/dashboard', { headers });
+        const data = await res.json();
+        setDashboardData(data);
+      } catch (err) {
+        console.error('Error loading dashboard KPIs:', err);
+      }
+    }
+    loadKPIs();
   }, []);
 
   // SVG Area Chart points for 12 months
