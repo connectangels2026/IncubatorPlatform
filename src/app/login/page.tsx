@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { signInWithGoogle } from '@/backend/services/auth';
+import { supabase } from '@/backend/lib/supabase';
 import Logo from '@/frontend/components/ui/Logo';
 
 function LoginForm() {
@@ -37,29 +38,54 @@ function LoginForm() {
       return;
     }
 
-    const role = roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role;
-    const emailToCheck = userEmail || user?.email;
+    const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    const cachedOrgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
 
-    // If user has not chosen a role yet, strictly route to /auth/choose-role
-    if (!role && emailToCheck?.toLowerCase() !== 'shadmannc0516@gmail.com') {
+    let role = (roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
+    const emailToCheck = (userEmail || user?.email || '').trim().toLowerCase();
+    let effectiveOrgId = orgId || cachedOrgId;
+
+    const fetchMeWithAuth = async () => {
       try {
-        const meRes = await fetch('/api/v1/auth/me');
-        const meData = await meRes.json();
-        if (!meData?.user?.role) {
-          router.push('/auth/choose-role');
-          return;
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
         }
-      } catch (e) {
+        const res = await fetch('/api/v1/auth/me', { headers });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.warn('Error fetching auth me:', err);
+      }
+      return null;
+    };
+
+    // If role is still unknown, fetch with auth token
+    if (!role && emailToCheck && emailToCheck !== 'shadmannc0516@gmail.com') {
+      const meData = await fetchMeWithAuth();
+      if (meData?.user?.role) {
+        role = meData.user.role.toLowerCase();
+        if (typeof window !== 'undefined') localStorage.setItem('user_role', role);
+      }
+      if (meData?.organization?.id) {
+        effectiveOrgId = meData.organization.id;
+        if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
+      }
+
+      if (!role) {
         router.push('/auth/choose-role');
         return;
       }
     }
+
     if (emailToCheck) {
-      const emailLower = emailToCheck.toLowerCase();
       // 1. Super Admin account routing
       if (
-        emailLower === 'shadmannc0516@gmail.com' ||
-        role === 'super-admin'
+        emailToCheck === 'shadmannc0516@gmail.com' ||
+        role === 'super-admin' ||
+        role === 'super_admin'
       ) {
         router.push('/super-admin/dashboard');
         return;
@@ -71,19 +97,12 @@ function LoginForm() {
         role === 'incubator_admin' ||
         role === 'incubator';
 
-      let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-
       if (isIncubatorRole) {
         if (!effectiveOrgId) {
-          try {
-            const meRes = await fetch('/api/v1/auth/me');
-            const meData = await meRes.json();
-            if (meData?.organization?.id) {
-              effectiveOrgId = meData.organization.id;
-              if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
-            }
-          } catch (e) {
-            console.warn('Could not fetch org for incubator routing:', e);
+          const meData = await fetchMeWithAuth();
+          if (meData?.organization?.id) {
+            effectiveOrgId = meData.organization.id;
+            if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
           }
         }
         router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
@@ -91,21 +110,24 @@ function LoginForm() {
       }
 
       // 3. Check if user owns an incubator organization in database
-      try {
-        const meRes = await fetch('/api/v1/auth/me');
-        const meData = await meRes.json();
-        if (meData?.organization?.id) {
-          if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
-          router.push(`/dashboard?org=${meData.organization.id}`);
-          return;
+      const meData = await fetchMeWithAuth();
+      if (meData?.organization?.id) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('org_id', meData.organization.id);
+          localStorage.setItem('user_role', 'incubator_admin');
         }
-      } catch (e) {
-        // Fallback to startup application checks
+        router.push(`/dashboard?org=${meData.organization.id}`);
+        return;
       }
 
-      // Startup routing: check if any incubator has accepted an application
+      // 4. Startup routing: check if any incubator has accepted an application
       try {
-        const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailLower)}`);
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailToCheck)}`, { headers });
         const data = await res.json();
         const apps: any[] = data?.applications || (data?.data ? [data.data] : []);
 
@@ -120,7 +142,7 @@ function LoginForm() {
 
         if (hasDashboardAccess && acceptedApp) {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
-          router.push(`/startup/dashboard`);
+          router.push('/startup/dashboard');
           return;
         }
 
@@ -141,7 +163,7 @@ function LoginForm() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !isLoading && !authLoading && !redirectingToRole.current) {
-      routeUserAfterAuth(user.email);
+      routeUserAfterAuth(user.email, undefined, (user as any)?.role);
     }
   }, [user, isLoading, authLoading, router, redirectTo]);
 

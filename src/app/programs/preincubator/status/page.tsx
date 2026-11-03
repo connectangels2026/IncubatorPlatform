@@ -79,7 +79,8 @@ function StatusContent() {
     application?.form_data?.dashboard_access_granted
   );
 
-  const userRole = (user as any)?.role?.toLowerCase() || (user as any)?.user_metadata?.role?.toLowerCase() || '';
+  const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+  const userRole = (user as any)?.role?.toLowerCase() || (user as any)?.user_metadata?.role?.toLowerCase() || cachedRole?.toLowerCase() || '';
   const emailLower = user?.email?.toLowerCase() || '';
   const isSuperAdmin = userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';
   const isIncubator = !isSuperAdmin && (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator');
