@@ -11,10 +11,12 @@ export async function GET(req: NextRequest) {
 
     // Auth verification
     let authUserEmail: string | null = null;
+    let authUserId: string | null = null;
     let authUserRole: string | null = null;
     try {
       const { user } = await verifyAuth(req);
       if (user) {
+        authUserId = user.id || null;
         authUserEmail = user.email ? user.email.toLowerCase().trim() : null;
         authUserRole = user.role?.toLowerCase() || null;
       }
@@ -25,14 +27,14 @@ export async function GET(req: NextRequest) {
     const isStaff = authUserRole === 'admin' || authUserRole === 'super-admin' || authUserRole === 'super_admin';
     const effectiveEmail = (authUserEmail || (isStaff ? paramEmail : null) || '').trim().toLowerCase();
 
-    if (!isStaff && !authUserEmail) {
+    if (!isStaff && !authUserEmail && !authUserId) {
       return NextResponse.json(
         { error: 'Unauthorized: Authentication required to view application status' },
         { status: 401 }
       );
     }
 
-    if (!id && !effectiveEmail) {
+    if (!id && !effectiveEmail && !authUserId) {
       return NextResponse.json({ error: 'Missing application id or authentication' }, { status: 400 });
     }
 
@@ -64,31 +66,54 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      // Security check: If targetApplication is found, verify ownership
-      if (targetApplication) {
+      // Security check: Verify application belongs strictly to currently authenticated user using User ID & Email
+      if (targetApplication && !isStaff) {
         const appEmail = (targetApplication.applicant_email || '').trim().toLowerCase();
-        if (!isStaff) {
-          if (!authUserEmail) {
-            return NextResponse.json({ error: 'Unauthorized: Authentication required to view application status' }, { status: 401 });
-          }
-          if (appEmail !== authUserEmail) {
-            return NextResponse.json({ error: 'Forbidden: You can only view your own applications' }, { status: 403 });
-          }
+        const appCreatedBy = targetApplication.created_by;
+        const appUserId = targetApplication.form_data?.userId || targetApplication.user_id;
+
+        const isOwner =
+          (authUserEmail && appEmail === authUserEmail) ||
+          (authUserId && appCreatedBy === authUserId) ||
+          (authUserId && appUserId === authUserId);
+
+        if (!isOwner) {
+          return NextResponse.json(
+            { error: 'Forbidden: You do not have permission to view this application' },
+            { status: 403 }
+          );
         }
       }
     }
 
-    // Fetch all applications for this founder so they can switch between incubators
+    // Fetch all applications strictly belonging to the currently authenticated user
     let founderApplications: any[] = [];
-    const lookupEmail = isStaff && paramEmail ? paramEmail.toLowerCase().trim() : (authUserEmail || targetApplication?.applicant_email?.toLowerCase());
-    if (lookupEmail) {
+    if (isStaff && paramEmail) {
       const { data: apps, error: appsError } = await supabaseAdmin
         .from('applications')
         .select('*, organization:organizations!organization_id(id, name, slug, description, logo_url)')
-        .ilike('applicant_email', lookupEmail)
+        .ilike('applicant_email', paramEmail.trim().toLowerCase())
         .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
+      if (appsError) throw appsError;
+      founderApplications = apps || [];
+    } else if (authUserId || authUserEmail) {
+      let query = supabaseAdmin
+        .from('applications')
+        .select('*, organization:organizations!organization_id(id, name, slug, description, logo_url)')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (authUserId && authUserEmail) {
+        query = query.or(`created_by.eq.${authUserId},applicant_email.ilike.${authUserEmail}`);
+      } else if (authUserId) {
+        query = query.eq('created_by', authUserId);
+      } else if (authUserEmail) {
+        query = query.ilike('applicant_email', authUserEmail);
+      }
+
+      const { data: apps, error: appsError } = await query;
       if (appsError) throw appsError;
       founderApplications = apps || [];
     }

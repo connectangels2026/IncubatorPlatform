@@ -124,14 +124,11 @@ function StatusContent() {
       const headers: Record<string, string> = { 'x-org-id': 'all' };
       if (token) headers['Authorization'] = token;
 
-      const searchEmail =
-        user?.email ||
-        (typeof window !== 'undefined' ? localStorage.getItem('last_applicant_email') : '');
+      const searchEmail = user?.email || '';
 
-      const effectiveId =
-        targetId ||
-        queryId ||
-        (typeof window !== 'undefined' ? localStorage.getItem('last_application_id') : null);
+      // Only query specific id if explicitly requested via targetId or URL query string ?id=
+      // Never use stale localStorage values from other accounts
+      const effectiveId = targetId || queryId || null;
 
       let url = '/applications/status?';
       if (effectiveId) url += `id=${encodeURIComponent(effectiveId)}&`;
@@ -432,10 +429,62 @@ function StatusContent() {
 
   if (authLoading || !user || (isLoading && !application)) {
     return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="max-w-2xl w-full mx-auto space-y-5">
+          {/* Top Status Card Skeleton */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm animate-pulse space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="h-6 w-36 bg-slate-200 rounded-lg" />
+              <div className="h-6 w-28 bg-blue-100 rounded-full" />
+            </div>
+            <div className="h-4 w-52 bg-slate-200 rounded" />
+            <div className="h-12 w-full bg-slate-100 rounded-xl" />
+          </div>
+
+          {/* Progress Timeline Skeleton */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-200/80 shadow-sm animate-pulse space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="h-14 bg-slate-100 rounded-xl" />
+              <div className="h-14 bg-slate-100 rounded-xl" />
+              <div className="h-14 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="h-20 w-full bg-slate-100 rounded-xl mt-4" />
+          </div>
+
+          <div className="text-center pt-2">
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200/80 shadow-2xs">
+              <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+              <span>Verifying authenticated application ownership...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case where user has no submitted applications
+  if (!isLoading && !application && !isUnauthorized) {
+    return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm font-semibold text-slate-700">Loading your application details...</p>
-        <p className="text-xs text-slate-400 mt-1">Verifying startup credentials and application status</p>
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
+            <FileText className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-[#1A2151]">No Applications Found</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              No cohort applications found for your account. Explore partner incubators and apply to get started.
+            </p>
+          </div>
+          <Link
+            href="/programs"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm w-full"
+          >
+            <span>Explore Programs</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
     );
   }
