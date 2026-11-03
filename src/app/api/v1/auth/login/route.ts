@@ -32,23 +32,60 @@ export async function POST(req: Request) {
       );
     }
 
-    // Query user profile and organization
+    const cleanEmail = email.trim().toLowerCase();
+    const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
+
+    // Query user profile by auth_user_id, id, or email (case-insensitive) to prevent duplicates
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, email_verified, role, organization_id')
-      .eq('email', email.toLowerCase())
+      .or(`id.eq.${data.user.id},auth_user_id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+      .limit(1)
       .maybeSingle();
 
-    const isSuperAdmin = (await isSuperAdminEmail(email)) || userData?.role === 'super-admin';
-    if (!userData && isSuperAdmin) {
-      const { data: newAdmin } = await supabaseAdmin
+    // Auto-provision missing public.users record for authenticated Supabase user
+    if (!userData && data.user) {
+      const resolvedRole = isSuperAdmin
+        ? 'super-admin'
+        : (data.user.user_metadata?.role || data.user.user_metadata?.selected_role || null);
+
+      const fullName =
+        data.user.user_metadata?.full_name ||
+        data.user.user_metadata?.name ||
+        data.user.user_metadata?.founder_name ||
+        cleanEmail.split('@')[0] ||
+        'User';
+
+      const insertPayload: Record<string, any> = {
+        id: data.user.id,
+        auth_user_id: data.user.id,
+        email: cleanEmail,
+        full_name: fullName,
+        first_name: fullName.split(' ')[0] || fullName,
+        role: resolvedRole,
+        email_verified: Boolean(data.user.email_confirmed_at || isSuperAdmin),
+      };
+
+      const { data: createdUser, error: insertUserErr } = await supabaseAdmin
         .from('users')
-        .upsert({ email: email.toLowerCase(), role: 'super-admin', email_verified: true }, { onConflict: 'email' })
-        .select()
+        .insert(insertPayload)
+        .select('id, email, email_verified, role, organization_id')
         .maybeSingle();
-      userData = newAdmin || { id: data.user.id, email: email.toLowerCase(), role: 'super-admin', email_verified: true };
+
+      if (insertUserErr) {
+        console.warn('Auto-provisioning user insert notice:', insertUserErr);
+        const { data: fetchedAfterInsert } = await supabaseAdmin
+          .from('users')
+          .select('id, email, email_verified, role, organization_id')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        userData = fetchedAfterInsert || (insertPayload as any);
+      } else {
+        userData = createdUser || (insertPayload as any);
+      }
     }
-    if (userError || !userData) {
+
+    if (!userData) {
       console.error('User not found:', userError);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' },

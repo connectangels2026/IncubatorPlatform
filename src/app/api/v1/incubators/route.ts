@@ -170,13 +170,54 @@ export async function POST(req: NextRequest) {
 
     const newOrg = result.data;
 
-    // Link user in public.users table with organization_id and admin role
+    // Create corresponding subscription record in organization_subscriptions
+    let subData: any = null;
+    try {
+      const { data: createdSub } = await supabaseAdmin
+        .from('organization_subscriptions')
+        .insert({
+          organization_id: newOrg.id,
+          tier: cleanTier,
+          status: 'active',
+          payment_status: 'paid',
+          monthly_cost: cleanCycle === 'monthly' ? (cleanTier === 'pro' ? 4999 : cleanTier === 'enterprise' ? 9999 : 0) : 0,
+          annual_cost: cleanCycle === 'annual' ? (cleanTier === 'pro' ? 39999 : cleanTier === 'enterprise' ? 79999 : 0) : 0,
+          currency: 'INR',
+          billing_email: billEmail,
+          max_startups: maxStartups,
+          max_mentors: maxMentors,
+          created_by: user?.id || null,
+        })
+        .select()
+        .maybeSingle();
+      subData = createdSub;
+    } catch (subErr) {
+      console.warn('Subscription insertion notice:', subErr);
+    }
+
+    // Verify confirmation that subscription record exists in subscriptions / organization_subscriptions table
+    let hasActiveSubscription = Boolean(subData?.id);
+    if (!hasActiveSubscription) {
+      const { data: verifySub } = await supabaseAdmin
+        .from('organization_subscriptions')
+        .select('id, status, payment_status')
+        .eq('organization_id', newOrg.id)
+        .eq('status', 'active')
+        .limit(1)
+        .maybeSingle();
+      hasActiveSubscription = Boolean(verifySub?.id);
+    }
+
+    // Assign incubator role only after successful payment and confirmation of subscription record
+    const assignedRole = hasActiveSubscription ? 'incubator_admin' : 'pending_incubator';
+
+    // Link user in public.users table with organization_id and verified role
     if (user?.email) {
       await supabaseAdmin
         .from('users')
         .update({
           organization_id: newOrg.id,
-          role: 'admin',
+          role: assignedRole,
         })
         .eq('email', user.email);
     }
@@ -185,7 +226,7 @@ export async function POST(req: NextRequest) {
     if (user?.id) {
       await supabaseAdmin.auth.admin.updateUserById(user.id, {
         user_metadata: {
-          role: 'admin',
+          role: assignedRole,
           organization_id: newOrg.id,
         },
       });

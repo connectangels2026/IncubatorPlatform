@@ -427,13 +427,15 @@ function StatusContent() {
     }
   }, [application?.created_at]);
 
-  const displayRefId = application?.id ? `#${application.id.slice(0, 8)}-${application.id.slice(9, 13)}` : '#24613676-8e4a';
+  const displayRefId = application?.id ? `#${application.id.slice(0, 8)}-${application.id.slice(9, 13)}` : '';
   const isPending = !application || application.status === 'submitted' || application.status === 'under_review';
 
-  if (authLoading || !user) {
+  if (authLoading || !user || (isLoading && !application)) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm font-semibold text-slate-700">Loading your application details...</p>
+        <p className="text-xs text-slate-400 mt-1">Verifying startup credentials and application status</p>
       </div>
     );
   }
@@ -654,7 +656,7 @@ function StatusContent() {
                 title="Click to copy Application Reference ID"
               >
                 <span className="text-slate-400 font-sans text-[11px] font-bold">REF:</span>
-                <span className="font-bold text-[#1A2151]">{displayRefId}</span>
+                <span className="font-bold text-[#1A2151]">{displayRefId || '#PENDING'}</span>
                 <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
               </button>
             </div>
@@ -1113,7 +1115,7 @@ function StatusContent() {
               </button>
             </div>
             <p className="text-xs text-slate-600">
-              Have a query regarding application <strong className="text-[#1A2151]">{displayRefId}</strong>?
+              Have a query regarding application <strong className="text-[#1A2151]">{displayRefId || 'this application'}</strong>?
             </p>
 
             <div className="space-y-3 text-xs">
