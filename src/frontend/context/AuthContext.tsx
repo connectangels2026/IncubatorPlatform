@@ -21,7 +21,7 @@ interface AuthContextType {
   organization: Organization | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization; user?: any; next_step?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization; user?: any; next_step?: string; redirect_to?: string }>;
   signup: (founder_name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -209,6 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         if (data.organization?.id) {
           localStorage.setItem('org_id', data.organization.id);
+        } else if (data.accepted_organization_id) {
+          localStorage.setItem('org_id', data.accepted_organization_id);
         }
         if (data.organization?.founder_name) {
           localStorage.setItem('org_founder_name', data.organization.founder_name);
@@ -223,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         organization: data.organization,
         user: data.user,
         next_step: data.next_step,
+        redirect_to: data.redirect_to,
       };
     } catch (err: any) {
       const msg = err.message || 'Failed to login';

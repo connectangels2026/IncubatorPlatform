@@ -106,33 +106,19 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         orgData = oData;
-      }
-
-      // Fallback 1: lookup by auth_user_id
-      if (!orgData && data.user?.id) {
-        const { data: oDataByAuth } = await supabaseAdmin
+      } else {
+        // Fallback: lookup by auth_user_id or founder_email in a single query
+        const { data: oDataFallback } = await supabaseAdmin
           .from('organizations')
           .select('id, slug, name, founder_name, founder_email, is_verified')
-          .eq('auth_user_id', data.user.id)
+          .or(`auth_user_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
+          .limit(1)
           .maybeSingle();
 
-        if (oDataByAuth) orgData = oDataByAuth;
-      }
-
-      // Fallback 2: lookup by founder_email
-      if (!orgData && email) {
-        const { data: oDataByEmail } = await supabaseAdmin
-          .from('organizations')
-          .select('id, slug, name, founder_name, founder_email, is_verified')
-          .ilike('founder_email', email.trim())
-          .maybeSingle();
-
-        if (oDataByEmail) orgData = oDataByEmail;
-      }
-
-      // Sync organization_id back to users table if missing
-      if (orgData?.id && !userData.organization_id) {
-        await supabaseAdmin.from('users').update({ organization_id: orgData.id }).eq('id', userData.id);
+        if (oDataFallback) {
+          orgData = oDataFallback;
+          supabaseAdmin.from('users').update({ organization_id: orgData.id }).eq('id', userData.id).then();
+        }
       }
     }
 
@@ -163,10 +149,48 @@ export async function POST(req: Request) {
       );
     }
 
+    // Calculate immediate redirect target server-side to avoid client-side waterfalls
+    const userRole = (isSuperAdmin ? 'super-admin' : (userData.role || '')).toLowerCase();
+    let redirectTo = '/programs/preincubator/status';
+    let acceptedOrgId: string | null = null;
+
+    if (isSuperAdmin || userRole === 'super-admin' || userRole === 'super_admin') {
+      redirectTo = '/super-admin/dashboard';
+    } else if (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator') {
+      redirectTo = orgData?.id ? `/dashboard?org=${orgData.id}` : '/dashboard';
+    } else if (userRole === 'pending_incubator') {
+      redirectTo = '/auth/incubator-plans';
+    } else {
+      // Startup or applicant: verify accepted application status in one query
+      const { data: acceptedApp } = await supabaseAdmin
+        .from('applications')
+        .select('organization_id, status, admission_status, form_data')
+        .or(`created_by.eq.${data.user.id},applicant_email.ilike.${cleanEmail}`)
+        .in('status', ['accepted', 'admitted'])
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const hasDashboardAccess = Boolean(
+        acceptedApp &&
+        (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
+      );
+
+      if (hasDashboardAccess && acceptedApp) {
+        redirectTo = '/startup/dashboard';
+        acceptedOrgId = acceptedApp.organization_id || null;
+      } else {
+        redirectTo = '/programs/preincubator/status';
+      }
+    }
+
     const response = NextResponse.json(
       {
         success: true,
         message: 'Login successful',
+        redirect_to: redirectTo,
+        accepted_organization_id: acceptedOrgId,
         user: {
           id: data.user.id,
           email: data.user.email,
@@ -197,9 +221,11 @@ export async function POST(req: Request) {
       const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
       const userAgent = req.headers.get('user-agent') || 'Unknown';
 
-      // Create active session record
-      await storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent);
-      await logAuthEvent('login', data.user.id);
+      // Create active session record & log auth event concurrently
+      await Promise.allSettled([
+        storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent),
+        logAuthEvent('login', data.user.id),
+      ]);
 
       // Set httpOnly refresh cookie
       response.cookies.set('refresh_token', data.session.refresh_token, {

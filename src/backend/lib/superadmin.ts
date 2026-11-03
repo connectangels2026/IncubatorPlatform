@@ -11,8 +11,13 @@ export async function isSuperAdminEmail(email?: string | null): Promise<boolean>
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) return false;
 
+  // 1. Instant check for hardcoded default super admin (avoids unnecessary DB roundtrip)
+  if (DEFAULT_SUPERADMIN_EMAILS.includes(cleanEmail)) {
+    return true;
+  }
+
   try {
-    // 1. Check superadmin table
+    // 2. Check superadmin table
     const { data: saRow, error: saErr } = await supabaseAdmin
       .from('superadmin')
       .select('id, email')
@@ -23,7 +28,7 @@ export async function isSuperAdminEmail(email?: string | null): Promise<boolean>
       return true;
     }
 
-    // 2. Fallback check for super_admins table
+    // 3. Fallback check for super_admins table
     const { data: legacyRow } = await supabaseAdmin
       .from('super_admins')
       .select('id, email')
@@ -37,7 +42,6 @@ export async function isSuperAdminEmail(email?: string | null): Promise<boolean>
     console.warn('Super Admin DB check warning:', err);
   }
 
-  // 3. Fallback for hardcoded default super admin
-  return DEFAULT_SUPERADMIN_EMAILS.includes(cleanEmail);
+  return false;
 }
 

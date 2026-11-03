@@ -109,14 +109,9 @@ function LoginForm() {
         return;
       }
 
-      // 3. Check if user owns an incubator organization in database
-      const meData = await fetchMeWithAuth();
-      if (meData?.organization?.id) {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('org_id', meData.organization.id);
-          localStorage.setItem('user_role', 'incubator_admin');
-        }
-        router.push(`/dashboard?org=${meData.organization.id}`);
+      // 3. Pending incubator routing
+      if (role === 'pending_incubator') {
+        router.push('/auth/incubator-plans');
         return;
       }
 
@@ -174,8 +169,12 @@ function LoginForm() {
     const res = await login(email, password);
 
     if (res.success) {
-      const orgId = res.organization?.id;
-      await routeUserAfterAuth(email, orgId, res.user?.role);
+      redirectingToRole.current = true;
+      const targetDestination = (redirectTo && redirectTo.startsWith('/'))
+        ? redirectTo
+        : (res.redirect_to || '/programs/preincubator/status');
+      router.push(targetDestination);
+      return;
     } else if (res.code === 'ROLE_NOT_SELECTED') {
       redirectingToRole.current = true;
       setIsLoading(false);
