@@ -15,6 +15,29 @@ export async function GET(req: NextRequest) {
 
     const emailLower = user.email.trim().toLowerCase();
 
+    // Issue 1: Incubator administrators must NOT create startup records or access startup dashboards
+    const callerRole = (user.role || '').toLowerCase();
+    if (callerRole === 'admin' || callerRole === 'incubator_admin' || callerRole === 'incubator' || callerRole === 'super-admin' || callerRole === 'super_admin') {
+      return NextResponse.json(
+        { success: false, has_assigned_dashboard: false, error: 'Forbidden: Incubator administrators do not have personal startup dashboards.' },
+        { status: 403 }
+      );
+    }
+
+    const { data: dbUserCheck } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('email', emailLower)
+      .maybeSingle();
+
+    const dbRoleCheck = (dbUserCheck?.role || '').toLowerCase();
+    if (dbRoleCheck === 'admin' || dbRoleCheck === 'incubator_admin' || dbRoleCheck === 'incubator' || dbRoleCheck === 'super-admin' || dbRoleCheck === 'super_admin') {
+      return NextResponse.json(
+        { success: false, has_assigned_dashboard: false, error: 'Forbidden: Incubator administrators do not have personal startup dashboards.' },
+        { status: 403 }
+      );
+    }
+
     // 1. Fetch startup record linked to this founder
     let { data: startup, error: stErr } = await supabaseAdmin
       .from('startups')

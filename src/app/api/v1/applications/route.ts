@@ -80,6 +80,33 @@ export async function POST(req: NextRequest) {
     const cleanEmail = body.applicant_email.toLowerCase().trim();
     const targetIncubatorName = (body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || '').trim();
 
+    // Issue 1: Admin / Incubator Admin accounts must NOT create startup records or applications
+    const callerRole = (user?.role || '').toLowerCase();
+    if (callerRole === 'admin' || callerRole === 'incubator_admin' || callerRole === 'incubator' || callerRole === 'super-admin' || callerRole === 'super_admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Incubator administrators and Super Admins cannot submit startup applications.' },
+        { status: 403 }
+      );
+    }
+
+    // Check database users table for role by email
+    const emailToCheck = (user?.email || cleanEmail).toLowerCase().trim();
+    if (emailToCheck) {
+      const { data: dbUser } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('email', emailToCheck)
+        .maybeSingle();
+
+      const dbRole = (dbUser?.role || '').toLowerCase();
+      if (dbRole === 'admin' || dbRole === 'incubator_admin' || dbRole === 'incubator' || dbRole === 'super-admin' || dbRole === 'super_admin') {
+        return NextResponse.json(
+          { error: 'Forbidden: Incubator administrators and Super Admins cannot submit startup applications.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // 1. Enforce 5-application limit on backend
     const { data: existingApps, error: countErr } = await supabaseAdmin
       .from('applications')

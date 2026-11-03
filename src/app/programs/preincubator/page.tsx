@@ -340,6 +340,24 @@ export default function PreIncubatorApplicationPage() {
             return;
           }
 
+          // Issue 1: Admin / Incubator Admin accounts must NOT display startup application forms
+          const normalizedRole = (activeRole || '').toLowerCase();
+          if (
+            normalizedRole === 'admin' ||
+            normalizedRole === 'incubator_admin' ||
+            normalizedRole === 'incubator' ||
+            normalizedRole === 'super-admin' ||
+            normalizedRole === 'super_admin'
+          ) {
+            const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+            if (normalizedRole.includes('super')) {
+              router.replace('/super-admin/dashboard');
+            } else {
+              router.replace(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+            }
+            return;
+          }
+
           // 2. Fallback: direct query to public.users table in database by email
           if (!userTableFullName && sessionEmail) {
             try {
