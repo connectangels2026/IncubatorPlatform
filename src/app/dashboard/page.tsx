@@ -130,8 +130,10 @@ export default function DashboardPage() {
         role === 'super-admin' ||
         role === 'super_admin' ||
         user?.email?.toLowerCase() === 'shadmannc0516@gmail.com';
+      const isStartupUserRole = role === 'startup' || role === 'founder';
       const isIncubator =
         !isSuperAdmin &&
+        !isStartupUserRole &&
         (role === 'admin' || role === 'incubator_admin' || role === 'incubator' || Boolean(organization?.id || (user as any)?.organization_id));
 
       // Super Admins and Incubator staff have direct workspace access
@@ -172,11 +174,16 @@ export default function DashboardPage() {
             return !!app.organization_id;
           }) || apps.find((app: any) => app.status === 'accepted' || app.status === 'admitted') || apps[0];
 
-        // Check if startup track is chosen; if not, route to /choose-role
-        setIsStartupUser(true);
-        const hasTrack = acceptedApp.form_data?.startup_track || (typeof window !== 'undefined' && localStorage.getItem('startup_track'));
-        if (!hasTrack) {
-          router.replace('/choose-role');
+        // Startup role restriction: Startups belong in /startup/dashboard or /programs/preincubator/status
+        const isDashboardAssigned =
+          acceptedApp?.admission_status === 'dashboard_assigned' ||
+          acceptedApp?.form_data?.dashboard_access_granted === true;
+
+        if (isDashboardAssigned) {
+          router.replace('/startup/dashboard');
+          return;
+        } else {
+          router.replace('/programs/preincubator/status');
           return;
         }
 

@@ -9,23 +9,31 @@ export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get('id');
     const paramEmail = req.nextUrl.searchParams.get('email');
 
-    // Optional auth verification
+    // Auth verification
     let authUserEmail: string | null = null;
     let authUserRole: string | null = null;
     try {
       const { user } = await verifyAuth(req);
       if (user) {
-        authUserEmail = user.email || null;
+        authUserEmail = user.email ? user.email.toLowerCase().trim() : null;
         authUserRole = user.role?.toLowerCase() || null;
       }
     } catch {
-      // Continue with paramEmail if unauthenticated or token expired
+      // Unauthenticated
     }
 
-    const effectiveEmail = (authUserEmail || paramEmail || '').trim().toLowerCase();
+    const isStaff = authUserRole === 'admin' || authUserRole === 'super-admin' || authUserRole === 'super_admin';
+    const effectiveEmail = (authUserEmail || (isStaff ? paramEmail : null) || '').trim().toLowerCase();
+
+    if (!isStaff && !authUserEmail) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Authentication required to view application status' },
+        { status: 401 }
+      );
+    }
 
     if (!id && !effectiveEmail) {
-      return NextResponse.json({ error: 'Missing id or email parameter' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing application id or authentication' }, { status: 400 });
     }
 
     let targetApplication: any = null;
@@ -59,16 +67,20 @@ export async function GET(req: NextRequest) {
       // Security check: If targetApplication is found, verify ownership
       if (targetApplication) {
         const appEmail = (targetApplication.applicant_email || '').trim().toLowerCase();
-        const isStaff = authUserRole === 'admin' || authUserRole === 'super-admin' || authUserRole === 'super_admin';
-        if (!isStaff && effectiveEmail && appEmail !== effectiveEmail) {
-          return NextResponse.json({ error: 'Forbidden: You can only view your own applications' }, { status: 403 });
+        if (!isStaff) {
+          if (!authUserEmail) {
+            return NextResponse.json({ error: 'Unauthorized: Authentication required to view application status' }, { status: 401 });
+          }
+          if (appEmail !== authUserEmail) {
+            return NextResponse.json({ error: 'Forbidden: You can only view your own applications' }, { status: 403 });
+          }
         }
       }
     }
 
     // Fetch all applications for this founder so they can switch between incubators
     let founderApplications: any[] = [];
-    const lookupEmail = effectiveEmail || targetApplication?.applicant_email?.toLowerCase();
+    const lookupEmail = isStaff && paramEmail ? paramEmail.toLowerCase().trim() : (authUserEmail || targetApplication?.applicant_email?.toLowerCase());
     if (lookupEmail) {
       const { data: apps, error: appsError } = await supabaseAdmin
         .from('applications')

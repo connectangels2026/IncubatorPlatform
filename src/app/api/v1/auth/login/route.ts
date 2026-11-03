@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { signIn } from '@/backend/services/auth';
 import { storeActiveToken, logAuthEvent } from '@/backend/lib/session';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { isSuperAdminEmail } from '@/backend/lib/superadmin';
 
 export async function POST(req: Request) {
   try {
@@ -32,12 +33,21 @@ export async function POST(req: Request) {
     }
 
     // Query user profile and organization
-    const { data: userData, error: userError } = await supabaseAdmin
+    let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, email_verified, role, organization_id')
       .eq('email', email.toLowerCase())
-      .single();
+      .maybeSingle();
 
+    const isSuperAdmin = (await isSuperAdminEmail(email)) || userData?.role === 'super-admin';
+    if (!userData && isSuperAdmin) {
+      const { data: newAdmin } = await supabaseAdmin
+        .from('users')
+        .upsert({ email: email.toLowerCase(), role: 'super-admin', email_verified: true }, { onConflict: 'email' })
+        .select()
+        .maybeSingle();
+      userData = newAdmin || { id: data.user.id, email: email.toLowerCase(), role: 'super-admin', email_verified: true };
+    }
     if (userError || !userData) {
       console.error('User not found:', userError);
       return NextResponse.json(
@@ -47,7 +57,7 @@ export async function POST(req: Request) {
     }
 
     // Super Admin bypasses incubator organization requirement
-    const isSuperAdmin = userData.role === 'super-admin' || email.toLowerCase() === 'shadmannc0516@gmail.com';
+
     let orgData: any = null;
 
     if (!isSuperAdmin) {
@@ -90,7 +100,7 @@ export async function POST(req: Request) {
     }
 
     // Check if email is verified (using users table, not organizations table)
-    if (!userData.email_verified) {
+    if (!isSuperAdmin && !userData.email_verified) {
       return NextResponse.json(
         {
           success: false,
@@ -103,7 +113,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user has selected a role
-    if (!userData.role) {
+    if (!isSuperAdmin && !userData.role) {
       return NextResponse.json(
         {
           success: false,
@@ -123,9 +133,15 @@ export async function POST(req: Request) {
         user: {
           id: data.user.id,
           email: data.user.email,
-          role: userData.role,
+          role: isSuperAdmin ? 'super-admin' : userData.role,
           founder_name: orgData?.founder_name || data.user.user_metadata?.full_name || 'Administrator',
         },
+        session: data.session
+          ? {
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            }
+          : null,
         organization: orgData
           ? {
               id: orgData.id,
@@ -158,6 +174,13 @@ export async function POST(req: Request) {
       });
 
       // Set access token in response header for client-side access
+      response.cookies.set('sb-access-token', data.session.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
       response.headers.set('x-access-token', data.session.access_token);
     }
 

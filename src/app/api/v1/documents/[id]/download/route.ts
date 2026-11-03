@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { handleApiError } from '@/backend/middleware/errorHandler';
+import { verifyAuth } from '@/backend/middleware/auth';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -8,16 +9,30 @@ interface RouteContext {
 
 const BUCKET_NAME = 'documents';
 
-// GET /api/v1/documents/:id/download - Get signed secure download URL
+// GET /api/v1/documents/:id/download - Get signed secure download URL with ownership check
 export async function GET(req: NextRequest, context: RouteContext) {
   try {
+    const { user, errorResponse: authError } = await verifyAuth(req);
+    if (authError) return authError;
+
     const { id } = await context.params;
 
     const { data: document, error } = await supabaseAdmin
       .from('documents')
-      .select('id, file_name, file_url, file_type, file_size_kb, status, deleted_at')
+      .select('id, organization_id, startup_id, file_name, file_url, file_type, file_size_kb, status, deleted_at')
       .eq('id', id)
       .single();
+
+    if (error || !document) {
+      return NextResponse.json({ success: false, error: 'Document not found' }, { status: 404 });
+    }
+
+    // Ownership check: staff or user belonging to document organization
+    const role = user?.role?.toLowerCase() || '';
+    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
+    if (!isStaff && user?.organization_id && document.organization_id && user.organization_id !== document.organization_id) {
+      return NextResponse.json({ success: false, error: 'Forbidden: You do not have access to this document' }, { status: 403 });
+    }
 
     if (error || !document) {
       return NextResponse.json({ success: false, error: 'Document not found' }, { status: 404 });

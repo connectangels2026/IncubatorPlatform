@@ -32,6 +32,29 @@ export async function POST(req: NextRequest) {
     const { user, errorResponse } = await verifyAuth(req);
     if (errorResponse) return errorResponse;
 
+    // Verify user role server-side: Disallow startups from creating organizations
+    if (user?.role === 'startup') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Startup accounts are not permitted to create incubator organizations' },
+        { status: 403 }
+      );
+    }
+
+    if (user?.email) {
+      const { data: dbUser } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (dbUser?.role === 'startup') {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: Startup accounts are not permitted to create incubator organizations' },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await req.json();
     const {
       name,

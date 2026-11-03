@@ -88,7 +88,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { data: currentApp, error: fetchError } = await supabaseAdmin
       .from('applications')
-      .select('status, form_data, organization_id, selected_incubator_id')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -119,6 +119,121 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       body.dashboard_access_granted === true;
 
     if (isDashboardAction) {
+      // 1. Verify caller authorization: only authorized incubator or super-admin can assign dashboard
+      if (user?.role === 'startup') {
+        return NextResponse.json(
+          { error: 'Forbidden: Startups cannot assign or create dashboard access.' },
+          { status: 403 }
+        );
+      }
+
+      // Check application ownership by incubator
+      const isSuperAdminCaller = user?.role === 'super-admin' || user?.email?.toLowerCase() === 'shadmannc0516@gmail.com';
+      const userOrgId = user?.organization_id;
+      const appOrgId = currentApp.organization_id || currentApp.selected_incubator_id;
+      const isAuthorizedIncubator = isSuperAdminCaller || (userOrgId && appOrgId && userOrgId === appOrgId);
+
+      if (!isAuthorizedIncubator && !isSuperAdminCaller && user?.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Forbidden: Only the authorized host incubator or super admin can assign dashboards to applications.' },
+          { status: 403 }
+        );
+      }
+
+      // 2. Verify acceptance status: application must be accepted or admitted
+      const isAcceptedStatus =
+        currentApp.status === 'accepted' ||
+        currentApp.status === 'admitted' ||
+        newStatus === 'accepted' ||
+        newStatus === 'admitted';
+
+      if (!isAcceptedStatus) {
+        return NextResponse.json(
+          { error: 'Bad Request: Dashboard access can only be assigned to accepted or admitted applications.' },
+          { status: 400 }
+        );
+      }
+
+      // 3. Create or link startup record in startups table, preventing duplicate assignments
+      const applicantEmail = (currentApp.applicant_email || body.applicant_email || '').toLowerCase().trim();
+      const targetOrgId = appOrgId || userOrgId;
+
+      let startupRecordId: string | null = null;
+
+      // Check if startup already exists linked to this application ID
+      const { data: existingByAppId } = await supabaseAdmin
+        .from('startups')
+        .select('id, application_id')
+        .eq('application_id', currentApp.id)
+        .maybeSingle();
+
+      if (existingByAppId?.id) {
+        startupRecordId = existingByAppId.id;
+        await supabaseAdmin
+          .from('startups')
+          .update({ is_active: true, status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', existingByAppId.id);
+      } else {
+        // Fallback: check by email and organization to avoid duplicate
+        const { data: existingByEmail } = await supabaseAdmin
+          .from('startups')
+          .select('id')
+          .eq('organization_id', targetOrgId)
+          .ilike('founder_email', applicantEmail)
+          .maybeSingle();
+
+        if (existingByEmail?.id) {
+          startupRecordId = existingByEmail.id;
+          await supabaseAdmin
+            .from('startups')
+            .update({
+              application_id: currentApp.id,
+              is_active: true,
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingByEmail.id);
+        } else {
+          // Create new record in startups table
+          const startupName =
+            currentApp.form_data?.startup_name ||
+            currentApp.form_data?.businessName ||
+            currentApp.form_data?.name ||
+            body.startup_name ||
+            `${currentApp.applicant_name}'s Startup`;
+
+          const { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
+            .from('startups')
+            .insert({
+              organization_id: targetOrgId,
+              application_id: currentApp.id,
+              name: startupName,
+              founder_name: currentApp.applicant_name,
+              founder_email: applicantEmail,
+              founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
+              sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
+              stage: currentApp.form_data?.businessStage || currentApp.form_data?.stage || 'Early Stage',
+              problem_statement: currentApp.form_data?.problemStatement || null,
+              solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
+              target_market: currentApp.form_data?.targetAudience || null,
+              founder_id: currentApp.created_by || null,
+              status: 'active',
+              is_active: true,
+              created_by: user.id,
+            })
+            .select('id')
+            .single();
+
+          if (!stInsertErr && newStartupRecord?.id) {
+            startupRecordId = newStartupRecord.id;
+          }
+        }
+      }
+
+      if (startupRecordId) {
+        updatePayload.startup_id = startupRecordId;
+      }
+
       updatePayload.admission_status = 'dashboard_assigned';
       const currentFd = currentApp.form_data || {};
       updatePayload.form_data = {

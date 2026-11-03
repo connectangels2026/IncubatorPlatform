@@ -7,7 +7,7 @@ import { StartupService } from '@/modules/startups/services';
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
 
     const { orgId, errorResponse: tenantError } = requireOrg(req);
@@ -16,6 +16,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const startup = await StartupService.getStartupById(id, orgId!);
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
+    }
+
+    // Ownership check: non-staff can only view their own startup
+    const role = user?.role?.toLowerCase() || '';
+    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
+    if (!isStaff && user?.email) {
+      const isOwner =
+        Boolean(startup.founder_id && startup.founder_id === user?.id) ||
+        Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user.email.toLowerCase()) ||
+        Boolean(startup.email && startup.email.toLowerCase() === user.email.toLowerCase());
+      if (!isOwner) {
+        return NextResponse.json({ error: 'Forbidden: Founders can only view their own startup' }, { status: 403 });
+      }
     }
 
     return NextResponse.json({ success: true, data: startup });
@@ -40,8 +53,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const role = user?.role?.toLowerCase() || '';
     if (role !== 'admin' && role !== 'super-admin') {
-      const isOwner = (startup.founder_id && startup.founder_id === user?.id) ||
-                      (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
+      const isOwner =
+        (startup.founder_id && startup.founder_id === user?.id) ||
+        ((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
+        (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
       if (!isOwner) {
         return NextResponse.json({ error: 'Forbidden: Founders can only update their own startup' }, { status: 403 });
       }
@@ -76,7 +91,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const role = user?.role?.toLowerCase() || '';
     if (role !== 'admin' && role !== 'super-admin') {
       const isOwner = (startup.founder_id && startup.founder_id === user?.id) ||
-                      (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
+        (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
       if (!isOwner) {
         return NextResponse.json({ error: 'Forbidden: Founders can only delete their own startup' }, { status: 403 });
       }
