@@ -995,11 +995,7 @@ function StatusContent() {
             {/* APPLICANT ONLY: View Dashboard ONLY after incubator assigns dashboard access */}
             {!isSuperAdmin && isApplicant && statusInfo.key === 'admitted' && isDashboardAssigned && (
               <Link
-                href={
-                  ((application as any)?.form_data?.startup_track || (typeof window !== 'undefined' && localStorage.getItem('startup_track')))
-                    ? '/startup/dashboard'
-                    : '/choose-role'
-                }
+                href="/startup/dashboard"
                 onClick={() => {
                   if (application?.organization_id && typeof window !== 'undefined') {
                     localStorage.setItem('org_id', application.organization_id);
