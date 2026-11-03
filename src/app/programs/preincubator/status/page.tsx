@@ -278,9 +278,15 @@ function StatusContent() {
     if (!application?.id || notifyCooldown > 0 || isNotifying) return;
     setIsNotifying(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+
       const res = await fetch(`/api/v1/applications/${application.id}/notify-incubator`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: token } : {}),
+        },
       });
       const json = await res.json();
       if (!res.ok) {
@@ -291,6 +297,17 @@ function StatusContent() {
         localStorage.setItem(storageKey, new Date().toISOString());
       }
       setNotifyCooldown(600); // 10 minutes
+
+      if (json.updatedFormData) {
+        setApplication((prev: any) => ({
+          ...prev,
+          form_data: {
+            ...(prev?.form_data || {}),
+            ...json.updatedFormData,
+          },
+        }));
+      }
+
       triggerToast(json.message || 'Incubator notified! They will review and grant dashboard access.');
     } catch (err: any) {
       triggerToast(err.message || 'Could not notify incubator');

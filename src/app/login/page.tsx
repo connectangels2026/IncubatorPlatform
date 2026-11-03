@@ -120,7 +120,7 @@ function LoginForm() {
 
         if (hasDashboardAccess && acceptedApp) {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
-          router.push(`/dashboard?org=${acceptedApp.organization_id}`);
+          router.push(`/startup/dashboard`);
           return;
         }
 
