@@ -115,37 +115,29 @@ function LoginForm() {
         return;
       }
 
-      // 4. Startup routing: check if any incubator has accepted an application
+      // 4. Startup routing: check if user has an active startup record
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const headers: Record<string, string> = {};
         if (session?.access_token) {
           headers['Authorization'] = `Bearer ${session.access_token}`;
         }
-        const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(emailToCheck)}`, { headers });
+        const res = await fetch('/api/v1/startups/me', { headers });
         const data = await res.json();
-        const apps: any[] = data?.applications || (data?.data ? [data.data] : []);
 
-        const acceptedApp = apps.find(
-          (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
-        );
-
-        const hasDashboardAccess = Boolean(
-          acceptedApp &&
-          (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
-        );
-
-        if (hasDashboardAccess && acceptedApp) {
-          if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
+        if (res.ok && data?.has_assigned_dashboard && data?.startup?.id) {
+          if (typeof window !== 'undefined' && data.startup.organization_id) {
+            localStorage.setItem('org_id', data.startup.organization_id);
+          }
           router.push('/startup/dashboard');
           return;
         }
 
-        // If no incubator has assigned dashboard access, redirect strictly to the Review page
+        // If no active startup record, redirect strictly to the Review page
         router.push('/programs/preincubator/status');
         return;
       } catch (e) {
-        console.warn('Application status check error on login:', e);
+        console.warn('Startup check error on login:', e);
         router.push('/programs/preincubator/status');
         return;
       }

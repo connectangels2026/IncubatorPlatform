@@ -55,6 +55,9 @@ export async function GET(req: NextRequest) {
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
     const resolvedRole = isSuperAdmin ? 'super-admin' : (userProfile?.role ?? user?.role ?? null);
+    const isStartupUser = resolvedRole === 'startup' || resolvedRole === 'founder';
+    // Startups do not own an incubator organization
+    const effectiveOrgData = isStartupUser ? null : orgData;
 
     return NextResponse.json(
       {
@@ -63,11 +66,11 @@ export async function GET(req: NextRequest) {
           ...user,
           role: resolvedRole,
           is_super_admin: isSuperAdmin,
-          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
+          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || effectiveOrgData?.founder_name,
           user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
-          founder_name: orgData?.founder_name || userProfile?.full_name,
+          founder_name: effectiveOrgData?.founder_name || userProfile?.full_name,
         },
-        organization: orgData,
+        organization: effectiveOrgData,
       },
       { status: 200 }
     );

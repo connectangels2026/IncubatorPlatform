@@ -96,8 +96,11 @@ export async function POST(req: Request) {
     // Super Admin bypasses incubator organization requirement
 
     let orgData: any = null;
+    const userRole = (isSuperAdmin ? 'super-admin' : (userData.role || '')).toLowerCase();
+    const isIncubatorStaff = userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator' || userRole === 'pending_incubator';
 
-    if (!isSuperAdmin) {
+    // Only incubator staff own/manage organizations; startups do NOT receive incubator organizations
+    if (!isSuperAdmin && isIncubatorStaff) {
       if (userData.organization_id) {
         const { data: oData } = await supabaseAdmin
           .from('organizations')
@@ -107,7 +110,7 @@ export async function POST(req: Request) {
 
         orgData = oData;
       } else {
-        // Fallback: lookup by auth_user_id or founder_email in a single query
+        // Fallback: lookup incubator by auth_user_id or founder_email in a single query
         const { data: oDataFallback } = await supabaseAdmin
           .from('organizations')
           .select('id, slug, name, founder_name, founder_email, is_verified')
@@ -150,7 +153,6 @@ export async function POST(req: Request) {
     }
 
     // Calculate immediate redirect target server-side to avoid client-side waterfalls
-    const userRole = (isSuperAdmin ? 'super-admin' : (userData.role || '')).toLowerCase();
     let redirectTo = '/programs/preincubator/status';
     let acceptedOrgId: string | null = null;
 
@@ -161,25 +163,18 @@ export async function POST(req: Request) {
     } else if (userRole === 'pending_incubator') {
       redirectTo = '/auth/incubator-plans';
     } else {
-      // Startup or applicant: verify accepted application status in one query
-      const { data: acceptedApp } = await supabaseAdmin
-        .from('applications')
-        .select('organization_id, status, admission_status, form_data')
-        .or(`created_by.eq.${data.user.id},applicant_email.ilike.${cleanEmail}`)
-        .in('status', ['accepted', 'admitted'])
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+      // Startup or applicant: verify active record in startups table
+      const { data: startupRow } = await supabaseAdmin
+        .from('startups')
+        .select('id, organization_id')
+        .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
+        .eq('is_active', true)
         .limit(1)
         .maybeSingle();
 
-      const hasDashboardAccess = Boolean(
-        acceptedApp &&
-        (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
-      );
-
-      if (hasDashboardAccess && acceptedApp) {
+      if (startupRow) {
         redirectTo = '/startup/dashboard';
-        acceptedOrgId = acceptedApp.organization_id || null;
+        acceptedOrgId = startupRow.organization_id || null;
       } else {
         redirectTo = '/programs/preincubator/status';
       }

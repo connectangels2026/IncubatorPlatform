@@ -460,46 +460,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       throw updateError;
     }
 
-    // When admitted or accepted by Incubator, create organization & assign organization_id to user
+    // When admitted or accepted by Incubator, link startup record to host incubator (do NOT create incubator organization)
     if ((newStatus === 'admitted' || newStatus === 'accepted') && updated) {
       try {
         const applicantEmail = (updated.applicant_email || '').toLowerCase().trim();
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || `${updated.applicant_name}'s Startup`;
-        const slug = startupName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `org-${Date.now()}`;
+        const hostOrgId = updated.organization_id || updated.selected_incubator_id;
 
-        let orgId = updated.organization_id;
-        // Check if organization already exists to prevent duplicate creation on retry
-        const { data: existingOrg } = await supabaseAdmin
-          .from('organizations')
-          .select('id')
-          .ilike('founder_email', applicantEmail)
-          .maybeSingle();
-
-        if (existingOrg) {
-          orgId = existingOrg.id;
-        } else {
-          const { data: newOrg } = await supabaseAdmin
-            .from('organizations')
-            .insert({
-              name: startupName,
-              slug: `${slug}-${Math.floor(1000 + Math.random() * 9000)}`,
-                founder_name: updated.applicant_name,
-                founder_email: applicantEmail,
-                is_verified: true,
-              })
-              .select('id')
-              .single();
-          if (newOrg) orgId = newOrg.id;
-        }
-
-        if (orgId) {
-          await supabaseAdmin.from('users').update({ organization_id: orgId }).ilike('email', applicantEmail);
-
-          // Ensure startup record exists for this organization & founder
+        if (hostOrgId) {
+          // Ensure startup record exists for this host incubator & founder
           const { data: existingStartup } = await supabaseAdmin
             .from('startups')
             .select('id')
-            .eq('organization_id', orgId)
+            .eq('organization_id', hostOrgId)
             .ilike('founder_email', applicantEmail)
             .maybeSingle();
 
@@ -508,8 +481,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             const { data: newStartup } = await supabaseAdmin
               .from('startups')
               .insert({
-                organization_id: orgId,
+                organization_id: hostOrgId,
+                application_id: updated.id,
                 name: startupName,
+                founder_name: updated.applicant_name,
                 founder_email: applicantEmail,
                 founder_phone: updated.applicant_phone || null,
                 sector: updated.form_data?.industryVertical || 'AI & DeepTech',
@@ -518,6 +493,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 solution_description: updated.form_data?.oneSentencePitch || updated.form_data?.solutionOverview || null,
                 target_market: updated.form_data?.targetAudience || null,
                 founder_id: updated.created_by || null,
+                status: 'active',
                 is_active: true,
               })
               .select('id')
@@ -525,15 +501,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             if (newStartup?.id) startupId = newStartup.id;
           }
 
-          const appUpdates: any = { organization_id: orgId };
-          if (startupId) appUpdates.startup_id = startupId;
-
-          await supabaseAdmin.from('applications').update(appUpdates).eq('id', id);
-          updated.organization_id = orgId;
-          if (startupId) updated.startup_id = startupId;
+          if (startupId) {
+            await supabaseAdmin.from('applications').update({ startup_id: startupId }).eq('id', id);
+            updated.startup_id = startupId;
+          }
         }
       } catch (orgErr) {
-        console.warn('Auto-create organization on admission error:', orgErr);
+        console.warn('Link startup on admission error:', orgErr);
       }
     }
 

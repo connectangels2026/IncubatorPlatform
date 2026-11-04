@@ -486,8 +486,10 @@ export default function ApplicationsPage() {
   };
 
   // Fetch applications from database with real-time sync (scoped strictly to current user's incubator)
-  const fetchApplications = async (overrideOrgId?: string) => {
-    setIsLoading(true);
+  const fetchApplications = async (overrideOrgId?: string, isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -523,9 +525,13 @@ export default function ApplicationsPage() {
       }
     } catch (err: any) {
       console.warn('Applications fetch failed:', err?.message);
-      setApplications([]);
+      if (!isBackground) {
+        setApplications([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isBackground) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -568,7 +574,7 @@ export default function ApplicationsPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'applications' },
         () => {
-          fetchApplications();
+          fetchApplications(undefined, true);
         }
       )
       .subscribe();
@@ -576,7 +582,7 @@ export default function ApplicationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, user?.email]);
 
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
@@ -954,8 +960,7 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
         {/* Sidebar Component with hover animation and icon-only logo */}
         <Sidebar
           mobileOpen={sidebarOpen}
@@ -1956,6 +1961,5 @@ export default function ApplicationsPage() {
           </div>
         )}
       </div>
-    </ProtectedRoute>
   );
 }
