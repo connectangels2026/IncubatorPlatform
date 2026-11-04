@@ -21,12 +21,13 @@ export async function GET(req: NextRequest) {
 
       orgData = org;
 
-      // 2. Query public.users table for profile
-      if (user.email) {
+      // 2. Query public.users table for profile (robust match by id or email)
+      if (user.email || user.id) {
+        const cleanEmail = (user.email || '').trim();
         const { data: uRec } = await supabaseAdmin
           .from('users')
           .select('id, organization_id, email, full_name, first_name, last_name, role')
-          .eq('email', user.email)
+          .or(`id.eq.${user.id},email.ilike.${cleanEmail}`)
           .maybeSingle();
 
         userProfile = uRec;
