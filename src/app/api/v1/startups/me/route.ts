@@ -69,11 +69,13 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch linked application if available
     let linkedApp: any = null;
-    if (startup.application_id) {
+    if (startup?.id) {
       const { data: appData } = await supabaseAdmin
         .from('applications')
         .select('*')
-        .eq('id', startup.application_id)
+        .or(`startup_id.eq.${startup.id},applicant_email.ilike.${emailLower}`)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       linkedApp = appData;
     } else if (emailLower) {

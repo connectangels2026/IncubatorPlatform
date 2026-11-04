@@ -230,7 +230,9 @@ export async function POST(req: NextRequest) {
     // 3. Organization ID must stay NULL until an incubator accepts the application
     const payload: any = {
       organization_id: null,
+
       startup_id: startupId,
+      startup_name: body.startup_name || body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || `${body.applicant_name}'s Startup`,
       applicant_name: body.applicant_name,
       applicant_email: cleanEmail,
       applicant_phone: body.applicant_phone || null,
@@ -263,6 +265,7 @@ export async function POST(req: NextRequest) {
       const recipientId = user?.id && isValidUUID(user.id) ? user.id : 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
       await NotificationService.createNotification({
         organization_id: null,
+
         recipient_id: recipientId,
         recipient_name: body.applicant_name,
         recipient_email: body.applicant_email,
@@ -296,6 +299,7 @@ export async function POST(req: NextRequest) {
       if (adminEmail) {
         await NotificationService.createNotification({
           organization_id: null,
+
           recipient_id: 'dfdb0d1a-24a3-4062-98aa-0d723fc23725',
           recipient_name: orgFound?.name || 'Incubator Admin',
           recipient_email: adminEmail,
