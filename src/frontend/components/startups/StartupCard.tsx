@@ -10,6 +10,7 @@ interface StartupCardProps {
   onAllocateMentorClick?: (startup: StartupItem) => void;
   onAllocateInvestorClick?: (startup: StartupItem) => void;
   onCoIncubatorClick?: (startup: StartupItem) => void;
+  onStatusChange?: (startup: StartupItem, status: 'Pending' | 'Active' | 'Inactive' | 'Exited') => void;
 }
 
 export const StartupCard: React.FC<StartupCardProps> = ({
@@ -18,6 +19,7 @@ export const StartupCard: React.FC<StartupCardProps> = ({
   onAllocateMentorClick,
   onAllocateInvestorClick,
   onCoIncubatorClick,
+  onStatusChange,
 }) => {
   const getStageBadgeColor = (stage: string) => {
     switch (stage?.toLowerCase()) {
@@ -53,6 +55,29 @@ export const StartupCard: React.FC<StartupCardProps> = ({
     }
   };
 
+  const getStatusStyle = (status?: string) => {
+    const s = (status || 'pending').toLowerCase();
+    switch (s) {
+      case 'active':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-300';
+      case 'inactive':
+        return 'bg-slate-100 text-slate-700 border-slate-300';
+      case 'exited':
+        return 'bg-purple-50 text-purple-700 border-purple-300';
+      case 'pending':
+      default:
+        return 'bg-amber-50 text-amber-700 border-amber-300';
+    }
+  };
+
+  const currentStatus = (): 'Pending' | 'Active' | 'Inactive' | 'Exited' => {
+    const s = (startup.status || 'pending').toLowerCase();
+    if (s === 'active') return 'Active';
+    if (s === 'inactive') return 'Inactive';
+    if (s === 'exited') return 'Exited';
+    return 'Pending';
+  };
+
   return (
     <div
       onClick={() => onSelect(startup)}
@@ -72,9 +97,28 @@ export const StartupCard: React.FC<StartupCardProps> = ({
               <p className="text-xs text-slate-500 truncate">{startup.industry || "Technology"}</p>
             </div>
           </div>
-          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border shrink-0 ${getStageBadgeColor(startup.stage)}`}>
-            {startup.stage}
-          </span>
+
+          <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border ${getStageBadgeColor(startup.stage)}`}>
+              {startup.stage}
+            </span>
+            {onStatusChange ? (
+              <select
+                value={currentStatus()}
+                onChange={(e) => onStatusChange(startup, e.target.value as any)}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition cursor-pointer focus:outline-none ${getStatusStyle(startup.status)}`}
+              >
+                <option value="Pending">Pending</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Exited">Exited</option>
+              </select>
+            ) : (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusStyle(startup.status)}`}>
+                {currentStatus()}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Pitch / Tagline */}

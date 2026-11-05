@@ -58,6 +58,7 @@ export interface StartupItem {
   founder: string;
   founderAvatar?: string;
   founderEmail?: string;
+  founderPhone?: string;
   website: string;
   sector: string;
   industry?: string;

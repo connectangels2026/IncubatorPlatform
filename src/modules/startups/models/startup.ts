@@ -3,6 +3,8 @@ export interface Startup {
   name: string;
   founder_name: string;
   founder_id?: string;
+  founder_phone?: string;
+  description?: string;
   email: string;
   sector: string;
   stage: string;

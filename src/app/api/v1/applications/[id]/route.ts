@@ -252,7 +252,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             founder_id: validFounderId,
             cofounders: founderMembers,
             team_members: founderMembers,
-            status: 'active',
+            status: 'pending',
             is_active: true,
             created_by: validCreatorId,
           })
@@ -535,7 +535,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 solution_description: updated.form_data?.oneSentencePitch || updated.form_data?.solutionOverview || null,
                 target_market: updated.form_data?.targetAudience || null,
                 founder_id: updated.created_by || null,
-                status: 'active',
+                status: 'pending',
                 is_active: true,
               })
               .select('id')
