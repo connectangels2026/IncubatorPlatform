@@ -234,6 +234,10 @@ export class StartupService {
     if (data.sector) updatePayload.sector = data.sector;
     if (data.stage) updatePayload.stage = data.stage;
     if (data.status) updatePayload.status = data.status;
+    if ((data as any).description !== undefined) updatePayload.description = (data as any).description;
+    if ((data as any).website !== undefined) updatePayload.website = (data as any).website;
+    if ((data as any).solution_description !== undefined) updatePayload.solution_description = (data as any).solution_description;
+    if ((data as any).founder_phone !== undefined) updatePayload.founder_phone = (data as any).founder_phone;
     if (data.revenue !== undefined) {
       updatePayload.monthly_revenue = Number(data.revenue);
       updatePayload.annual_revenue = Number(data.revenue) * 12;

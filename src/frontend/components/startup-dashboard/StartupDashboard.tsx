@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { supabase } from '@/backend/lib/supabase';
 import { StartupDashboardHeader } from './StartupDashboardHeader';
+import { StartupProfileMenu } from './StartupProfileMenu';
 import { OverviewTab } from './OverviewTab';
 import { PitchPrototypeTab } from './PitchPrototypeTab';
 import { SoftwareHardwareTab } from './SoftwareHardwareTab';
@@ -19,6 +20,21 @@ export default function StartupDashboard() {
   const { user, isLoading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [profile, setProfile] = useState<StartupProfile | null>(null);
+  const [rawStartup, setRawStartup] = useState<any | null>(null);
+
+  const handleStartupUpdate = (updated: any) => {
+    setRawStartup(updated);
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: updated.name || prev.name,
+            tagline: updated.description || updated.solution_description || prev.tagline,
+            stage: updated.stage || prev.stage,
+          }
+        : null
+    );
+  };
   const [applications, setApplications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAssignedDashboard, setHasAssignedDashboard] = useState<boolean | null>(null);
@@ -47,6 +63,7 @@ export default function StartupDashboard() {
 
         setHasAssignedDashboard(true);
         const startup = data.startup;
+        setRawStartup(startup);
         const app = data.application;
         const org = data.organization;
 
@@ -153,23 +170,14 @@ export default function StartupDashboard() {
             <span>Applications Status</span>
           </Link>
 
-          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#1A2151] to-blue-600 flex items-center justify-center text-white text-xs font-black shadow-xs">
-              {(profile.name || user?.email || 'S').charAt(0).toUpperCase()}
-            </div>
-            <div className="hidden lg:block text-left">
-              <p className="text-xs font-bold text-slate-800 leading-none truncate max-w-[140px]">{profile.name}</p>
-              <p className="text-[10px] text-slate-400 font-medium truncate max-w-[140px]">{user?.email}</p>
-            </div>
+          <div className="pl-2 border-l border-slate-200">
+            <StartupProfileMenu
+              user={user}
+              startup={rawStartup}
+              onStartupUpdate={handleStartupUpdate}
+              onLogout={() => (logout ? logout() : router.push('/login'))}
+            />
           </div>
-
-          <button
-            onClick={() => (logout ? logout() : router.push('/login'))}
-            title="Log Out"
-            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-100 cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
