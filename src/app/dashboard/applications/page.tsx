@@ -47,6 +47,7 @@ import { apiClient } from '@/services/apiClient';
 
 interface ApplicationItem {
   id: string;
+  startup_name: string;
   startupName: string;
   sector: string;
   sectorIcon: string;
@@ -69,7 +70,7 @@ interface ApplicationItem {
 
 const INITIAL_APPLICATIONS: ApplicationItem[] = [];
 
-const LEGACY_MOCK_APPLICATIONS: ApplicationItem[] = [
+const LEGACY_MOCK_APPLICATIONS: any[] = [
   {
     id: "APP-1042",
     startupName: "Aether AI",
@@ -405,12 +406,14 @@ export default function ApplicationsPage() {
   // Helper to map DB record to ApplicationItem
   const mapDbRecordToApplicationItem = (record: any): ApplicationItem => {
     const fd = record.form_data || {};
-    const startupName =
+    const startup_name =
+      record.startup_name ||
       fd.startup_name ||
       fd.startupName ||
       fd.name ||
       (record.applicant_name ? `${record.applicant_name}'s Startup` : 'Early Stage Startup');
     
+    const startupName = startup_name;
     const sector = fd.industry || fd.sector || 'AI & DeepTech';
     const founderName = record.applicant_name || fd.applicant_name || fd.founder_name || 'Founder';
     const founderEmail = record.applicant_email || fd.applicant_email || fd.email || '';
@@ -464,6 +467,7 @@ export default function ApplicationsPage() {
 
     return {
       id: record.id,
+      startup_name,
       startupName,
       sector,
       sectorIcon: 'cpu',
@@ -486,8 +490,10 @@ export default function ApplicationsPage() {
   };
 
   // Fetch applications from database with real-time sync (scoped strictly to current user's incubator)
-  const fetchApplications = async (overrideOrgId?: string) => {
-    setIsLoading(true);
+  const fetchApplications = async (overrideOrgId?: string, isBackground = false) => {
+    if (!isBackground) {
+      setIsLoading(true);
+    }
     setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -523,9 +529,13 @@ export default function ApplicationsPage() {
       }
     } catch (err: any) {
       console.warn('Applications fetch failed:', err?.message);
-      setApplications([]);
+      if (!isBackground) {
+        setApplications([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isBackground) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -568,7 +578,7 @@ export default function ApplicationsPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'applications' },
         () => {
-          fetchApplications();
+          fetchApplications(undefined, true);
         }
       )
       .subscribe();
@@ -576,7 +586,7 @@ export default function ApplicationsPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, user?.email]);
 
   // Filtering & Sorting State
   const [searchTerm, setSearchTerm] = useState('');
@@ -637,6 +647,7 @@ export default function ApplicationsPage() {
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch =
           !searchTerm ||
+          (app.startup_name && app.startup_name.toLowerCase().includes(searchLower)) ||
           app.startupName.toLowerCase().includes(searchLower) ||
           app.founderName.toLowerCase().includes(searchLower) ||
           app.founderEmail.toLowerCase().includes(searchLower) ||
@@ -929,9 +940,11 @@ export default function ApplicationsPage() {
       const res = await apiClient.put(`/applications/${app.id}`, {
         admission_status: 'dashboard_assigned',
         action: 'assign_dashboard',
+        status: 'accepted',
         dashboard_access_granted: true,
+        startup_name: app.startup_name || app.startupName,
       }, {
-        headers: { Authorization: token, 'x-org-id': 'all' }
+        headers: { Authorization: token, 'x-org-id': currentOrgId || 'all' }
       });
 
       if (!res.data?.success) {
@@ -954,8 +967,7 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
         {/* Sidebar Component with hover animation and icon-only logo */}
         <Sidebar
           mobileOpen={sidebarOpen}
@@ -1283,7 +1295,7 @@ export default function ApplicationsPage() {
                     <tbody className="divide-y divide-slate-200 text-xs">
                       {paginatedApplications.map((app) => {
                         const isSelected = selectedIds.includes(app.id);
-                        const initial = app.startupName.charAt(0);
+                        const initial = (app.startup_name || app.startupName || 'S').charAt(0).toUpperCase();
 
                         return (
                           <tr
@@ -1315,7 +1327,7 @@ export default function ApplicationsPage() {
                                     className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer flex items-center gap-1.5"
                                     onClick={() => openDetailsModal(app)}
                                   >
-                                    <span>{app.startupName}</span>
+                                    <span>{app.startup_name || app.startupName}</span>
                                   </div>
                                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                                     <SectorTag sector={app.sector} />
@@ -1956,6 +1968,5 @@ export default function ApplicationsPage() {
           </div>
         )}
       </div>
-    </ProtectedRoute>
   );
 }

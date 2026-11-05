@@ -80,6 +80,33 @@ export async function POST(req: NextRequest) {
     const cleanEmail = body.applicant_email.toLowerCase().trim();
     const targetIncubatorName = (body.incubator_name || body.incubator_name_text || body.form_data?.incubatorName || '').trim();
 
+    // Issue 1: Admin / Incubator Admin accounts must NOT create startup records or applications
+    const callerRole = (user?.role || '').toLowerCase();
+    if (callerRole === 'admin' || callerRole === 'incubator_admin' || callerRole === 'incubator' || callerRole === 'super-admin' || callerRole === 'super_admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Incubator administrators and Super Admins cannot submit startup applications.' },
+        { status: 403 }
+      );
+    }
+
+    // Check database users table for role by email
+    const emailToCheck = (user?.email || cleanEmail).toLowerCase().trim();
+    if (emailToCheck) {
+      const { data: dbUser } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('email', emailToCheck)
+        .maybeSingle();
+
+      const dbRole = (dbUser?.role || '').toLowerCase();
+      if (dbRole === 'admin' || dbRole === 'incubator_admin' || dbRole === 'incubator' || dbRole === 'super-admin' || dbRole === 'super_admin') {
+        return NextResponse.json(
+          { error: 'Forbidden: Incubator administrators and Super Admins cannot submit startup applications.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // 1. Enforce 5-application limit on backend
     const { data: existingApps, error: countErr } = await supabaseAdmin
       .from('applications')
@@ -203,7 +230,9 @@ export async function POST(req: NextRequest) {
     // 3. Organization ID must stay NULL until an incubator accepts the application
     const payload: any = {
       organization_id: null,
+
       startup_id: startupId,
+      startup_name: body.startup_name || body.form_data?.startup_name || body.form_data?.businessName || body.form_data?.name || `${body.applicant_name}'s Startup`,
       applicant_name: body.applicant_name,
       applicant_email: cleanEmail,
       applicant_phone: body.applicant_phone || null,
@@ -236,6 +265,7 @@ export async function POST(req: NextRequest) {
       const recipientId = user?.id && isValidUUID(user.id) ? user.id : 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
       await NotificationService.createNotification({
         organization_id: null,
+
         recipient_id: recipientId,
         recipient_name: body.applicant_name,
         recipient_email: body.applicant_email,
@@ -269,6 +299,7 @@ export async function POST(req: NextRequest) {
       if (adminEmail) {
         await NotificationService.createNotification({
           organization_id: null,
+
           recipient_id: 'dfdb0d1a-24a3-4062-98aa-0d723fc23725',
           recipient_name: orgFound?.name || 'Incubator Admin',
           recipient_email: adminEmail,

@@ -7,7 +7,7 @@ import StartupDashboard from '@/frontend/components/startup-dashboard/StartupDas
 export default function StartupDashboardPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="min-h-screen w-full flex flex-col bg-[#F8FAFC]">
         <StartupDashboard />
       </div>
     </ProtectedRoute>

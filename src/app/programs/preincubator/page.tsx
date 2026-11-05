@@ -27,6 +27,7 @@ import Logo from '@/frontend/components/ui/Logo';
 import MyApplicationsModal from '@/frontend/components/applications/MyApplicationsModal';
 
 interface FormData {
+  startupName: string;
   fullName: string;
   email: string;
   phone: string;
@@ -102,6 +103,7 @@ interface FormData {
 }
 
 const INITIAL_FORM_DATA: FormData = {
+  startupName: '',
   incubatorName: '',
   selectedIncubators: [],
   fullName: '',
@@ -340,6 +342,24 @@ export default function PreIncubatorApplicationPage() {
             return;
           }
 
+          // Issue 1: Admin / Incubator Admin accounts must NOT display startup application forms
+          const normalizedRole = (activeRole || '').toLowerCase();
+          if (
+            normalizedRole === 'admin' ||
+            normalizedRole === 'incubator_admin' ||
+            normalizedRole === 'incubator' ||
+            normalizedRole === 'super-admin' ||
+            normalizedRole === 'super_admin'
+          ) {
+            const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+            if (normalizedRole.includes('super')) {
+              router.replace('/super-admin/dashboard');
+            } else {
+              router.replace(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+            }
+            return;
+          }
+
           // 2. Fallback: direct query to public.users table in database by email
           if (!userTableFullName && sessionEmail) {
             try {
@@ -429,6 +449,7 @@ export default function PreIncubatorApplicationPage() {
 
     if (step === 1) {
       if (!d.incubatorName.trim()) errors.push('Target Incubator Name');
+      if (!d.startupName?.trim()) errors.push('Startup / Venture Name');
       if (!d.fullName.trim()) errors.push('Full Name');
       if (!d.email.trim()) errors.push('Email');
       if (!d.phone.trim()) errors.push('Phone');
@@ -511,11 +532,15 @@ export default function PreIncubatorApplicationPage() {
           applicant_name: formData.fullName,
           applicant_email: formData.email,
           applicant_phone: formData.phone,
-          startup_name: formData.oneSentencePitch.split(' ').slice(0, 3).join(' ') || `${formData.fullName}'s Startup`,
+          startup_name: formData.startupName?.trim() || formData.oneSentencePitch.split(' ').slice(0, 3).join(' ') || `${formData.fullName}'s Startup`,
           pitch: formData.oneSentencePitch,
           industry: formData.industryVertical || 'AI & DeepTech',
           stage: formData.businessStage || 'Idea Phase',
-          form_data: formData,
+          form_data: {
+            ...formData,
+            startup_name: formData.startupName?.trim() || `${formData.fullName}'s Startup`,
+            startupName: formData.startupName?.trim() || `${formData.fullName}'s Startup`,
+          },
         }),
       });
 
@@ -755,7 +780,30 @@ export default function PreIncubatorApplicationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                            {/* Startup / Venture Name Input */}
+                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Rocket className="w-4 h-4 text-blue-600" />
+                            Startup / Venture Name *
+                          </span>
+                        </label>
+                        <p className="text-xs text-slate-500 font-medium">
+                          Enter your startup or business name. This will be linked to your startup dashboard.
+                        </p>
+                        <div className="relative mt-2">
+                          <Rocket className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={formData.startupName}
+                            onChange={(e) => setFormData({ ...formData, startupName: e.target.value })}
+                            placeholder="e.g. NextWave AI, EcoVolt Labs, FinFlow..."
+                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -1874,12 +1922,12 @@ export default function PreIncubatorApplicationPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                           <span className="text-[10px] font-bold uppercase text-slate-400">
-                            Founder & Stage
+                            Startup & Founder
                           </span>
                           <p className="text-sm font-extrabold text-[#1A2151] mt-1">
-                            {formData.fullName || 'Not provided'}
+                            {formData.startupName || `${formData.fullName}'s Startup`}
                           </p>
-                          <p className="text-xs text-slate-600">{formData.email}</p>
+                          <p className="text-xs text-slate-600 font-semibold">{formData.fullName} ({formData.email})</p>
                           <div className="mt-2 inline-block px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-bold">
                             {formData.businessStage || 'Stage N/A'}
                           </div>

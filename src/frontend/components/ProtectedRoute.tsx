@@ -26,7 +26,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
       if (user) {
         const emailLower = (user.email || '').toLowerCase();
-        const role = (user as any)?.role || (user as any)?.user_metadata?.role;
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+        const role = (user as any)?.role || (user as any)?.user_metadata?.role || cachedRole;
 
         // Admins, super-admins, and incubator staff bypass review gating
         if (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { isSuperAdminEmail } from '@/backend/lib/superadmin';
+import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
 export async function GET(req: NextRequest) {
   const { user, errorResponse } = await verifyAuth(req);
@@ -10,6 +11,24 @@ export async function GET(req: NextRequest) {
   if (!isSA && user?.role !== 'super-admin') {
     return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
   }
+
+  // Fetch application records from database and calculate counts using .length
+  const { data: dbApplications } = await supabaseAdmin
+    .from('applications')
+    .select('id, status, super_admin_status')
+    .is('deleted_at', null);
+
+  const applicationsList = dbApplications || [];
+  const forwardedApplicationsCount = applicationsList.filter(
+    (a) => a.status === 'forwarded' || a.super_admin_status === 'forwarded'
+  ).length;
+  const totalApplicationsCount = applicationsList.length;
+  const pendingApplicationsCount = applicationsList.filter(
+    (a) => a.status === 'pending' || a.status === 'Pending Decision' || a.super_admin_status === 'pending'
+  ).length;
+  const admittedApplicationsCount = applicationsList.filter(
+    (a) => a.status === 'admitted' || a.status === 'accepted' || a.super_admin_status === 'approved'
+  ).length;
   const data = {
     status: 'success',
     timestamp: new Date().toISOString(),
@@ -37,6 +56,14 @@ export async function GET(req: NextRequest) {
         count: 3,
         period: 'this month',
       },
+      forwardedApplications: {
+        count: forwardedApplicationsCount,
+        status: 'Forwarded to Incubator',
+      },
+      totalApplications: {
+        count: totalApplicationsCount,
+        status: 'Platform Total',
+      },
     },
     revenueTrend: [
       { month: 'Jan', amount: 950 },
@@ -55,6 +82,12 @@ export async function GET(req: NextRequest) {
     ratio: {
       paid: { percentage: 60, count: 3 },
       free: { percentage: 40, count: 2 },
+    },
+    applications: {
+      total: totalApplicationsCount,
+      forwarded: forwardedApplicationsCount,
+      pending: pendingApplicationsCount,
+      admitted: admittedApplicationsCount,
     },
     quickActions: [
       { id: 'pending-payments', label: 'View Pending Payments', badge: '2 overdue', badgeType: 'danger' },
