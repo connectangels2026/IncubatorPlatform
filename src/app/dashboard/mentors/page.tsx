@@ -25,9 +25,8 @@ import {
   Clock,
   Layers,
 } from 'lucide-react';
-import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
 import { apiClient } from '@/services/apiClient';
 
 export interface MentorExpertise {
@@ -530,8 +529,21 @@ export default function MentorsHubPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans antialiased">
+    <DashboardLayout
+      title="Mentors Directory"
+      fluid={true}
+      headerActions={
+        <button
+          onClick={fetchMentors}
+          disabled={isLoading}
+          title="Refresh mentors list"
+          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+        </button>
+      }
+    >
+      <div className="space-y-6">
         {/* Toast Notification */}
         {toastMessage && (
           <div
@@ -554,49 +566,9 @@ export default function MentorsHubPage() {
           </div>
         )}
 
-        {/* Global Sidebar Component */}
-        <Sidebar
-          mobileOpen={sidebarOpen}
-          onCloseMobile={() => setSidebarOpen(false)}
-          onLogout={async () => {
-            await logout();
-            router.push('/login');
-          }}
-        />
 
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
-          {/* Header */}
-          <header className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5 shrink-0">
-            {/* Breadcrumbs & Mobile Toggle */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-1 -ml-1 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
-                  aria-label="Open sidebar"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-                <Link href="/dashboard" className="hover:text-slate-800 transition">
-                  Dashboard
-                </Link>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                <span className="text-slate-400 hidden sm:inline">Cohort 2026</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300 hidden sm:inline" />
-                <span className="text-slate-900 font-semibold">Mentors Directory</span>
-              </div>
-
-              <button
-                onClick={fetchMentors}
-                disabled={isLoading}
-                title="Refresh mentors list"
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
-              </button>
-            </div>
-
+        {/* Headline, Actions & Filters Control Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
             {/* Headline & Primary Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -721,10 +693,8 @@ export default function MentorsHubPage() {
                 )}
               </div>
             </div>
-          </header>
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+        </div>
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
@@ -985,8 +955,6 @@ export default function MentorsHubPage() {
                 </div>
               </div>
             )}
-          </div>
-        </main>
       </div>
 
       {/* Onboard Mentor Modal */}
@@ -1561,6 +1529,6 @@ export default function MentorsHubPage() {
           </div>
         </div>
       )}
-    </ProtectedRoute>
+    </DashboardLayout>
   );
 }
