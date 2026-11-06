@@ -967,19 +967,71 @@ export default function ApplicationsPage() {
   };
 
   return (
-    <DashboardLayout
-      title="Applications"
-      headerActions={
-        <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-semibold shadow-2xs">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span>Live DB Sync</span>
-        </div>
-      }
-    >
-      <div className="space-y-6">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-slate-50 text-slate-800 antialiased flex">
+        {/* Sidebar Component with hover animation and icon-only logo */}
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
+          onLogout={handleLogout}
+        />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top Bar */}
+          <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-xs">
+            <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="p-1.5 -ml-1.5 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
+                  aria-label="Open sidebar"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Link href="/incubator" className="hover:text-blue-600 transition">
+                    Dashboard
+                  </Link>
+                  <span>/</span>
+                  <span className="font-semibold text-slate-900">Applications</span>
+                </div>
+
+                {/* Incubator Workspace Identity */}
+                <div className="flex items-center gap-2 px-3 py-1.5 ml-2 sm:ml-4 rounded-xl bg-slate-100 border border-slate-200">
+                  <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="font-bold text-xs text-slate-800 truncate max-w-[180px] sm:max-w-[240px]">
+                    {currentOrgName || 'My Incubator'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link href="/programs">
+                  <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs">
+                    Programs
+                  </Button>
+                </Link>
+                <Link href="/" className="hidden sm:block">
+                  <Button variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 text-xs">
+                    Home
+                  </Button>
+                </Link>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-300 text-slate-700 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 gap-1.5 transition text-xs"
+                  title="Log Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Log Out</span>
+                </Button>
+              </div>
+            </div>
+          </nav>
+
+          {/* Main Container */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
             {/* Header Banner */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>

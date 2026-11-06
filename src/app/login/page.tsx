@@ -100,6 +100,14 @@ function LoginForm() {
         role === 'incubator_admin' ||
         role === 'incubator';
 
+      let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+      // Fast-path: If user has an active organization, route directly to incubator dashboard
+      if (effectiveOrgId) {
+        router.push(`/incubator?org=${effectiveOrgId}`);
+        return;
+      }
+
       if (isIncubatorRole) {
         if (!effectiveOrgId) {
           const meData = await fetchMeWithAuth();
@@ -108,14 +116,21 @@ function LoginForm() {
             if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
           }
         }
-        router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
+        router.push(effectiveOrgId ? `/incubator?org=${effectiveOrgId}` : '/incubator');
         return;
       }
 
-      // 3. Pending incubator routing
-      if (role === 'pending_incubator') {
-        router.push('/auth/incubator-plans');
-        return;
+      // 3. Check if user owns an incubator organization in database
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        const meData = await meRes.json();
+        if (meData?.organization?.id) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
+          router.push(`/incubator?org=${meData.organization.id}`);
+          return;
+        }
+      } catch (e) {
+        // Fallback to startup application checks
       }
 
       // 4. Startup routing: check if user has an active startup record
@@ -128,11 +143,18 @@ function LoginForm() {
         const res = await fetch('/api/v1/startups/me', { headers });
         const data = await res.json();
 
-        if (res.ok && data?.has_assigned_dashboard && data?.startup?.id) {
-          if (typeof window !== 'undefined' && data.startup.organization_id) {
-            localStorage.setItem('org_id', data.startup.organization_id);
-          }
-          router.push('/startup/dashboard');
+        const acceptedApp = apps.find(
+          (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
+        );
+
+        const hasDashboardAccess = Boolean(
+          acceptedApp &&
+          (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
+        );
+
+        if (hasDashboardAccess && acceptedApp) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
+          router.push(`/incubator?org=${acceptedApp.organization_id}`);
           return;
         }
 

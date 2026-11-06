@@ -30,7 +30,7 @@ export default function ErrorBoundary({
           <Button onClick={reset} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" /> Try again
           </Button>
-          <Link href="/dashboard">
+          <Link href="/incubator">
             <Button className="gap-2 bg-slate-900 text-white hover:bg-slate-800">
               <Home className="w-4 h-4" /> Dashboard
             </Button>

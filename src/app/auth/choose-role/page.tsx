@@ -52,7 +52,7 @@ export default function ChooseRolePage() {
               existingRole = data.user.role;
             }
             if (data?.organization?.id) {
-              router.replace(`/dashboard?org=${data.organization.id}`);
+              router.replace(`/incubator?org=${data.organization.id}`);
               return;
             }
           }
@@ -90,7 +90,7 @@ export default function ChooseRolePage() {
             router.replace('/auth/incubator-plans');
             return;
           }
-          router.replace('/dashboard');
+          router.replace('/incubator');
           return;
         }
 

@@ -449,7 +449,7 @@ export default function DashboardPage() {
     setIsNotificationsOpen(false);
 
     // Open applications review
-    router.push('/dashboard/applications');
+    router.push('/incubator/applications');
   };
 
   const handleMarkAllAsRead = async () => {
@@ -581,7 +581,7 @@ export default function DashboardPage() {
                   </button>
 
                   <Link
-                    href="/dashboard/settings"
+                    href="/incubator/settings"
                     onClick={() => setIsHubSwitcherOpen(false)}
                     className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 text-slate-700 transition cursor-pointer text-left"
                   >
@@ -844,14 +844,14 @@ export default function DashboardPage() {
                     {/* Quick Action Links */}
                     <div className="mt-5 pt-4 border-t border-slate-700/80 space-y-1">
                       <Link
-                        href="/dashboard/settings"
+                        href="/incubator/settings"
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition"
                       >
                         <Settings className="w-4 h-4 text-slate-400" />
                         <span>Incubator Settings</span>
                       </Link>
                       <Link
-                        href="/dashboard/mentors"
+                        href="/incubator/mentors"
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition"
                       >
                         <Users className="w-4 h-4 text-slate-400" />
@@ -1225,7 +1225,7 @@ export default function DashboardPage() {
                   <GraduationCap className="w-4 h-4 text-[#0066ff]" />
                   <span>Featured Mentors</span>
                 </h3>
-                <Link href="/dashboard/mentors" className="text-[10px] font-semibold text-[#0066ff] cursor-pointer hover:underline">
+                <Link href="/incubator/mentors" className="text-[10px] font-semibold text-[#0066ff] cursor-pointer hover:underline">
                   View All (18)
                 </Link>
               </div>

@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     // Verify startup exists in org
     const { data: startup, error: startupErr } = await supabaseAdmin
       .from('startups')
-      .select('id, name')
+      .select('id, startup_name')
       .eq('id', startup_id)
       .eq('organization_id', realOrgId)
       .single();

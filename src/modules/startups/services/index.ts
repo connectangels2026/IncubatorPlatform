@@ -65,7 +65,8 @@ const resolveOrgId = (orgId: string): string => {
 const mapRowToStartup = (row: any): Startup => {
   return {
     id: row.id,
-    name: row.name,
+    startup_name: row.startup_name || row.name || 'Startup',
+    name: row.startup_name || row.name || 'Startup',
     founder_name: row.founder_name || row.founder_email?.split('@')[0] || 'Founder',
     founder_id: row.founder_id,
     founder_phone: row.founder_phone || '',
@@ -103,11 +104,11 @@ export class StartupService {
 
     // Search
     if (filter.search) {
-      query = query.or(`name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      query = query.or(`startup_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
     }
 
     // Sorting
-    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort || 'created_at';
+    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
     query = query.order(sortField, { ascending: isAsc });
 
@@ -173,8 +174,8 @@ export class StartupService {
 
     const insertPayload: any = {
       organization_id: realOrgId,
-      name: data.name || 'New Startup',
-      sector: data.sector || (data as any).industry || 'General',
+      startup_name: data.startup_name || data.name || 'New Startup',
+      sector: data.sector || 'Tech',
       stage: validStage,
       founder_name: data.founder_name || 'Founder',
       founder_email: data.email || (data as any).founder_email || 'founder@startup.com',
@@ -201,7 +202,8 @@ export class StartupService {
       const fallbackId = 'startup_' + Date.now();
       const fallbackObj: Startup = {
         id: fallbackId,
-        name: data.name || 'Untitled Startup',
+        startup_name: data.startup_name || data.name || 'Untitled Startup',
+        name: data.startup_name || data.name || 'Untitled Startup',
         founder_name: data.founder_name || 'Founder',
         founder_id: data.founder_id,
         email: data.email || '',
@@ -230,17 +232,41 @@ export class StartupService {
     const updatePayload: any = {
       updated_at: new Date().toISOString(),
     };
-    if (data.name) updatePayload.name = data.name;
-    if (data.sector) updatePayload.sector = data.sector;
-    if (data.stage) updatePayload.stage = data.stage;
-    if (data.status) updatePayload.status = data.status;
-    if ((data as any).description !== undefined) updatePayload.description = (data as any).description;
-    if ((data as any).website !== undefined) updatePayload.website = (data as any).website;
-    if ((data as any).solution_description !== undefined) updatePayload.solution_description = (data as any).solution_description;
-    if ((data as any).founder_phone !== undefined) updatePayload.founder_phone = (data as any).founder_phone;
-    if (data.revenue !== undefined) {
-      updatePayload.monthly_revenue = Number(data.revenue);
-      updatePayload.annual_revenue = Number(data.revenue) * 12;
+    if (data.startup_name !== undefined) updatePayload.startup_name = data.startup_name;
+    else if (data.name !== undefined) updatePayload.startup_name = data.name;
+    if (data.founder_name !== undefined) updatePayload.founder_name = data.founder_name;
+    if (data.founder_email !== undefined) updatePayload.founder_email = data.founder_email;
+    if (data.founder_phone !== undefined) updatePayload.founder_phone = data.founder_phone;
+    if (data.sector !== undefined) updatePayload.sector = data.sector;
+    if (data.stage !== undefined) updatePayload.stage = data.stage;
+    if (data.status !== undefined) updatePayload.status = data.status;
+    if (data.description !== undefined) updatePayload.description = data.description;
+    if (data.website !== undefined) updatePayload.website = data.website;
+    if (data.logo_url !== undefined) updatePayload.logo_url = data.logo_url;
+    if (data.problem_statement !== undefined) updatePayload.problem_statement = data.problem_statement;
+    if (data.solution_description !== undefined) updatePayload.solution_description = data.solution_description;
+    if (data.target_market !== undefined) updatePayload.target_market = data.target_market;
+    if (data.business_model !== undefined) updatePayload.business_model = data.business_model;
+    if (data.revenue_model !== undefined) updatePayload.revenue_model = data.revenue_model;
+    if (data.registration_type !== undefined) updatePayload.registration_type = data.registration_type;
+    if (data.registration_number !== undefined) updatePayload.registration_number = data.registration_number;
+    if (data.pan_number !== undefined) updatePayload.pan_number = data.pan_number;
+    if (data.gst_number !== undefined) updatePayload.gst_number = data.gst_number;
+    if (data.cin_number !== undefined) updatePayload.cin_number = data.cin_number;
+    if (data.founded_date !== undefined) updatePayload.founded_date = data.founded_date;
+    if (data.incubation_start_date !== undefined) updatePayload.incubation_start_date = data.incubation_start_date;
+    if (data.incubation_end_date !== undefined) updatePayload.incubation_end_date = data.incubation_end_date;
+    if (data.pitch_deck_url !== undefined) updatePayload.pitch_deck_url = data.pitch_deck_url;
+    if (data.business_plan_url !== undefined) updatePayload.business_plan_url = data.business_plan_url;
+    if (data.mrr !== undefined) updatePayload.mrr = Number(data.mrr) || 0;
+    if (data.funding_raised !== undefined) updatePayload.funding_raised = Number(data.funding_raised) || 0;
+    if (data.customer_count !== undefined) updatePayload.customer_count = Number(data.customer_count) || 0;
+    if (data.team_size !== undefined) updatePayload.team_size = Number(data.team_size) || 1;
+    if (data.team_members !== undefined) updatePayload.team_members = data.team_members;
+    if (data.revenue !== undefined || data.monthly_revenue !== undefined) {
+      const rev = Number(data.monthly_revenue !== undefined ? data.monthly_revenue : data.revenue) || 0;
+      updatePayload.monthly_revenue = rev;
+      updatePayload.annual_revenue = rev * 12;
     }
 
     if (isValidUUID(id)) {
@@ -248,6 +274,7 @@ export class StartupService {
         .from('startups')
         .update(updatePayload)
         .eq('id', id)
+        .eq('organization_id', realOrgId)
         .select()
         .maybeSingle();
 

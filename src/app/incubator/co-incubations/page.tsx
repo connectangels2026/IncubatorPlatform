@@ -184,7 +184,7 @@ export default function CoIncubationsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <Link
-              href="/dashboard"
+              href="/incubator"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard

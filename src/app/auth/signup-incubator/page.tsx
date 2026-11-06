@@ -1013,7 +1013,7 @@ function SignupIncubatorContent() {
 
             <div className="mt-6">
               <button
-                onClick={() => router.push(createdOrg?.id ? `/dashboard?org=${createdOrg.id}` : '/dashboard')}
+                onClick={() => router.push(createdOrg?.id ? `/incubator?org=${createdOrg.id}` : '/incubator')}
                 className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:opacity-95 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition cursor-pointer"
               >
                 Go to Admin Dashboard
