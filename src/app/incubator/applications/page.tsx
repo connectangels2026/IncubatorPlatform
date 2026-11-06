@@ -977,7 +977,7 @@ export default function ApplicationsPage() {
                   <Menu className="w-5 h-5" />
                 </button>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Link href="/dashboard" className="hover:text-blue-600 transition">
+                  <Link href="/incubator" className="hover:text-blue-600 transition">
                     Dashboard
                   </Link>
                   <span>/</span>

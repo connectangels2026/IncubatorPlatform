@@ -578,7 +578,7 @@ export default function MentorsHubPage() {
                 >
                   <Menu className="w-4 h-4" />
                 </button>
-                <Link href="/dashboard" className="hover:text-slate-800 transition">
+                <Link href="/incubator" className="hover:text-slate-800 transition">
                   Dashboard
                 </Link>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
@@ -1551,7 +1551,7 @@ export default function MentorsHubPage() {
                   Close Drawer
                 </button>
                 <Link
-                  href="/dashboard/startups"
+                  href="/incubator/startups"
                   className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition"
                 >
                   Explore Startups

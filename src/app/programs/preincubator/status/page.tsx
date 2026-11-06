@@ -101,7 +101,7 @@ function StatusContent() {
 
     if (isIncubator && !queryId) {
       const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-      router.push(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
+      router.push(orgId ? `/incubator?org=${orgId}` : '/incubator');
       return;
     }
   }, [user, authLoading, isIncubator, queryId, router]);
@@ -442,7 +442,7 @@ function StatusContent() {
             View My Application
           </Link>
           <Link
-            href="/dashboard"
+            href="/incubator"
             className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-300 transition"
           >
             Go to Dashboard

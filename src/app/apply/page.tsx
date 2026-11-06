@@ -187,7 +187,7 @@ export default function ApplyPage() {
               </div>
             </div>
             <Link
-              href="/dashboard"
+              href="/incubator"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700 transition"
             >
               <ArrowLeft className="w-4 h-4" />

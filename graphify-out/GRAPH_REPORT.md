@@ -1,7 +1,7 @@
 # Graph Report - Incubator-WebApp  (2026-11-06)
 
 ## Corpus Check
-- 357 files · ~299,933 words
+- 357 files · ~299,971 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 100 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 3)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3a2f8283`
+- Built from commit: `a9b6857d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,7 +44,7 @@
 - html-token-validator.py
 - shadcn/ui Accessibility Patterns
 - notificationService.ts
-- dashboard/applications/page.tsx
+- incubator/applications/page.tsx
 - Logo Usage Rules
 - Component Specifications
 - react
@@ -354,9 +354,9 @@ Nodes (29): Accordion, Alert, ARIA Labels, Checkbox and Radio, Color Contrast, C
 Cohesion: 0.08
 Nodes (34): POST(), POST(), GET(), isValidUUID(), POST(), resolveOrg(), GET(), handleReminders() (+26 more)
 
-### Community 28 - "dashboard/applications/page.tsx"
+### Community 28 - "incubator/applications/page.tsx"
 Cohesion: 0.10
-Nodes (26): ApplicationItem, ApplicationsPage(), INITIAL_APPLICATIONS, LEGACY_MOCK_APPLICATIONS, ScoreBadge(), SectorTag(), StatusBadge(), TypeBadge() (+18 more)
+Nodes (26): ErrorBoundary(), ApplicationItem, ApplicationsPage(), INITIAL_APPLICATIONS, LEGACY_MOCK_APPLICATIONS, ScoreBadge(), SectorTag(), StatusBadge() (+18 more)
 
 ### Community 29 - "Logo Usage Rules"
 Cohesion: 0.07
@@ -926,7 +926,7 @@ Nodes (3): Badge(), BadgeProps, BadgeVariant
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `requireOrg`, `useAuth`, `verifyAuth`, `preincubator/page.tsx`, `taskService.ts`, `PageHeader.tsx`, `tenant.ts`, `csv/route.ts`, `notificationService.ts`, `dashboard/applications/page.tsx`, `validation.ts`, `react`, `progress/route.ts`, `handleApiError`, `notifications/[id]/route.ts`, `services/auth.ts`, `package.json`, `session.ts`, `incubator/page.tsx`, `startup-reviews/[id]/route.ts`, `documents/[id]/route.ts`, `type/route.ts`, `complete/route.ts`, `feedback/route.ts`, `read/route.ts`, `StartupDashboard.tsx`, `choose-role/route.ts`, `evaluations/[id]/route.ts`, `reviews/route.ts`, `StartupService`, `availability/route.ts`, `mentors/page.tsx`?**
+- **Why does `next` connect `next` to `requireOrg`, `useAuth`, `verifyAuth`, `preincubator/page.tsx`, `taskService.ts`, `PageHeader.tsx`, `tenant.ts`, `csv/route.ts`, `notificationService.ts`, `incubator/applications/page.tsx`, `validation.ts`, `react`, `progress/route.ts`, `handleApiError`, `notifications/[id]/route.ts`, `services/auth.ts`, `package.json`, `session.ts`, `incubator/page.tsx`, `startup-reviews/[id]/route.ts`, `documents/[id]/route.ts`, `type/route.ts`, `complete/route.ts`, `feedback/route.ts`, `read/route.ts`, `StartupDashboard.tsx`, `choose-role/route.ts`, `evaluations/[id]/route.ts`, `reviews/route.ts`, `StartupService`, `availability/route.ts`, `mentors/page.tsx`?**
   _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `fs` to the rest of the system?**
   _1407 weakly-connected nodes found - possible documentation gaps or missing edges._
@@ -936,7 +936,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.021) - this node is a cross-community bridge._
 - **Should `ShadcnInstaller` be split into smaller, more focused modules?**
   _Cohesion score 0.04265010351966874 - nodes in this community are weakly interconnected._
-- **Why does `react` connect `react` to `DesignSystemPage`, `useAuth`, `preincubator/page.tsx`, `PageHeader.tsx`, `Charts.tsx`, `dashboard/applications/page.tsx`, `Checkbox.tsx`, `checked-components/page.tsx`, `services/auth.ts`, `package.json`, `incubator/page.tsx`, `lucide-react`, `StartupDashboard.tsx`, `DatePicker.tsx`, `Select.tsx`, `Badge.tsx`, `FileUpload.tsx`, `MultiSelect.tsx`, `Textarea.tsx`, `TextInput.tsx`, `Modal.tsx`, `Spinner.tsx`, `Tabs.tsx`, `mentors/page.tsx`?**
+- **Why does `react` connect `react` to `DesignSystemPage`, `useAuth`, `preincubator/page.tsx`, `PageHeader.tsx`, `Charts.tsx`, `incubator/applications/page.tsx`, `Checkbox.tsx`, `checked-components/page.tsx`, `services/auth.ts`, `package.json`, `incubator/page.tsx`, `lucide-react`, `StartupDashboard.tsx`, `DatePicker.tsx`, `Select.tsx`, `Badge.tsx`, `FileUpload.tsx`, `MultiSelect.tsx`, `Textarea.tsx`, `TextInput.tsx`, `Modal.tsx`, `Spinner.tsx`, `Tabs.tsx`, `mentors/page.tsx`?**
   _High betweenness centrality (0.019) - this node is a cross-community bridge._
 - **Should `requireOrg` be split into smaller, more focused modules?**
   _Cohesion score 0.11724137931034483 - nodes in this community are weakly interconnected._

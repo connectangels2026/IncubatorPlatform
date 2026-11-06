@@ -17,7 +17,7 @@ export default function ReportsPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-slate-50 p-6 md:p-10 max-w-7xl mx-auto">
         <div className="mb-8">
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
+          <Link href="/incubator" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
             <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Incubator Reports & Analytics</h1>

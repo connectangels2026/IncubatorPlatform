@@ -18,7 +18,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </Link>
 
         <div className="flex items-center gap-6 text-xs font-semibold text-slate-600">
-          <Link href="/dashboard" className="hover:text-blue-600 transition">Dashboard</Link>
+          <Link href="/incubator" className="hover:text-blue-600 transition">Workspace</Link>
           <Link href="/login" className="hover:text-blue-600 transition">Sign In</Link>
           <Link href="/signup" className="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition">
             Get Started

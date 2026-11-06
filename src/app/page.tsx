@@ -80,7 +80,7 @@ export default function Home() {
                     </button>
                   ) : (
                     <button
-                      onClick={() => router.push('/dashboard')}
+                      onClick={() => router.push('/incubator')}
                       className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
                       style={{ backgroundColor: '#2563EB' }}
                     >
@@ -379,7 +379,7 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
-                <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:text-[#1A2151]" style={{ color: '#2563EB' }}>
+                <Link href="/incubator" className="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:text-[#1A2151]" style={{ color: '#2563EB' }}>
                   Explore Investor Dealroom Demo →
                 </Link>
               </div>

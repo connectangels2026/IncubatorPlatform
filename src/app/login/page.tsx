@@ -75,7 +75,7 @@ function LoginForm() {
 
       // Fast-path: If user has an active organization, route directly to incubator dashboard
       if (effectiveOrgId) {
-        router.push(`/dashboard?org=${effectiveOrgId}`);
+        router.push(`/incubator?org=${effectiveOrgId}`);
         return;
       }
 
@@ -92,7 +92,7 @@ function LoginForm() {
             console.warn('Could not fetch org for incubator routing:', e);
           }
         }
-        router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
+        router.push(effectiveOrgId ? `/incubator?org=${effectiveOrgId}` : '/incubator');
         return;
       }
 
@@ -102,7 +102,7 @@ function LoginForm() {
         const meData = await meRes.json();
         if (meData?.organization?.id) {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
-          router.push(`/dashboard?org=${meData.organization.id}`);
+          router.push(`/incubator?org=${meData.organization.id}`);
           return;
         }
       } catch (e) {
@@ -126,7 +126,7 @@ function LoginForm() {
 
         if (hasDashboardAccess && acceptedApp) {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
-          router.push(`/dashboard?org=${acceptedApp.organization_id}`);
+          router.push(`/incubator?org=${acceptedApp.organization_id}`);
           return;
         }
 

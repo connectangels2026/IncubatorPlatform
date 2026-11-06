@@ -11,11 +11,21 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
   // ---------------------------------------------------------------------------
+  // 0. LEGACY ROUTE REDIRECTION (/dashboard/* -> /incubator/*)
+  // ---------------------------------------------------------------------------
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    const newPath = pathname.replace(/^\/dashboard/, '/incubator');
+    const redirectUrl = new URL(newPath, req.url);
+    redirectUrl.search = req.nextUrl.search;
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // ---------------------------------------------------------------------------
   // 1. PAGE ROUTE PROTECTION (Redirect unauthenticated users to /login)
   // ---------------------------------------------------------------------------
   const isSuperAdminPage = pathname.startsWith('/super-admin') && !pathname.startsWith('/super-admin/login');
   const isProtectedUserPage =
-    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/incubator') ||
     pathname.startsWith('/startup/dashboard') ||
     pathname.includes('/status') ||
     pathname === '/choose-role';
@@ -117,6 +127,8 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/api/v1/:path*',
+    '/incubator',
+    '/incubator/:path*',
     '/dashboard',
     '/dashboard/:path*',
     '/startup/dashboard',
