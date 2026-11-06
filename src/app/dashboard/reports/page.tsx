@@ -1,8 +1,9 @@
 'use client';
 
+import React from 'react';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
-import Link from 'next/link';
-import { ArrowLeft, Download, FileText, BarChart3 } from 'lucide-react';
+import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
+import { Download, FileText, BarChart3 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
 
 export default function ReportsPage() {
@@ -15,34 +16,40 @@ export default function ReportsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10 max-w-7xl mx-auto">
-        <div className="mb-8">
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
-            <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
-          </Link>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Incubator Reports & Analytics</h1>
-          <p className="text-sm text-slate-500 mt-1">Export structured KPI summaries and quarterly portfolio analytics.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {reports.map((r, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">{r.title}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{r.period} • {r.type} ({r.size})</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                <Download className="w-3.5 h-3.5" /> Download
-              </Button>
+      <DashboardLayout title="Reports & Analytics">
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                <BarChart3 className="w-7 h-7 sm:w-8 h-8 text-blue-600" />
+                Incubator Reports & Analytics
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Export structured KPI summaries and quarterly portfolio analytics.
+              </p>
             </div>
-          ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reports.map((r, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs hover:border-slate-300 transition">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-slate-900 text-sm truncate">{r.title}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{r.period} • {r.type} ({r.size})</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0 ml-3">
+                  <Download className="w-3.5 h-3.5" /> Download
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }

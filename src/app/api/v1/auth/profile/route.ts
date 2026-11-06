@@ -24,6 +24,15 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
 
+      try {
+        const userUpdates: any = { updated_at: new Date().toISOString() };
+        if (body.full_name || body.name) userUpdates.full_name = body.full_name || body.name;
+        if (body.phone) userUpdates.phone = body.phone;
+        await supabaseAdmin.from('users').update(userUpdates).eq('id', user.id);
+      } catch (uErr) {
+        console.warn('Sync profile to public.users warning:', uErr);
+      }
+
       return NextResponse.json({ success: true, user: data.user }, { status: 200 });
     }
 

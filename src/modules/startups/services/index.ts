@@ -68,7 +68,9 @@ const mapRowToStartup = (row: any): Startup => {
     name: row.name,
     founder_name: row.founder_name || row.founder_email?.split('@')[0] || 'Founder',
     founder_id: row.founder_id,
+    founder_phone: row.founder_phone || '',
     email: row.founder_email || '',
+    description: row.description || row.problem_statement || '',
     sector: row.sector || 'General',
     stage: row.stage || 'Idea',
     status: row.status || 'active',
@@ -172,12 +174,15 @@ export class StartupService {
     const insertPayload: any = {
       organization_id: realOrgId,
       name: data.name || 'New Startup',
-      sector: data.sector || 'Tech',
+      sector: data.sector || (data as any).industry || 'General',
       stage: validStage,
-      founder_email: data.email || 'founder@startup.com',
+      founder_name: data.founder_name || 'Founder',
+      founder_email: data.email || (data as any).founder_email || 'founder@startup.com',
+      founder_phone: (data as any).founder_phone || (data as any).contact || null,
+      description: data.description || null,
       monthly_revenue: Number(data.revenue) || 0,
       annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
-      status: data.status || 'active',
+      status: data.status || 'Active',
       team_members: [],
     };
 
@@ -202,7 +207,7 @@ export class StartupService {
         email: data.email || '',
         sector: data.sector || 'General',
         stage: validStage,
-        status: data.status || 'active',
+        status: data.status || 'Active',
         revenue: Number(data.revenue) || 0,
         organization_id: realOrgId,
         created_at: new Date().toISOString(),
@@ -229,6 +234,10 @@ export class StartupService {
     if (data.sector) updatePayload.sector = data.sector;
     if (data.stage) updatePayload.stage = data.stage;
     if (data.status) updatePayload.status = data.status;
+    if ((data as any).description !== undefined) updatePayload.description = (data as any).description;
+    if ((data as any).website !== undefined) updatePayload.website = (data as any).website;
+    if ((data as any).solution_description !== undefined) updatePayload.solution_description = (data as any).solution_description;
+    if ((data as any).founder_phone !== undefined) updatePayload.founder_phone = (data as any).founder_phone;
     if (data.revenue !== undefined) {
       updatePayload.monthly_revenue = Number(data.revenue);
       updatePayload.annual_revenue = Number(data.revenue) * 12;

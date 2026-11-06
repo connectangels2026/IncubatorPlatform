@@ -11,6 +11,7 @@ import {
   Users,
   GraduationCap,
   Calendar,
+  BarChart3,
   Settings,
   ArrowLeft,
   LogOut,
@@ -32,6 +33,8 @@ export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
   { label: 'Collaborators', href: '/dashboard/collaborators', icon: Users },
   { label: 'Co-Incubations', href: '/dashboard/co-incubations', icon: GraduationCap },
   { label: 'Events', href: '/dashboard/events', icon: Calendar },
+  { label: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
+  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
 interface SidebarProps {

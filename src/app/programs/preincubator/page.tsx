@@ -762,7 +762,7 @@ export default function PreIncubatorApplicationPage() {
                         <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-                            Target Incubator Name *
+                            Incubator Name *
                           </span>
                         </label>
                         <p className="text-xs text-slate-500 font-medium">
@@ -780,7 +780,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
                       </div>
 
-                                            {/* Startup / Venture Name Input */}
+                      {/* Startup / Venture Name Input */}
                       <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-2">
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
                           <span className="flex items-center gap-2">
@@ -803,7 +803,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
                       </div>
 
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -2066,8 +2066,8 @@ export default function PreIncubatorApplicationPage() {
               {isAutoSaving
                 ? 'Auto-saving changes locally...'
                 : lastSavedAt
-                ? `Auto-saved locally at ${lastSavedAt}`
-                : 'Encrypted & Auto-saved'}
+                  ? `Auto-saved locally at ${lastSavedAt}`
+                  : 'Encrypted & Auto-saved'}
             </span>
           </div>
 

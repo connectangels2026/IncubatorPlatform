@@ -20,7 +20,10 @@ import Logo from '@/frontend/components/ui/Logo';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams ? (searchParams.get('redirect') || searchParams.get('returnUrl')) : null;
+  const rawRedirect = searchParams ? (searchParams.get('redirect') || searchParams.get('returnUrl')) : null;
+  // Sanitize redirect URL to prevent loops back to login/auth pages
+  const isInvalidRedirect = !rawRedirect || rawRedirect.includes('/login') || rawRedirect.includes('/auth/login');
+  const redirectTo = isInvalidRedirect ? null : rawRedirect;
   const { login, user, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

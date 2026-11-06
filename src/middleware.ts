@@ -83,12 +83,6 @@ export async function middleware(req: NextRequest) {
       return res;
     }
 
-    // Check Token against Redis/Memory Active Sessions
-    const isSessionActive = await isValidToken(token);
-    if (!isSessionActive) {
-      return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
-    }
-
     // Verify token signature with Supabase
     const supabase = createClient(supabaseUrl, supabaseKey);
     const {
@@ -97,7 +91,13 @@ export async function middleware(req: NextRequest) {
     } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
+    }
+
+    // Check Token against Redis/Memory Active Sessions
+    const isSessionActive = await isValidToken(token);
+    if (!isSessionActive) {
+      return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
     }
 
     // Role check logic for Super Admin API routes

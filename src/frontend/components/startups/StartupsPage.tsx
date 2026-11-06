@@ -16,7 +16,8 @@ import {
   GraduationCap,
   X,
 } from "lucide-react";
-import { Sidebar } from "@/frontend/components/layouts/Sidebar";
+import { useAuth } from "@/frontend/context/AuthContext";
+import { DashboardLayout } from "@/frontend/components/layouts/DashboardLayout";
 import { apiClient } from "@/services/apiClient";
 
 // Import Modular Components
@@ -276,9 +277,11 @@ const INITIAL_STARTUPS: StartupItem[] = [
 export const StartupsPage: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited">("all");
 
   // State
-  const [startups, setStartups] = useState<StartupItem[]>(INITIAL_STARTUPS);
+  const { organization } = useAuth();
+  const [startups, setStartups] = useState<StartupItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
   const [selectedStage, setSelectedStage] = useState("ALL");
@@ -303,8 +306,10 @@ export const StartupsPage: React.FC = () => {
     name: "",
     founder: "",
     founderEmail: "",
+    founderPhone: "",
     industry: "Tech",
-    stage: "Idea",
+    stage: "MVP",
+    status: "Active" as "Pending" | "Active" | "Inactive" | "Exited",
     funding: "$0",
     cohort: "Cohort 2026",
     pitch: "",
@@ -321,69 +326,64 @@ export const StartupsPage: React.FC = () => {
   useEffect(() => {
     const loadStartups = async () => {
       try {
-        // Get organization_id from URL query params or localStorage
-        const searchParams = new URLSearchParams(window.location.search);
-        const orgIdFromUrl = searchParams.get('org');
+        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+        const orgIdFromUrl = searchParams?.get('org');
         const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-        const orgId = orgIdFromUrl || orgIdFromStorage;
+        const orgId = organization?.id || orgIdFromUrl || orgIdFromStorage;
 
         if (!orgId) {
-          console.warn('Organization ID not found. Cannot fetch startups.');
+          setStartups([]);
           return;
         }
 
-        // Pass org_id as query parameter to API
         const res = await apiClient.get("/startups", {
-          params: {
-            org_id: orgId,
-          },
+          headers: { 'x-org-id': orgId },
+          params: { org_id: orgId },
         });
 
         const apiData = res.data?.data;
         if (Array.isArray(apiData)) {
-          if (apiData.length === 0) {
-            setStartups([]);
-          } else {
-            const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
-              return {
-                id: item.id || String(idx + 1),
-                name: item.name || 'Startup',
-                monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
-                monogramBg: 'bg-blue-600',
-                sector: item.sector || 'General',
-                industry: item.sector || 'General',
-                stage: item.stage || 'Idea',
-                status: item.status || 'active',
-                mrr: typeof item.revenue === "number" ? item.revenue : 0,
-                arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
-                customers: item.customer_count || 0,
-                funding: item.funding_raised ? `$${item.funding_raised}` : '$0',
-                fundingRaised: item.funding_raised ? `$${item.funding_raised}` : '$0',
-                burn: '$0',
-                monthlyBurn: '$0',
-                cohort: item.cohort || 'Cohort 2026',
-                healthScore: '85',
-                tagline: item.description || '',
-                pitch: item.description || '',
-                founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
-                founderEmail: item.email || item.founder_email || '',
-                website: item.website || '',
-                location: 'Remote',
-                teamMembers: [],
-                allocatedMentors: item.allocatedMentors || [],
-                allocatedInvestors: item.allocatedInvestors || [],
-                coIncubators: item.coIncubators || [],
-              };
-            });
-            setStartups(merged);
-          }
+          const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
+            return {
+              id: item.id || String(idx + 1),
+              name: item.name || 'Startup',
+              monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
+              monogramBg: 'bg-blue-600',
+              sector: item.sector || 'General',
+              industry: item.sector || 'General',
+              stage: item.stage || 'Idea',
+              status: item.status || 'Active',
+              mrr: typeof item.revenue === "number" ? item.revenue : (item.monthly_revenue || 0),
+              arr: typeof item.revenue === "number" ? item.revenue * 12 : (item.annual_revenue || 0),
+              customers: item.customer_count || 0,
+              funding: item.funding_raised ? `${item.funding_raised}` : '$0',
+              fundingRaised: item.funding_raised ? `${item.funding_raised}` : '$0',
+              burn: '$0',
+              monthlyBurn: '$0',
+              cohort: item.cohort || 'Cohort 2026',
+              healthScore: '85',
+              tagline: item.description || '',
+              pitch: item.description || '',
+              founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
+              founderEmail: item.email || item.founder_email || '',
+              founderPhone: item.founder_phone || '',
+              website: item.website || '',
+              location: 'Remote',
+              teamMembers: [],
+              allocatedMentors: item.allocatedMentors || [],
+              allocatedInvestors: item.allocatedInvestors || [],
+              coIncubators: item.coIncubators || [],
+            };
+          });
+          setStartups(merged);
         }
       } catch (e) {
         console.warn("Error fetching startups", e);
+        setStartups([]);
       }
     };
     loadStartups();
-  }, []);
+  }, [organization?.id]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -406,6 +406,69 @@ export const StartupsPage: React.FC = () => {
       return 0;
     });
   }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, sortBy]);
+
+  // Status Partitioning (Queue = Pending, Active = Active, Inactive = Inactive, Exited = Exited)
+  const queueStartups = useMemo(() => {
+    return filteredStartups.filter((s) => (s.status || '').toLowerCase() === 'pending');
+  }, [filteredStartups]);
+
+  const activeStartups = useMemo(() => {
+    return filteredStartups.filter((s) => (s.status || '').toLowerCase() === 'active');
+  }, [filteredStartups]);
+
+  const inactiveStartups = useMemo(() => {
+    return filteredStartups.filter((s) => (s.status || '').toLowerCase() === 'inactive');
+  }, [filteredStartups]);
+
+  const exitedStartups = useMemo(() => {
+    return filteredStartups.filter((s) => (s.status || '').toLowerCase() === 'exited');
+  }, [filteredStartups]);
+
+  const displayedStartups = useMemo(() => {
+    switch (sectionFilter) {
+      case 'queue':
+        return queueStartups;
+      case 'active':
+        return activeStartups;
+      case 'inactive':
+        return inactiveStartups;
+      case 'exited':
+        return exitedStartups;
+      case 'all':
+      default:
+        return filteredStartups;
+    }
+  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups]);
+
+  // Handler: Status Change with Database Persistence
+  const handleStatusChange = async (
+    startup: StartupItem,
+    newStatus: 'Pending' | 'Active' | 'Inactive' | 'Exited'
+  ) => {
+    const prevStatus = startup.status;
+    // Optimistic UI update
+    setStartups((prev) =>
+      prev.map((s) => (s.id === startup.id ? { ...s, status: newStatus } : s))
+    );
+    showToast(`Updated status of "${startup.name}" to ${newStatus}`);
+
+    try {
+      const orgId = organization?.id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+      await apiClient.put(
+        `/startups/${startup.id}`,
+        { status: newStatus.toLowerCase() },
+        { headers: orgId ? { 'x-org-id': orgId } : undefined }
+      );
+    } catch (err: any) {
+      console.error('Failed to update startup status in database:', err);
+      // Rollback on failure
+      setStartups((prev) =>
+        prev.map((s) => (s.id === startup.id ? { ...s, status: prevStatus } : s))
+      );
+      showToast(err.response?.data?.error || 'Failed to update status. Please try again.');
+    }
+  };
+
 
   // Handlers: View Profile Modal
   const handleOpenProfile = (startup: StartupItem) => {
@@ -742,56 +805,105 @@ export const StartupsPage: React.FC = () => {
     showToast("Preparing Startup Directory PDF printout...");
   };
 
-  // Handle Onboard New Startup
-  const handleOnboardSubmit = (e: React.FormEvent) => {
+  // Handle Add New Startup
+  const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onboardForm.name.trim()) return;
+    if (!onboardForm.name.trim() || !onboardForm.founder.trim() || !onboardForm.founderEmail.trim()) {
+      showToast("Please provide Startup Name, Founder Name, and Email.");
+      return;
+    }
 
-    const newStartup: StartupItem = {
-      id: "st_" + Date.now(),
-      name: onboardForm.name,
-      monogram: onboardForm.name.slice(0, 2).toUpperCase(),
-      monogramBg: "bg-indigo-600",
-      sector: onboardForm.industry,
-      industry: onboardForm.industry,
-      stage: onboardForm.stage,
-      status: "Active",
-      funding: onboardForm.funding || "$0",
-      fundingRaised: onboardForm.funding || "$0",
-      mrr: 0,
-      arr: 0,
-      customers: 0,
-      cohort: onboardForm.cohort,
-      tagline: onboardForm.pitch || "Newly onboarded incubator cohort startup.",
-      pitch: onboardForm.pitch || "Newly onboarded incubator cohort startup.",
-      founder: onboardForm.founder || "Lead Founder",
-      founderEmail: onboardForm.founderEmail || "",
-      website: `https://${onboardForm.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
-      allocatedMentors: [],
-      allocatedInvestors: [],
-      coIncubators: [],
-    };
+    const orgId = organization?.id || (typeof window !== "undefined" ? localStorage.getItem("org_id") : null);
+    if (!orgId) {
+      showToast("Missing organization context. Please refresh or re-login.");
+      return;
+    }
 
-    setStartups([newStartup, ...startups]);
-    setOnboardForm({
-      name: "",
-      founder: "",
-      founderEmail: "",
-      industry: "Tech",
-      stage: "Idea",
-      funding: "$0",
-      cohort: "Cohort 2026",
-      pitch: "",
-    });
-    setIsOnboardOpen(false);
-    showToast(`Successfully onboarded ${newStartup.name}!`);
+    try {
+      const res = await apiClient.post(
+        "/startups",
+        {
+          name: onboardForm.name.trim(),
+          founder_name: onboardForm.founder.trim(),
+          email: onboardForm.founderEmail.trim(),
+          founder_email: onboardForm.founderEmail.trim(),
+          contact: onboardForm.founderPhone.trim(),
+          founder_phone: onboardForm.founderPhone.trim(),
+          sector: onboardForm.industry,
+          industry: onboardForm.industry,
+          stage: onboardForm.stage,
+          status: onboardForm.status,
+          description: onboardForm.pitch.trim(),
+          organization_id: orgId,
+        },
+        {
+          headers: { "x-org-id": orgId },
+        }
+      );
+
+      const created = res.data?.data;
+      const newStartup: StartupItem = {
+        id: created?.id || ("st_" + Date.now()),
+        name: created?.name || onboardForm.name.trim(),
+        monogram: (created?.name || onboardForm.name).slice(0, 2).toUpperCase(),
+        monogramBg: "bg-indigo-600",
+        sector: created?.sector || onboardForm.industry,
+        industry: created?.sector || onboardForm.industry,
+        stage: created?.stage || onboardForm.stage,
+        status: created?.status || onboardForm.status,
+        funding: onboardForm.funding || "$0",
+        fundingRaised: onboardForm.funding || "$0",
+        mrr: 0,
+        arr: 0,
+        customers: 0,
+        cohort: onboardForm.cohort,
+        tagline: onboardForm.pitch || "Newly registered startup.",
+        pitch: onboardForm.pitch || "Newly registered startup.",
+        founder: created?.founder_name || onboardForm.founder,
+        founderEmail: created?.email || created?.founder_email || onboardForm.founderEmail,
+        founderPhone: created?.founder_phone || onboardForm.founderPhone,
+        website: `https://${onboardForm.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
+        allocatedMentors: [],
+        allocatedInvestors: [],
+        coIncubators: [],
+      };
+
+      setStartups((prev) => [newStartup, ...prev]);
+      setOnboardForm({
+        name: "",
+        founder: "",
+        founderEmail: "",
+        founderPhone: "",
+        industry: "Tech",
+        stage: "MVP",
+        status: "Active",
+        funding: "$0",
+        cohort: "Cohort 2026",
+        pitch: "",
+      });
+      setIsOnboardOpen(false);
+      showToast(`Successfully registered ${newStartup.name}!`);
+    } catch (err: any) {
+      console.error("Failed to register startup:", err);
+      showToast(err.response?.data?.error || "Failed to register startup. Please try again.");
+    }
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+    <DashboardLayout
+      title="Startups Directory"
+      fluid={true}
+      headerActions={
+        <button
+          onClick={() => setIsOnboardOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>+ Add Startup</span>
+        </button>
+      }
+    >
+      <div className="space-y-6">
         {/* Toast Notification */}
         {toast && (
           <div className="fixed bottom-6 right-6 z-[120] bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-xl animate-in slide-in-from-bottom duration-200 flex items-center gap-2">
@@ -827,7 +939,7 @@ export const StartupsPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Onboard Startup</span>
+              <span>+ Add Startup</span>
             </button>
             <button
               onClick={() => {
@@ -988,26 +1100,155 @@ export const StartupsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Directory Content (Grid / List) */}
-          {viewMode === "grid" ? (
-            <StartupGrid
-              startups={filteredStartups}
-              onSelectStartup={handleOpenProfile}
-              onAllocateMentorClick={handleTriggerAllocateMentor}
-              onAllocateInvestorClick={handleTriggerAllocateInvestor}
-              onCoIncubatorClick={handleTriggerAddCoIncubator}
-            />
-          ) : (
-            <StartupList
-              startups={filteredStartups}
-              onSelectStartup={handleOpenProfile}
-              onAllocateMentorClick={handleTriggerAllocateMentor}
-              onAllocateInvestorClick={handleTriggerAllocateInvestor}
-              onCoIncubatorClick={handleTriggerAddCoIncubator}
-            />
-          )}
+          {/* Section Navigation Tabs */}
+          <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto">
+            <button
+              onClick={() => setSectionFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>All Startups</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {filteredStartups.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSectionFilter('queue')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'queue'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50/50'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span>Queue (Pending)</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
+              }`}>
+                {queueStartups.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSectionFilter('active')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'active'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50/50'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Active</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'active' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {activeStartups.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSectionFilter('inactive')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'inactive'
+                  ? 'bg-slate-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span>Inactive</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'inactive' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {inactiveStartups.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSectionFilter('exited')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'exited'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-50/50'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              <span>Exited</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'exited' ? 'bg-purple-700 text-white' : 'bg-purple-100 text-purple-800'
+              }`}>
+                {exitedStartups.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Section Content Display */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {sectionFilter === 'all' && <span className="w-2.5 h-2.5 rounded-full bg-slate-800" />}
+                {sectionFilter === 'queue' && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />}
+                {sectionFilter === 'active' && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
+                {sectionFilter === 'inactive' && <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />}
+                {sectionFilter === 'exited' && <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                  {sectionFilter === 'all' && 'All Startups'}
+                  {sectionFilter === 'queue' && 'Queue / Pending Assignment'}
+                  {sectionFilter === 'active' && 'Active Startups'}
+                  {sectionFilter === 'inactive' && 'Inactive Startups'}
+                  {sectionFilter === 'exited' && 'Exited Startups'}
+                </h2>
+                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
+                  {displayedStartups.length}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 hidden sm:block">
+                {sectionFilter === 'all' && 'All portfolio and applicant startups across all statuses'}
+                {sectionFilter === 'queue' && 'Startups with pending status assigned dashboard or awaiting cohort onboarding'}
+                {sectionFilter === 'active' && 'Operational cohort startups actively in incubation'}
+                {sectionFilter === 'inactive' && 'Startups placed on hold or marked inactive'}
+                {sectionFilter === 'exited' && 'Startups that have graduated or exited the incubator'}
+              </p>
+            </div>
+
+            {displayedStartups.length === 0 ? (
+              <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
+                <Rocket className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <h3 className="text-xs font-semibold text-slate-700">No Startups Found</h3>
+                <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
+                  {sectionFilter === 'queue' && 'The queue is currently empty. Newly assigned dashboards appear here with Pending status.'}
+                  {sectionFilter === 'active' && 'No active startups found. Set a startup status to Active to display it here.'}
+                  {sectionFilter === 'inactive' && 'No inactive startups in this section.'}
+                  {sectionFilter === 'exited' && 'No exited startups in this section.'}
+                  {sectionFilter === 'all' && 'No startups match your search or filter criteria.'}
+                </p>
+              </div>
+            ) : viewMode === "grid" ? (
+              <StartupGrid
+                startups={displayedStartups}
+                onSelectStartup={handleOpenProfile}
+                onAllocateMentorClick={handleTriggerAllocateMentor}
+                onAllocateInvestorClick={handleTriggerAllocateInvestor}
+                onCoIncubatorClick={handleTriggerAddCoIncubator}
+                onStatusChange={handleStatusChange}
+              />
+            ) : (
+              <StartupList
+                startups={displayedStartups}
+                onSelectStartup={handleOpenProfile}
+                onAllocateMentorClick={handleTriggerAllocateMentor}
+                onAllocateInvestorClick={handleTriggerAllocateInvestor}
+                onCoIncubatorClick={handleTriggerAddCoIncubator}
+                onStatusChange={handleStatusChange}
+              />
+            )}
+          </div>
         </div>
-      </main>
 
       {/* Startup Profile Modal (Drawer) */}
       <StartupDetailModal
@@ -1114,9 +1355,10 @@ export const StartupsPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Email</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Email *</label>
                   <input
                     type="email"
+                    required
                     placeholder="founder@startup.com"
                     value={onboardForm.founderEmail}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founderEmail: e.target.value })}
@@ -1127,6 +1369,16 @@ export const StartupsPage: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Contact / Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="+1 (555) 000-0000"
+                    value={onboardForm.founderPhone}
+                    onChange={(e) => setOnboardForm({ ...onboardForm, founderPhone: e.target.value })}
+                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">Stage</label>
                   <select
                     value={onboardForm.stage}
@@ -1135,29 +1387,24 @@ export const StartupsPage: React.FC = () => {
                   >
                     <option value="Idea">Idea</option>
                     <option value="MVP">MVP</option>
+                    <option value="Pre-revenue">Pre-revenue</option>
                     <option value="Revenue">Revenue</option>
                     <option value="Growth">Growth</option>
+                    <option value="Scale">Scale</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Cohort</label>
-                  <input
-                    type="text"
-                    value={onboardForm.cohort}
-                    onChange={(e) => setOnboardForm({ ...onboardForm, cohort: e.target.value })}
-                    placeholder="Cohort 2026"
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Funding Raised</label>
-                  <input
-                    type="text"
-                    value={onboardForm.funding}
-                    onChange={(e) => setOnboardForm({ ...onboardForm, funding: e.target.value })}
-                    placeholder="$250K"
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                  <label className="block text-xs font-semibold text-indigo-700 mb-1">Status *</label>
+                  <select
+                    value={onboardForm.status}
+                    onChange={(e) => setOnboardForm({ ...onboardForm, status: e.target.value as 'Active' | 'Inactive' | 'Exited' })}
+                    className="w-full text-xs px-2.5 py-2 rounded-lg border-2 border-indigo-400 bg-indigo-50/50 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending (Queue)</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Exited">Exited</option>
+                  </select>
                 </div>
               </div>
 
@@ -1184,13 +1431,14 @@ export const StartupsPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
-                  Register & Onboard
+                  Add Startup
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
