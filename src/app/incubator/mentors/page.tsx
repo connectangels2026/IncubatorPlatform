@@ -25,9 +25,8 @@ import {
   Clock,
   Layers,
 } from 'lucide-react';
-import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
 import { apiClient } from '@/services/apiClient';
 
 export interface MentorExpertise {
@@ -530,8 +529,21 @@ export default function MentorsHubPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-800 font-sans antialiased">
+    <DashboardLayout
+      title="Mentors Directory"
+      fluid={true}
+      headerActions={
+        <button
+          onClick={fetchMentors}
+          disabled={isLoading}
+          title="Refresh mentors list"
+          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+        </button>
+      }
+    >
+      <div className="space-y-6">
         {/* Toast Notification */}
         {toastMessage && (
           <div
@@ -597,6 +609,8 @@ export default function MentorsHubPage() {
               </button>
             </div>
 
+        {/* Headline, Actions & Filters Control Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
             {/* Headline & Primary Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -721,10 +735,8 @@ export default function MentorsHubPage() {
                 )}
               </div>
             </div>
-          </header>
 
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+        </div>
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
@@ -985,8 +997,6 @@ export default function MentorsHubPage() {
                 </div>
               </div>
             )}
-          </div>
-        </main>
       </div>
 
       {/* Onboard Mentor Modal */}
@@ -1561,6 +1571,6 @@ export default function MentorsHubPage() {
           </div>
         </div>
       )}
-    </ProtectedRoute>
+    </DashboardLayout>
   );
 }

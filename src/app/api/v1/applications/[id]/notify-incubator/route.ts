@@ -10,7 +10,11 @@ const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { user } = await verifyAuth(req);
+    const { user, errorResponse } = await verifyAuth(req);
+    if (errorResponse) return errorResponse;
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+    }
 
     // Retrieve application
     const { data: application, error: fetchErr } = await supabaseAdmin
@@ -86,35 +90,64 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       currentFormData.selected_incubator_id;
 
     let incubatorRecipientId = 'dfdb0d1a-24a3-4062-98aa-0d723fc23725';
+    let recipientEmail = '';
+    let recipientName = 'Incubator Director';
+
     if (targetOrgId) {
       const { data: orgUsers } = await supabaseAdmin
         .from('users')
-        .select('id')
+        .select('id, email, full_name, first_name, last_name')
         .eq('organization_id', targetOrgId)
         .limit(1);
+
       if (orgUsers && orgUsers.length > 0 && orgUsers[0].id) {
         incubatorRecipientId = orgUsers[0].id;
+        recipientEmail = orgUsers[0].email || '';
+        recipientName = orgUsers[0].full_name || orgUsers[0].first_name || 'Incubator Admin';
+      } else {
+        const { data: orgData } = await supabaseAdmin
+          .from('organizations')
+          .select('id, auth_user_id, founder_email, founder_name, name')
+          .eq('id', targetOrgId)
+          .maybeSingle();
+
+        if (orgData) {
+          recipientEmail = orgData.founder_email || '';
+          recipientName = orgData.founder_name || orgData.name || 'Incubator Admin';
+          if (orgData.auth_user_id) {
+            incubatorRecipientId = orgData.auth_user_id;
+          } else if (orgData.founder_email) {
+            const { data: userByEmail } = await supabaseAdmin
+              .from('users')
+              .select('id')
+              .ilike('email', orgData.founder_email)
+              .maybeSingle();
+            if (userByEmail?.id) incubatorRecipientId = userByEmail.id;
+          }
+        }
       }
     }
 
     const startupName = currentFormData.startup_name || currentFormData.name || application.applicant_name;
     const incubatorName = application.incubator_name_text || 'Incubator';
 
-    // Dispatch notification to incubator
+    // Dispatch notification to incubator (unique title per nudge allows multiple notifications within daily limit)
     await NotificationService.createNotification({
       organization_id: targetOrgId || null,
       recipient_id: incubatorRecipientId,
-      title: `Dashboard Access Request: ${startupName}`,
+      recipient_name: recipientName,
+      recipient_email: recipientEmail,
+      title: `Dashboard Access Request #${currentDailyCount + 1}: ${startupName}`,
       message: `${application.applicant_name} has requested dashboard access for ${startupName} (${application.id}).`,
       notification_type: 'dashboard_access_request',
       send_email: true,
       send_in_app: true,
       related_entity_type: 'application',
-      related_entity_id: application.id,
       metadata: {
         startup_name: startupName,
         applicant_email: applicantEmail,
         application_id: application.id,
+        nudge_number: currentDailyCount + 1,
       },
     });
 
@@ -140,6 +173,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       cooldownSeconds: 600,
       dailyCount: currentDailyCount + 1,
       remainingDaily: 5 - (currentDailyCount + 1),
+      updatedFormData,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Failed to notify incubator' }, { status: 500 });

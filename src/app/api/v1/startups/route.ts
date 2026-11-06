@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (authError) return authError;
 
     const role = user?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'founder' && role !== 'super-admin') {
+    if (role !== 'admin' && role !== 'founder' && role !== 'super-admin' && role !== 'incubator') {
       return NextResponse.json(
         { error: 'Forbidden: Only admins and founders can create startups' },
         { status: 403 }

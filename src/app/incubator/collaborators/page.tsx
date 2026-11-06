@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
+import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -186,7 +187,21 @@ export default function CollaboratorsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10 max-w-7xl mx-auto">
+      <DashboardLayout
+        title="Collaborator Network"
+        headerActions={
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            size="sm"
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 h-8 rounded-xl shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add Collaborator</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        }
+      >
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -412,6 +427,7 @@ export default function CollaboratorsPage() {
           </div>
         )}
       </div>
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }

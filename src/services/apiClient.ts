@@ -50,29 +50,86 @@ apiClient.interceptors.request.use(
   (error: any) => Promise.reject(error)
 );
 
-// Response interceptor for automatic error handling
+// Response interceptor for automatic error handling with silent token refresh
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string | null) => void;
+  reject: (err: any) => void;
+}> = [];
+
+const processQueue = (err: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (err) {
+      prom.reject(err);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
   (response: any) => response,
-  (error: any) => {
+  async (error: any) => {
+    const originalRequest = error.config;
     const status = error.response?.status;
     const errorMsg = String(error.response?.data?.error || error.message || '').toLowerCase();
     const isAuthExpired = status === 401 || errorMsg.includes('invalid token') || errorMsg.includes('session expired');
 
-    if (isAuthExpired && typeof window !== 'undefined') {
+    // Attempt silent token refresh on 401 before logging out
+    if (isAuthExpired && originalRequest && !originalRequest._retry && typeof window !== 'undefined') {
+      if (isRefreshing) {
+        return new Promise<string | null>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((newToken) => {
+            if (newToken) {
+              originalRequest.headers = originalRequest.headers || {};
+              originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data, error: refreshErr } = await supabase.auth.refreshSession();
+        const newSession = data?.session;
+
+        if (!refreshErr && newSession?.access_token) {
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers['Authorization'] = `Bearer ${newSession.access_token}`;
+          processQueue(null, newSession.access_token);
+          isRefreshing = false;
+          return apiClient(originalRequest);
+        }
+      } catch (refreshEx) {
+        console.warn('Silent session refresh attempt failed:', refreshEx);
+      } finally {
+        isRefreshing = false;
+      }
+
+      processQueue(error, null);
+
       try {
         localStorage.removeItem('token');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('org_id');
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
-        supabase.auth.signOut().catch(() => { });
-      } catch { }
+        await supabase.auth.signOut().catch(() => {});
+      } catch {}
 
-      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/auth')) {
-        const currentUrl = window.location.pathname + window.location.search;
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith('/login') && !currentPath.startsWith('/auth')) {
+        const currentUrl = currentPath + window.location.search;
         window.location.href = `/login?expired=true&redirect=${encodeURIComponent(currentUrl)}`;
       }
     }
+
     return Promise.reject(error);
   }
 );

@@ -11,6 +11,7 @@ interface StartupGridProps {
   onAllocateMentorClick: (startup: StartupItem) => void;
   onAllocateInvestorClick: (startup: StartupItem) => void;
   onCoIncubatorClick: (startup: StartupItem) => void;
+  onStatusChange?: (startup: StartupItem, status: 'Pending' | 'Active' | 'Inactive' | 'Exited') => void;
 }
 
 export const StartupGrid: React.FC<StartupGridProps> = ({
@@ -19,6 +20,7 @@ export const StartupGrid: React.FC<StartupGridProps> = ({
   onAllocateMentorClick,
   onAllocateInvestorClick,
   onCoIncubatorClick,
+  onStatusChange,
 }) => {
   if (startups.length === 0) {
     return (
@@ -44,6 +46,7 @@ export const StartupGrid: React.FC<StartupGridProps> = ({
           onAllocateMentorClick={onAllocateMentorClick}
           onAllocateInvestorClick={onAllocateInvestorClick}
           onCoIncubatorClick={onCoIncubatorClick}
+          onStatusChange={onStatusChange}
         />
       ))}
     </div>

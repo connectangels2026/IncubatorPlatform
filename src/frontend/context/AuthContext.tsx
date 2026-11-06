@@ -21,7 +21,7 @@ interface AuthContextType {
   organization: Organization | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization; user?: any; next_step?: string }>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string; code?: string; organization?: Organization; user?: any; next_step?: string; redirect_to?: string }>;
   signup: (founder_name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -52,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = await res.json();
         if (data.user) {
           setUser((prev) => ({ ...(prev ?? {}), ...data.user }) as any);
+          if (typeof window !== 'undefined' && data.user.role) {
+            localStorage.setItem('user_role', data.user.role);
+          }
         }
         if (data.organization) {
           setOrganization(data.organization);
@@ -78,8 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+        const initialUser = initialSession?.user
+          ? { ...initialSession.user, role: cachedRole || (initialSession.user as any).role }
+          : null;
         setSession(initialSession);
-        setUser(initialSession?.user ?? null);
+        setUser(initialUser as any);
 
         if (initialSession?.access_token) {
           await fetchUserOrg(initialSession.access_token);
@@ -96,8 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, currentSession) => {
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+        const currentUser = currentSession?.user
+          ? { ...currentSession.user, role: cachedRole || (currentSession.user as any).role }
+          : null;
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        setUser(currentUser as any);
         if (currentSession?.access_token) {
           await fetchUserOrg(currentSession.access_token);
         }
@@ -193,8 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Store organization ID & founder info in localStorage for API requests
       if (typeof window !== 'undefined') {
+        if (data.user?.role) {
+          localStorage.setItem('user_role', data.user.role);
+        }
         if (data.organization?.id) {
           localStorage.setItem('org_id', data.organization.id);
+        } else if (data.accepted_organization_id) {
+          localStorage.setItem('org_id', data.accepted_organization_id);
         }
         if (data.organization?.founder_name) {
           localStorage.setItem('org_founder_name', data.organization.founder_name);
@@ -209,6 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         organization: data.organization,
         user: data.user,
         next_step: data.next_step,
+        redirect_to: data.redirect_to,
       };
     } catch (err: any) {
       const msg = err.message || 'Failed to login';
@@ -277,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('org_id');
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
+        localStorage.removeItem('user_role');
       }
       router.push('/login');
     } catch (err: any) {

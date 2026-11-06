@@ -11,6 +11,7 @@ import {
   Users,
   GraduationCap,
   Calendar,
+  BarChart3,
   Settings,
   ArrowLeft,
   LogOut,

@@ -21,12 +21,13 @@ export async function GET(req: NextRequest) {
 
       orgData = org;
 
-      // 2. Query public.users table for profile
-      if (user.email) {
+      // 2. Query public.users table for profile (robust match by id or email)
+      if (user.email || user.id) {
+        const cleanEmail = (user.email || '').trim();
         const { data: uRec } = await supabaseAdmin
           .from('users')
           .select('id, organization_id, email, full_name, first_name, last_name, role')
-          .eq('email', user.email)
+          .or(`id.eq.${user.id},email.ilike.${cleanEmail}`)
           .maybeSingle();
 
         userProfile = uRec;
@@ -69,11 +70,11 @@ export async function GET(req: NextRequest) {
           ...user,
           role: resolvedRole,
           is_super_admin: isSuperAdmin,
-          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
+          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || effectiveOrgData?.founder_name,
           user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
-          founder_name: orgData?.founder_name || userProfile?.full_name,
+          founder_name: effectiveOrgData?.founder_name || userProfile?.full_name,
         },
-        organization: orgData,
+        organization: effectiveOrgData,
       },
       { status: 200 }
     );

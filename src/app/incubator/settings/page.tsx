@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
+import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
 import Link from 'next/link';
 import { ArrowLeft, Save, Building, Mail, ShieldCheck, Bell, Check } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
@@ -55,7 +56,19 @@ export default function IncubatorSettingsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-slate-50 p-6 md:p-10 max-w-4xl mx-auto space-y-6">
+      <DashboardLayout
+        title="Settings"
+        headerActions={
+          <Button
+            onClick={handleSave}
+            size="sm"
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 h-8 rounded-xl shadow-xs"
+          >
+            <Save className="w-3.5 h-3.5" /> Save
+          </Button>
+        }
+      >
+        <div className="max-w-4xl mx-auto space-y-6">
         <div>
           <Link href="/incubator" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
             <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
@@ -209,6 +222,7 @@ export default function IncubatorSettingsPage() {
           </Button>
         </div>
       </div>
+      </DashboardLayout>
     </ProtectedRoute>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
-const VALID_ROLES = ['startup', 'incubator_admin'];
+const VALID_ROLES = ['startup', 'incubator_admin', 'incubator'];
 
 interface JwtPayload {
   sub: string;
@@ -139,11 +139,14 @@ export async function POST(req: Request) {
       );
     }
 
+    const isStartupRole = role === 'startup';
+    const dbRoleToAssign = isStartupRole ? 'startup' : 'pending_incubator';
+
     // Update user role in database - use the user's DB id (from lookup) not JWT sub
     const dbUserId = userData.id;
     const { error: updateError } = await supabaseAdmin
       .from('users')
-      .update({ role })
+      .update({ role: dbRoleToAssign })
       .eq('id', dbUserId);
 
     if (updateError) {
@@ -158,17 +161,45 @@ export async function POST(req: Request) {
       );
     }
 
+    // If startup role, immediately create corresponding startup record if it does not exist
+    if (isStartupRole) {
+      const cleanEmail = (userEmail || userData.email || '').trim().toLowerCase();
+      const { data: existingStartup } = await supabaseAdmin
+        .from('startups')
+        .select('id')
+        .or(`founder_id.eq.${dbUserId},founder_email.ilike.${cleanEmail}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (!existingStartup) {
+        const startupName = `${userData.full_name || userData.founder_name || userData.first_name || cleanEmail.split('@')[0] || 'My'}'s Startup`;
+        await supabaseAdmin.from('startups').insert({
+          founder_id: dbUserId,
+          founder_email: cleanEmail,
+          founder_name: userData.full_name || userData.founder_name || userData.first_name || 'Founder',
+          name: startupName,
+          stage: 'Idea',
+          status: 'active',
+          is_active: true,
+          created_by: dbUserId,
+        });
+      }
+    }
+
     // Also synchronize user_metadata in Supabase Auth
     if (userId) {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
-        user_metadata: { role },
+        user_metadata: {
+          role: dbRoleToAssign,
+          selected_role: role,
+        },
       }).catch((metaErr) => {
         console.warn('Could not sync user_metadata role:', metaErr);
       });
     }
 
     // Determine redirect URL based on role
-    const redirect_to = role === 'startup' ? '/startup/application' : '/auth/incubator-plans';
+    const redirect_to = isStartupRole ? '/startup/application' : '/auth/incubator-plans';
 
     // Return success response
     return NextResponse.json(

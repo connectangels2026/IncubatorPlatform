@@ -22,6 +22,7 @@ import {
   LogOut,
   RefreshCw,
   Building2,
+  LayoutDashboard,
 } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
 import { apiClient } from '@/services/apiClient';
@@ -120,7 +121,7 @@ export default function SuperAdminApplicationsPage() {
 
     let displayStatus = 'Pending Decision';
     if (r.status === 'admitted' || r.super_admin_status === 'approved' || r.status === 'accepted') displayStatus = 'Admitted';
-    else if (r.status === 'forwarded') displayStatus = 'Forwarded';
+    else if (r.status === 'forwarded' || r.super_admin_status === 'forwarded') displayStatus = 'Forwarded';
     else if (r.status === 'rejected' || r.super_admin_status === 'rejected') displayStatus = 'Rejected';
 
     const submittedTimestamp = r.created_at
@@ -221,12 +222,14 @@ export default function SuperAdminApplicationsPage() {
   const stats = useMemo(() => {
     const total = applications.length;
     const pending = applications.filter((a) => a.status === 'Pending Decision').length;
+    const forwarded = applications.filter((a) => a.status === 'Forwarded').length;
     const admitted = applications.filter((a) => a.status === 'Admitted').length;
     const rate = total > 0 ? Math.round((admitted / total) * 100) : 0;
 
     return {
       totalCount: total,
       pendingCount: pending,
+      forwardedCount: forwarded,
       admittedCount: admitted,
       acceptanceRate: rate,
     };
@@ -507,6 +510,13 @@ export default function SuperAdminApplicationsPage() {
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <div className="h-4 w-[1px] bg-slate-200" />
+            <Link
+              href="/super-admin/dashboard"
+              className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5 text-slate-500" />
+              <span>Dashboard</span>
+            </Link>
             <button
               onClick={async () => {
                 await logout();
@@ -544,8 +554,8 @@ export default function SuperAdminApplicationsPage() {
             </div>
           </div>
 
-          {/* 3 Executive KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 4 Executive KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Awaiting Decision */}
             <div className="p-5 rounded-2xl bg-white border border-amber-200/90 shadow-2xs space-y-2 ring-1 ring-amber-400/20">
               <div className="flex items-center justify-between">
@@ -564,7 +574,25 @@ export default function SuperAdminApplicationsPage() {
               <p className="text-[10px] text-amber-700 font-medium">Verify submissions & issue decisions</p>
             </div>
 
-            {/* Card 2: Admitted Founders */}
+            {/* Card 2: Forwarded Applications */}
+            <div className="p-5 rounded-2xl bg-white border border-blue-200/90 shadow-2xs space-y-2 ring-1 ring-blue-400/20">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-blue-900">Forwarded to Incubator</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Forwarded</span>
+                </div>
+              </div>
+              <div className="flex items-baseline justify-between pt-1">
+                <span className="text-3xl font-black text-blue-950 font-mono">
+                  {stats.forwardedCount}
+                </span>
+                <span className="text-xs text-blue-800 font-bold">In Review</span>
+              </div>
+              <p className="text-[10px] text-blue-700 font-medium">Assigned to incubator for evaluation</p>
+            </div>
+
+            {/* Card 3: Admitted Founders */}
             <div className="p-5 rounded-2xl bg-white border border-emerald-200/90 shadow-2xs space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-emerald-900">Admitted Founders</span>
@@ -583,7 +611,7 @@ export default function SuperAdminApplicationsPage() {
               <p className="text-[10px] text-slate-400 font-medium">Active platform cohort seats granted</p>
             </div>
 
-            {/* Card 3: Total Submissions */}
+            {/* Card 4: Total Submissions */}
             <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-600">Total Platform Submissions</span>
@@ -621,6 +649,7 @@ export default function SuperAdminApplicationsPage() {
                 {[
                   { id: 'ALL', label: 'All Submissions' },
                   { id: 'Pending Decision', label: 'Pending Review' },
+                  { id: 'Forwarded', label: 'Forwarded' },
                   { id: 'Admitted', label: 'Admitted' },
                   { id: 'Rejected', label: 'Rejected' },
                 ].map((t) => (

@@ -32,23 +32,60 @@ export async function POST(req: Request) {
       );
     }
 
-    // Query user profile and organization
+    const cleanEmail = email.trim().toLowerCase();
+    const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
+
+    // Query user profile by auth_user_id, id, or email (case-insensitive) to prevent duplicates
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, email_verified, role, organization_id')
-      .eq('email', email.toLowerCase())
+      .or(`id.eq.${data.user.id},auth_user_id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+      .limit(1)
       .maybeSingle();
 
-    const isSuperAdmin = (await isSuperAdminEmail(email)) || userData?.role === 'super-admin';
-    if (!userData && isSuperAdmin) {
-      const { data: newAdmin } = await supabaseAdmin
+    // Auto-provision missing public.users record for authenticated Supabase user
+    if (!userData && data.user) {
+      const resolvedRole = isSuperAdmin
+        ? 'super-admin'
+        : (data.user.user_metadata?.role || data.user.user_metadata?.selected_role || null);
+
+      const fullName =
+        data.user.user_metadata?.full_name ||
+        data.user.user_metadata?.name ||
+        data.user.user_metadata?.founder_name ||
+        cleanEmail.split('@')[0] ||
+        'User';
+
+      const insertPayload: Record<string, any> = {
+        id: data.user.id,
+        auth_user_id: data.user.id,
+        email: cleanEmail,
+        full_name: fullName,
+        first_name: fullName.split(' ')[0] || fullName,
+        role: resolvedRole,
+        email_verified: Boolean(data.user.email_confirmed_at || isSuperAdmin),
+      };
+
+      const { data: createdUser, error: insertUserErr } = await supabaseAdmin
         .from('users')
-        .upsert({ email: email.toLowerCase(), role: 'super-admin', email_verified: true }, { onConflict: 'email' })
-        .select()
+        .insert(insertPayload)
+        .select('id, email, email_verified, role, organization_id')
         .maybeSingle();
-      userData = newAdmin || { id: data.user.id, email: email.toLowerCase(), role: 'super-admin', email_verified: true };
+
+      if (insertUserErr) {
+        console.warn('Auto-provisioning user insert notice:', insertUserErr);
+        const { data: fetchedAfterInsert } = await supabaseAdmin
+          .from('users')
+          .select('id, email, email_verified, role, organization_id')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        userData = fetchedAfterInsert || (insertPayload as any);
+      } else {
+        userData = createdUser || (insertPayload as any);
+      }
     }
-    if (userError || !userData) {
+
+    if (!userData) {
       console.error('User not found:', userError);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password', code: 'INVALID_CREDENTIALS' },
@@ -59,8 +96,11 @@ export async function POST(req: Request) {
     // Super Admin bypasses incubator organization requirement
 
     let orgData: any = null;
+    const userRole = (isSuperAdmin ? 'super-admin' : (userData.role || '')).toLowerCase();
+    const isIncubatorStaff = userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator' || userRole === 'pending_incubator';
 
-    if (!isSuperAdmin) {
+    // Only incubator staff own/manage organizations; startups do NOT receive incubator organizations
+    if (!isSuperAdmin && isIncubatorStaff) {
       if (userData.organization_id) {
         const { data: oData } = await supabaseAdmin
           .from('organizations')
@@ -69,33 +109,19 @@ export async function POST(req: Request) {
           .maybeSingle();
 
         orgData = oData;
-      }
-
-      // Fallback 1: lookup by auth_user_id
-      if (!orgData && data.user?.id) {
-        const { data: oDataByAuth } = await supabaseAdmin
+      } else {
+        // Fallback: lookup incubator by auth_user_id or founder_email in a single query
+        const { data: oDataFallback } = await supabaseAdmin
           .from('organizations')
           .select('id, slug, name, founder_name, founder_email, is_verified')
-          .eq('auth_user_id', data.user.id)
+          .or(`auth_user_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
+          .limit(1)
           .maybeSingle();
 
-        if (oDataByAuth) orgData = oDataByAuth;
-      }
-
-      // Fallback 2: lookup by founder_email
-      if (!orgData && email) {
-        const { data: oDataByEmail } = await supabaseAdmin
-          .from('organizations')
-          .select('id, slug, name, founder_name, founder_email, is_verified')
-          .ilike('founder_email', email.trim())
-          .maybeSingle();
-
-        if (oDataByEmail) orgData = oDataByEmail;
-      }
-
-      // Sync organization_id back to users table if missing
-      if (orgData?.id && !userData.organization_id) {
-        await supabaseAdmin.from('users').update({ organization_id: orgData.id }).eq('id', userData.id);
+        if (oDataFallback) {
+          orgData = oDataFallback;
+          supabaseAdmin.from('users').update({ organization_id: orgData.id }).eq('id', userData.id).then();
+        }
       }
     }
 
@@ -149,10 +175,40 @@ export async function POST(req: Request) {
       );
     }
 
+    // Calculate immediate redirect target server-side to avoid client-side waterfalls
+    let redirectTo = '/programs/preincubator/status';
+    let acceptedOrgId: string | null = null;
+
+    if (isSuperAdmin || userRole === 'super-admin' || userRole === 'super_admin') {
+      redirectTo = '/super-admin/dashboard';
+    } else if (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator') {
+      redirectTo = orgData?.id ? `/dashboard?org=${orgData.id}` : '/dashboard';
+    } else if (userRole === 'pending_incubator') {
+      redirectTo = '/auth/incubator-plans';
+    } else {
+      // Startup or applicant: verify active record in startups table
+      const { data: startupRow } = await supabaseAdmin
+        .from('startups')
+        .select('id, organization_id')
+        .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (startupRow) {
+        redirectTo = '/startup/dashboard';
+        acceptedOrgId = startupRow.organization_id || null;
+      } else {
+        redirectTo = '/programs/preincubator/status';
+      }
+    }
+
     const response = NextResponse.json(
       {
         success: true,
         message: 'Login successful',
+        redirect_to: redirectTo,
+        accepted_organization_id: acceptedOrgId,
         user: {
           id: data.user.id,
           email: data.user.email,
@@ -183,9 +239,11 @@ export async function POST(req: Request) {
       const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
       const userAgent = req.headers.get('user-agent') || 'Unknown';
 
-      // Create active session record
-      await storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent);
-      await logAuthEvent('login', data.user.id);
+      // Create active session record & log auth event concurrently
+      await Promise.allSettled([
+        storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent),
+        logAuthEvent('login', data.user.id),
+      ]);
 
       // Set httpOnly refresh cookie
       response.cookies.set('refresh_token', data.session.refresh_token, {

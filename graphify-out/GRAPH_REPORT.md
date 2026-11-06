@@ -22,7 +22,6 @@
 - requireOrg
 - gray
 - test_sync_brand_to_tokens.py
-- argparse
 - taskService.ts
 - PageHeader.tsx
 - Tailwind CSS Utility Reference
@@ -37,7 +36,7 @@
 - spacing
 - Form & Input Components
 - Tailwind CSS Responsive Design
-- design_system.py
+- DesignSystemGenerator
 - ✅ Multi-Tenant Data Isolation Fix - Complete Implementation
 - Typography Specifications
 - TestTailwindConfigGenerator
@@ -67,7 +66,7 @@
 - session.ts
 - compilerOptions
 - Routing by Task Type
-- json
+- fetch-background.py
 - shadcn/ui Theming & Customization
 - incubator/page.tsx
 - Asset Organization Guide
@@ -148,7 +147,7 @@
 - verifyAuth
 - useAuth
 - next.config.mjs
-- preincubator/page.tsx
+- StartupDashboard.tsx
 - lib/apiClient.ts
 - Brand Guidelines Template
 - $type
@@ -213,9 +212,23 @@
 - MultiSelect.tsx
 - Textarea.tsx
 - TextInput.tsx
-- Modal.tsx
+- test-roles-and-security.mjs
 - Spinner.tsx
+- score/route.ts
+- check_users.js
+- test_flow.js
+- test_forward.js
+- test_pgrst.js
+- verify_latest.js
+- frontend/context/AuthContext.tsx
+- read/route.ts
+- progress/route.ts
+- reviews/route.ts
+- funding/route.ts
+- Badge.tsx
+- Modal.tsx
 - Tabs.tsx
+- Avatar.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `verifyAuth()` - 193 edges
@@ -236,9 +249,9 @@
   MULTI_TENANT_ISOLATION_FIX.md → src/backend/middleware/tenant.ts
 - `Dropdown/Menu Navigation` --references--> `Tab`  [INFERRED]
   .agents/skills/ui-styling/references/shadcn-accessibility.md → src/frontend/components/ui/Tabs.tsx
+- `TestShadcnInstaller` --uses--> `ShadcnInstaller`  [INFERRED]
+  .agents/skills/ui-styling/scripts/tests/test_shadcn_add.py → .agents/skills/ui-styling/scripts/shadcn_add.py
 - `TestGeneratedConfigIsValidJs` --uses--> `TailwindConfigGenerator`  [INFERRED]
-  .agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py → .agents/skills/ui-styling/scripts/tailwind_config_gen.py
-- `TestTailwindConfigGenerator` --uses--> `TailwindConfigGenerator`  [INFERRED]
   .agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py → .agents/skills/ui-styling/scripts/tailwind_config_gen.py
 
 ## Import Cycles
@@ -254,9 +267,9 @@ Nodes (36): next, dynamic, dynamic, isValidUUID(), PUT(), VALID_TRANSITIONS, dyn
 Cohesion: 0.04
 Nodes (3): main(), ShadcnInstaller, TestShadcnInstaller
 
-### Community 2 - "DesignSystemPage"
+### Community 2 - "DataTable.tsx"
 Cohesion: 0.23
-Nodes (10): DesignSystemPage(), Action, Column, DataTable(), DataTableProps, Dropdown(), DropdownItem, DropdownProps (+2 more)
+Nodes (9): Action, Column, DataTable(), DataTableProps, Dropdown(), DropdownItem, DropdownProps, Pagination() (+1 more)
 
 ### Community 3 - "requireOrg"
 Cohesion: 0.12
@@ -329,10 +342,6 @@ Nodes (32): Accordion, Alert, Alert Dialog, Avatar, Badge, Button, Card, Checkbo
 ### Community 20 - "Tailwind CSS Responsive Design"
 Cohesion: 0.06
 Nodes (32): 1. Mobile-First Design, 2. Consistent Breakpoint Usage, 3. Test at Breakpoint Boundaries, 4. Use Container for Content Width, 5. Progressive Enhancement, 6. Avoid Too Many Breakpoints, Best Practices, Breakpoint System (+24 more)
-
-### Community 21 - "design_system.py"
-Cohesion: 0.08
-Nodes (5): DesignSystemGenerator, format_ascii_box(), format_markdown(), generate_design_system(), format_output()
 
 ### Community 22 - "✅ Multi-Tenant Data Isolation Fix - Complete Implementation"
 Cohesion: 0.09
@@ -419,12 +428,12 @@ Cohesion: 0.10
 Nodes (19): name, private, version, axios, @base-ui/react, class-variance-authority, eslint, eslint-config-next (+11 more)
 
 ### Community 46 - "icon/generate.py"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (8): apply_color(), apply_viewbox_size(), extract_svgs(), generate_batch(), generate_icon(), generate_sizes(), load_env(), main()
 
-### Community 47 - "generate-slide.py"
-Cohesion: 0.13
-Nodes (11): _e(), generate_chart_slide(), generate_cta_slide(), generate_deck(), generate_metrics_slide(), generate_problem_slide(), generate_solution_slide(), generate_testimonial_slide() (+3 more)
+### Community 47 - "json"
+Cohesion: 0.06
+Nodes (22): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), format_brief() (+14 more)
 
 ### Community 48 - "session.ts"
 Cohesion: 0.09
@@ -438,7 +447,7 @@ Nodes (20): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 Cohesion: 0.10
 Nodes (19): Banner Design Tasks, Brand Identity Tasks, Component Creation, Corporate Identity Program Tasks, Design Routing Guide, Design System Migration, Icon Design Tasks, Implementation Tasks (+11 more)
 
-### Community 51 - "json"
+### Community 51 - "fetch-background.py"
 Cohesion: 0.15
 Nodes (9): generate_css_for_background(), get_background_image(), get_curated_images(), get_overlay_css(), get_pexels_search_url(), load_backgrounds_config(), load_brand_colors(), main() (+1 more)
 
@@ -826,9 +835,9 @@ Nodes (3): secondary-foreground, $type, $value
 Cohesion: 0.29
 Nodes (8): assignDashboard(), checkCanCreateOrg(), checkStartupDashboardAccess(), DEFAULT_SUPERADMIN_EMAILS, isValidMockOrRealToken(), renderLandingButtons(), run(), verifyStartupOwnership()
 
-### Community 163 - "progress/route.ts"
-Cohesion: 0.60
-Nodes (4): GET(), isValidUUID(), Params, resolveOrg()
+### Community 163 - "lucide-react"
+Cohesion: 0.15
+Nodes (7): lucide-react, VerifyEmailContent(), VerifyEmailPage(), SuperAdminLayout(), supabase, Breadcrumb, PageHeaderProps
 
 ### Community 164 - "Checkbox.tsx"
 Cohesion: 0.33

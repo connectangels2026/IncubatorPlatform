@@ -30,8 +30,9 @@ export default function StartupApplicationPage() {
 
         setSessionUser(session.user);
 
-        // Check if role is selected
-        let role = session.user.user_metadata?.role || (user as any)?.role || null;
+        // Check if role is selected (check cached local storage, user context, token, and API)
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+        let role = session.user.user_metadata?.role || (user as any)?.role || cachedRole || null;
         if (!role) {
           try {
             const res = await fetch('/api/v1/auth/me', {
@@ -40,9 +41,31 @@ export default function StartupApplicationPage() {
             if (res.ok) {
               const data = await res.json();
               role = data?.user?.role || null;
+              if (role && typeof window !== 'undefined') {
+                localStorage.setItem('user_role', role);
+              }
             }
           } catch (e) {
             console.warn('Error checking role:', e);
+          }
+        }
+
+        if (!role && session?.user?.id) {
+          try {
+            const cleanEmail = (session.user.email || '').trim();
+            const { data: uRec } = await supabase
+              .from('users')
+              .select('role')
+              .or(`id.eq.${session.user.id},email.ilike.${cleanEmail}`)
+              .maybeSingle();
+            if (uRec?.role) {
+              role = uRec.role;
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('user_role', role);
+              }
+            }
+          } catch {
+            // Ignore fallback error
           }
         }
 

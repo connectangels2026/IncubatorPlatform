@@ -14,12 +14,17 @@ import { useAuth } from '@/frontend/context/AuthContext';
 
 export default function Home() {
   const router = useRouter();
+
+
   const { user, logout, organization } = useAuth();
 
-  const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || '').toLowerCase();
+  // Read cached role synchronously so there is zero delay/flicker
+  const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+  const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
   const emailLower = (user?.email || '').toLowerCase().trim();
   const isSuperAdmin = (user as any)?.is_super_admin === true || userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';
   const isStartup = !isSuperAdmin && (userRole === 'startup' || userRole === 'founder');
+  const isIncubator = !isSuperAdmin && !isStartup && (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator');
 
   return (
     <div className="antialiased overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#EDF2FA', color: '#1A2151' }}>
@@ -78,7 +83,7 @@ export default function Home() {
                     >
                       Applications
                     </button>
-                  ) : (
+                  ) : isIncubator ? (
                     <button
                       onClick={() => router.push('/incubator')}
                       className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
@@ -86,7 +91,7 @@ export default function Home() {
                     >
                       Dashboard
                     </button>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 // Not logged in - show sign in and get started
@@ -153,7 +158,7 @@ export default function Home() {
                 <div className="relative w-full max-w-[420px] bg-white rounded-2xl shadow-xl p-4 border border-slate-200/60 z-10 transition-transform duration-300 hover:scale-[1.01]">
                   {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2 pb-3 mb-3 border-b border-slate-100 text-center">
-                    {[['33','Startups'],['12','Mentors'],['5','Investors']].map(([n,l]) => (
+                    {[['33', 'Startups'], ['12', 'Mentors'], ['5', 'Investors']].map(([n, l]) => (
                       <div key={l} className="py-1.5">
                         <span className="block text-lg font-extrabold" style={{ color: '#1A2151' }}>{n}</span>
                         <span className="text-[10px] font-medium text-slate-400">{l}</span>
@@ -328,10 +333,10 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { img: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80', name: 'Dr. Sarah Jenkins', role: 'Ex-VP Product @ FinTech Global', badge: 'SME Expert', badgeBg: 'bg-blue-50 text-[#2563EB] border-blue-200', tags: ['Product','SaaS','Scaleup'] },
-                { img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', name: 'Marcus Vance', role: 'Serial Founder & Angel Investor', badge: 'General Mentor', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', tags: ['Fundraising','Go-To-Market'] },
-                { img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=120&auto=format&fit=crop&q=80', name: 'Aisha Patel', role: 'Chief AI Strategist @ DeepTech Labs', badge: 'SME Expert', badgeBg: 'bg-blue-50 text-[#2563EB] border-blue-200', tags: ['AI & ML','IP & Patents'] },
-                { img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80', name: "David O'Connor", role: 'Partner @ Horizon Ventures', badge: 'General Mentor', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', tags: ['Series A','Unit Economics'] },
+                { img: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=120&auto=format&fit=crop&q=80', name: 'Dr. Sarah Jenkins', role: 'Ex-VP Product @ FinTech Global', badge: 'SME Expert', badgeBg: 'bg-blue-50 text-[#2563EB] border-blue-200', tags: ['Product', 'SaaS', 'Scaleup'] },
+                { img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', name: 'Marcus Vance', role: 'Serial Founder & Angel Investor', badge: 'General Mentor', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', tags: ['Fundraising', 'Go-To-Market'] },
+                { img: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=120&auto=format&fit=crop&q=80', name: 'Aisha Patel', role: 'Chief AI Strategist @ DeepTech Labs', badge: 'SME Expert', badgeBg: 'bg-blue-50 text-[#2563EB] border-blue-200', tags: ['AI & ML', 'IP & Patents'] },
+                { img: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80', name: "David O'Connor", role: 'Partner @ Horizon Ventures', badge: 'General Mentor', badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200', tags: ['Series A', 'Unit Economics'] },
               ].map((m) => (
                 <div key={m.name} className="bg-white rounded-2xl p-6 shadow-soft hover:shadow-card-hover hover:-translate-y-2 transition-all duration-300 border border-slate-100 flex flex-col justify-between group scroll-reveal">
                   <div>
@@ -385,9 +390,9 @@ export default function Home() {
               </div>
               <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { abbr: 'AP', bg: 'bg-[#1A2151]', name: 'Apex Partners', type: 'Seed to Series A Fund', ticket: '$250K - $1.5M', tags: ['B2B SaaS','Fintech'] },
-                  { abbr: 'NV', bg: 'bg-[#2563EB]', name: 'NextGen Ventures', type: 'Pre-Seed Angel Syndicate', ticket: '$50K - $250K', tags: ['AI / ML','DeepTech'] },
-                  { abbr: 'CVC', bg: 'bg-purple-600', name: 'Crest Alliance', type: 'Corporate VC Network', ticket: '$500K - $3M', tags: ['HealthTech','CleanTech'] },
+                  { abbr: 'AP', bg: 'bg-[#1A2151]', name: 'Apex Partners', type: 'Seed to Series A Fund', ticket: '$250K - $1.5M', tags: ['B2B SaaS', 'Fintech'] },
+                  { abbr: 'NV', bg: 'bg-[#2563EB]', name: 'NextGen Ventures', type: 'Pre-Seed Angel Syndicate', ticket: '$50K - $250K', tags: ['AI / ML', 'DeepTech'] },
+                  { abbr: 'CVC', bg: 'bg-purple-600', name: 'Crest Alliance', type: 'Corporate VC Network', ticket: '$500K - $3M', tags: ['HealthTech', 'CleanTech'] },
                 ].map((inv) => (
                   <div key={inv.name} className="rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-card-hover hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between scroll-reveal group" style={{ backgroundColor: '#EDF2FA' }}>
                     <div>
@@ -596,9 +601,9 @@ export default function Home() {
               </div>
             </div>
             {[
-              { heading: 'Platform', links: ['Cohort Intake','Mentor Engine','Co-Incubation Hub','Grant Reporting','Investor Demo Room'] },
-              { heading: 'Features', links: ['Custom Scoring Forms','Audit & Compliance','Role Permissions','Analytics Export','API Integrations'] },
-              { heading: 'Company & Legal', links: ['About Us','Case Studies','Privacy Policy','Terms of Service','Security Overview'] },
+              { heading: 'Platform', links: ['Cohort Intake', 'Mentor Engine', 'Co-Incubation Hub', 'Grant Reporting', 'Investor Demo Room'] },
+              { heading: 'Features', links: ['Custom Scoring Forms', 'Audit & Compliance', 'Role Permissions', 'Analytics Export', 'API Integrations'] },
+              { heading: 'Company & Legal', links: ['About Us', 'Case Studies', 'Privacy Policy', 'Terms of Service', 'Security Overview'] },
             ].map((col) => (
               <div key={col.heading}>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-4">{col.heading}</h4>

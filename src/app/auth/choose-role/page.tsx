@@ -38,7 +38,8 @@ export default function ChooseRolePage() {
           return;
         }
 
-        let existingRole: string | null = session.user.user_metadata?.role || null;
+        const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+        let existingRole: string | null = session.user.user_metadata?.role || cachedRole || null;
 
         // 2. Check profile in users table and organization via /api/v1/auth/me
         try {
@@ -151,10 +152,19 @@ export default function ChooseRolePage() {
       const data = await response.json();
 
       if (data.success || data.code === 'ROLE_ALREADY_SET') {
+        const assignedRole = data.role || role;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_role', assignedRole);
+        }
+        try {
+          await supabase.auth.refreshSession();
+        } catch {
+          // ignore session refresh error
+        }
         // Refresh the profile so the new role is available to protected routes.
         await refreshOrg();
         // Redirect based on role or backend suggestion
-        const destination = data.redirect_to || (role === 'startup' ? '/startup/application' : '/auth/incubator-plans');
+        const destination = data.redirect_to || (assignedRole === 'startup' ? '/startup/application' : '/auth/incubator-plans');
         router.push(destination);
       } else {
         setError(data.error || data.message || 'Failed to select role');

@@ -5,19 +5,36 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { supabase } from '@/backend/lib/supabase';
 import { StartupDashboardHeader } from './StartupDashboardHeader';
+import { StartupProfileMenu } from './StartupProfileMenu';
 import { OverviewTab } from './OverviewTab';
 import { PitchPrototypeTab } from './PitchPrototypeTab';
 import { SoftwareHardwareTab } from './SoftwareHardwareTab';
 import { ActivityLogTab } from './ActivityLogTab';
 import { DashboardTab, StartupProfile } from './types';
-import { ShieldAlert, ArrowRight, Loader2 } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Loader2, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import Logo from '@/frontend/components/ui/Logo';
 
 export default function StartupDashboard() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [profile, setProfile] = useState<StartupProfile | null>(null);
+  const [rawStartup, setRawStartup] = useState<any | null>(null);
+
+  const handleStartupUpdate = (updated: any) => {
+    setRawStartup(updated);
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: updated.name || prev.name,
+            tagline: updated.description || updated.solution_description || prev.tagline,
+            stage: updated.stage || prev.stage,
+          }
+        : null
+    );
+  };
   const [applications, setApplications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAssignedDashboard, setHasAssignedDashboard] = useState<boolean | null>(null);
@@ -38,7 +55,7 @@ export default function StartupDashboard() {
         const res = await fetch('/api/v1/startups/me', { headers });
         const data = await res.json();
 
-        if (!res.ok || !data.has_assigned_dashboard) {
+        if (!res.ok || !data.has_assigned_dashboard || !data.startup) {
           setHasAssignedDashboard(false);
           setIsLoading(false);
           return;
@@ -46,6 +63,7 @@ export default function StartupDashboard() {
 
         setHasAssignedDashboard(true);
         const startup = data.startup;
+        setRawStartup(startup);
         const app = data.application;
         const org = data.organization;
 
@@ -93,7 +111,7 @@ export default function StartupDashboard() {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center gap-4 bg-[#F8FAFC]">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         <p className="text-sm font-medium text-slate-500">Verifying assigned dashboard access...</p>
       </div>
@@ -102,8 +120,8 @@ export default function StartupDashboard() {
 
   if (hasAssignedDashboard === false || !profile) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center space-y-6">
+      <div className="min-h-screen w-full flex flex-col justify-center items-center px-4 py-16 bg-[#F8FAFC]">
+        <div className="w-full max-w-2xl bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 text-center space-y-6">
           <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
             <ShieldAlert className="w-8 h-8" />
           </div>
@@ -129,25 +147,59 @@ export default function StartupDashboard() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-6">
-      {/* Header with Navigation Pills */}
-      <StartupDashboardHeader
-        profile={profile}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        applications={applications}
-        milestoneCompletionText="7/10"
-        onExportReport={handleExportReport}
-        onShare={handleShare}
-      />
+    <div className="min-h-screen w-full flex flex-col bg-[#F8FAFC]">
+      {/* Edge-to-Edge Top Navigation Bar */}
+      <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between transition-all shadow-xs">
+        <div className="flex items-center gap-4">
+          <Logo href="/" />
+          <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-slate-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+              Startup Workspace
+            </span>
+            <span className="text-xs text-slate-400 font-medium truncate max-w-[200px] lg:max-w-xs">
+              {profile.incubatorName ? `Incubated at ${profile.incubatorName}` : 'Incubator Accelerated'}
+            </span>
+          </div>
+        </div>
 
-      {/* Active Tab View */}
-      <div className="transition-all duration-200">
-        {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'pitch' && <PitchPrototypeTab />}
-        {activeTab === 'tech' && <SoftwareHardwareTab track={profile.track} />}
-        {activeTab === 'activity' && <ActivityLogTab />}
-      </div>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/programs/preincubator/status"
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-blue-600 hover:bg-slate-50 transition border border-slate-200/80"
+          >
+            <span>Applications Status</span>
+          </Link>
+
+          <div className="pl-2 border-l border-slate-200">
+            <StartupProfileMenu
+              user={user}
+              startup={rawStartup}
+              onStartupUpdate={handleStartupUpdate}
+              onLogout={() => (logout ? logout() : router.push('/login'))}
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Full-Width Content Container */}
+      <main className="flex-1 w-full px-4 sm:px-8 lg:px-10 py-6 space-y-6">
+        <StartupDashboardHeader
+          profile={profile}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          applications={applications}
+          milestoneCompletionText="7/10"
+          onExportReport={handleExportReport}
+          onShare={handleShare}
+        />
+
+        <div className="transition-all duration-200">
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'pitch' && <PitchPrototypeTab />}
+          {activeTab === 'tech' && <SoftwareHardwareTab track={profile.track} />}
+          {activeTab === 'activity' && <ActivityLogTab />}
+        </div>
+      </main>
     </div>
   );
 }
