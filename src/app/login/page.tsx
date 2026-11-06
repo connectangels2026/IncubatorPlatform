@@ -143,18 +143,11 @@ function LoginForm() {
         const res = await fetch('/api/v1/startups/me', { headers });
         const data = await res.json();
 
-        const acceptedApp = apps.find(
-          (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
-        );
-
-        const hasDashboardAccess = Boolean(
-          acceptedApp &&
-          (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
-        );
-
-        if (hasDashboardAccess && acceptedApp) {
-          if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
-          router.push(`/incubator?org=${acceptedApp.organization_id}`);
+        if (res.ok && data?.has_assigned_dashboard && data?.startup?.id) {
+          if (typeof window !== 'undefined' && data.startup.organization_id) {
+            localStorage.setItem('org_id', data.startup.organization_id);
+          }
+          router.push('/startup/dashboard');
           return;
         }
 

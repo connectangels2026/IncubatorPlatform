@@ -1,14 +1,8 @@
 'use client';
 
 import React from 'react';
-<<<<<<< Updated upstream
-import ProtectedRoute from '@/frontend/components/ProtectedRoute';
-import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
-import { Download, FileText, BarChart3 } from 'lucide-react';
-=======
 import Link from 'next/link';
 import { ArrowLeft, Download, FileText } from 'lucide-react';
->>>>>>> Stashed changes
 import { Button } from '@/frontend/components/ui/button';
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
@@ -49,31 +43,6 @@ export default function ReportsPage() {
                   <Download className="w-3.5 h-3.5" /> Download
                 </Button>
               </div>
-<<<<<<< Updated upstream
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-                <Download className="w-3.5 h-3.5" /> Download
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {reports.map((r, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5 flex items-center justify-between shadow-xs hover:border-slate-300 transition">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate">{r.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{r.period} • {r.type} ({r.size})</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0 ml-3">
-                  <Download className="w-3.5 h-3.5" /> Download
-                </Button>
-              </div>
-=======
->>>>>>> Stashed changes
             ))}
           </div>
         </div>
