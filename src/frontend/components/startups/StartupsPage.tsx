@@ -347,8 +347,9 @@ export const StartupsPage: React.FC = () => {
             const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
               return {
                 id: item.id || String(idx + 1),
-                name: item.name || 'Startup',
-                monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
+                name: item.startup_name || item.name || 'Startup',
+                startup_name: item.startup_name || item.name || 'Startup',
+                monogram: (item.startup_name || item.name) ? (item.startup_name || item.name).slice(0, 2).toUpperCase() : 'ST',
                 monogramBg: 'bg-blue-600',
                 sector: item.sector || 'General',
                 industry: item.sector || 'General',

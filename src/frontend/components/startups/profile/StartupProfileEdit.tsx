@@ -37,7 +37,7 @@ export function StartupProfileEdit({
 }: StartupProfileEditProps) {
   // Form State initialized from current startup
   const [formData, setFormData] = useState({
-    name: startup.name || '',
+    name: startup.startup_name || startup.name || '',
     sector: startup.sector || 'Technology',
     stage: startup.stage || 'MVP',
     status: startup.status || 'Active',
@@ -118,8 +118,10 @@ export function StartupProfileEdit({
     }
 
     try {
+      const resolvedName = formData.name.trim();
       const payload: Partial<StartupItem> = {
-        name: formData.name.trim(),
+        startup_name: resolvedName,
+        name: resolvedName,
         sector: formData.sector,
         stage: formData.stage,
         status: formData.status,

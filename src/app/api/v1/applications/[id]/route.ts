@@ -207,7 +207,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             .insert({
               organization_id: targetOrgId,
               application_id: currentApp.id,
-              name: startupName,
+              startup_name: startupName,
               founder_name: currentApp.applicant_name,
               founder_email: applicantEmail,
               founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
@@ -509,7 +509,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               .from('startups')
               .insert({
                 organization_id: orgId,
-                name: startupName,
+                startup_name: startupName,
                 founder_email: applicantEmail,
                 founder_phone: updated.applicant_phone || null,
                 sector: updated.form_data?.industryVertical || 'AI & DeepTech',

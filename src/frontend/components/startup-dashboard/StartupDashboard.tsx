@@ -59,7 +59,7 @@ export default function StartupDashboard() {
 
         setProfile({
           id: startup?.id || app?.id || 'startup',
-          name: startup?.name || fd.startup_name || fd.businessName || `${user.email?.split('@')[0]}'s Startup`,
+          name: startup?.startup_name || startup?.name || fd.startup_name || fd.businessName || `${user.email?.split('@')[0]}'s Startup`,
           batch: app?.cohort_name || 'Batch 2026',
           tagline: startup?.description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
           stage: startup?.stage || fd.businessStage || 'Validation Phase',

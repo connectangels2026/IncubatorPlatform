@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         .insert({
           organization_id: acceptedApp.organization_id || acceptedApp.selected_incubator_id,
           application_id: acceptedApp.id,
-          name: startupName,
+          startup_name: startupName,
           founder_name: acceptedApp.applicant_name,
           founder_email: emailLower,
           founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,

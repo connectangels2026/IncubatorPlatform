@@ -77,6 +77,8 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
           setFullStartup((prev) => ({
             ...(prev || startup),
             ...d,
+            name: d.startup_name || d.name || prev?.name || '',
+            startup_name: d.startup_name || d.name || prev?.startup_name || '',
             tagline: d.description || prev?.tagline || '',
             pitch: d.description || prev?.pitch || '',
             problem: d.problem_statement || prev?.problem || '',

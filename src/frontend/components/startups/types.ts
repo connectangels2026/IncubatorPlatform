@@ -55,6 +55,7 @@ export interface StartupFinancials {
 export interface StartupItem {
   id: string;
   name: string;
+  startup_name?: string;
   monogram?: string;
   monogramBg?: string;
   founder: string;

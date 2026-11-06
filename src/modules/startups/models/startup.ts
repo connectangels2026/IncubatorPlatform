@@ -1,5 +1,6 @@
 export interface Startup {
   id: string;
+  startup_name?: string;
   name: string;
   founder_name: string;
   founder_id?: string;

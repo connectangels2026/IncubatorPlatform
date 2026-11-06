@@ -65,7 +65,8 @@ const resolveOrgId = (orgId: string): string => {
 const mapRowToStartup = (row: any): Startup => {
   return {
     id: row.id,
-    name: row.name,
+    startup_name: row.startup_name || row.name || 'Startup',
+    name: row.startup_name || row.name || 'Startup',
     founder_name: row.founder_name || row.founder_email?.split('@')[0] || 'Founder',
     founder_id: row.founder_id,
     email: row.founder_email || '',
@@ -101,11 +102,11 @@ export class StartupService {
 
     // Search
     if (filter.search) {
-      query = query.or(`name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      query = query.or(`startup_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
     }
 
     // Sorting
-    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort || 'created_at';
+    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
     query = query.order(sortField, { ascending: isAsc });
 
@@ -171,7 +172,7 @@ export class StartupService {
 
     const insertPayload: any = {
       organization_id: realOrgId,
-      name: data.name || 'New Startup',
+      startup_name: data.startup_name || data.name || 'New Startup',
       sector: data.sector || 'Tech',
       stage: validStage,
       founder_email: data.email || 'founder@startup.com',
@@ -196,7 +197,8 @@ export class StartupService {
       const fallbackId = 'startup_' + Date.now();
       const fallbackObj: Startup = {
         id: fallbackId,
-        name: data.name || 'Untitled Startup',
+        startup_name: data.startup_name || data.name || 'Untitled Startup',
+        name: data.startup_name || data.name || 'Untitled Startup',
         founder_name: data.founder_name || 'Founder',
         founder_id: data.founder_id,
         email: data.email || '',
@@ -225,7 +227,8 @@ export class StartupService {
     const updatePayload: any = {
       updated_at: new Date().toISOString(),
     };
-    if (data.name !== undefined) updatePayload.name = data.name;
+    if (data.startup_name !== undefined) updatePayload.startup_name = data.startup_name;
+    else if (data.name !== undefined) updatePayload.startup_name = data.name;
     if (data.founder_name !== undefined) updatePayload.founder_name = data.founder_name;
     if (data.founder_email !== undefined) updatePayload.founder_email = data.founder_email;
     if (data.founder_phone !== undefined) updatePayload.founder_phone = data.founder_phone;

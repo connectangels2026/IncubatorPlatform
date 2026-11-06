@@ -51,6 +51,7 @@ export function StartupProfilePreview({
   const currentStageKey = (startup.stage || 'idea').toLowerCase();
   const stageProgress = stageMap[currentStageKey] || 50;
 
+  const displayName = startup.startup_name || startup.name || 'Startup';
   const founderName = startup.founder_name || startup.founder || 'Founder';
   const founderEmail = startup.founder_email || startup.founderEmail || '';
   const founderPhone = startup.founder_phone || startup.founderPhone || '';
@@ -66,12 +67,12 @@ export function StartupProfilePreview({
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-extrabold flex items-center justify-center text-xl shadow-md shrink-0">
-            {startup.monogram || startup.name.slice(0, 2).toUpperCase()}
+            {startup.monogram || displayName.slice(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {startup.name}
+                {displayName}
               </h2>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                 <Rocket className="w-3 h-3 text-blue-600" />
