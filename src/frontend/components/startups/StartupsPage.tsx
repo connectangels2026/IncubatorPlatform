@@ -413,6 +413,14 @@ export const StartupsPage: React.FC = () => {
     setIsDetailOpen(true);
   };
 
+  const handleStartupUpdated = (updatedStartup: StartupItem) => {
+    setStartups((prev) =>
+      prev.map((s) => (s.id === updatedStartup.id ? { ...s, ...updatedStartup } : s))
+    );
+    setSelectedStartup((prev) => (prev?.id === updatedStartup.id ? { ...prev, ...updatedStartup } : prev));
+    showToast(`Saved updates for ${updatedStartup.name}`);
+  };
+
   // Handlers: Mentors with Backend Integration
   const handleTriggerAllocateMentor = (startup: StartupItem) => {
     setTargetStartupForAction(startup);
@@ -1022,6 +1030,7 @@ export const StartupsPage: React.FC = () => {
         onAddCoIncubatorClick={handleTriggerAddCoIncubator}
         onSignMOUClick={handleTriggerSignMOU}
         onRemoveCoIncubator={handleRemoveCoIncubator}
+        onUpdateStartup={handleStartupUpdated}
       />
 
       {/* Action Modals */}

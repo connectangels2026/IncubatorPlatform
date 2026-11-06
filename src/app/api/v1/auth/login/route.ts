@@ -99,6 +99,29 @@ export async function POST(req: Request) {
       }
     }
 
+    // Auto-resolve role from active organization, user metadata, or admitted startup
+    if (!isSuperAdmin && !userData.role) {
+      if (orgData?.id) {
+        userData.role = 'admin';
+        await supabaseAdmin.from('users').update({ role: 'admin' }).eq('id', userData.id);
+      } else if (data.user.user_metadata?.role) {
+        userData.role = data.user.user_metadata.role;
+        await supabaseAdmin.from('users').update({ role: userData.role }).eq('id', userData.id);
+      } else if (email) {
+        const { data: startupCheck } = await supabaseAdmin
+          .from('startups')
+          .select('id')
+          .or(`founder_id.eq.${data.user.id},founder_email.ilike.${email.trim()}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (startupCheck) {
+          userData.role = 'startup';
+          await supabaseAdmin.from('users').update({ role: 'startup' }).eq('id', userData.id);
+        }
+      }
+    }
+
     // Check if email is verified (using users table, not organizations table)
     if (!isSuperAdmin && !userData.email_verified) {
       return NextResponse.json(

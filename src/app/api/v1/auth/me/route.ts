@@ -54,7 +54,13 @@ export async function GET(req: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
-    const resolvedRole = isSuperAdmin ? 'super-admin' : (userProfile?.role ?? user?.role ?? null);
+    const resolvedRole = isSuperAdmin
+      ? 'super-admin'
+      : (userProfile?.role ?? user?.role ?? (orgData ? 'admin' : null));
+
+    if (resolvedRole && userProfile && !userProfile.role) {
+      await supabaseAdmin.from('users').update({ role: resolvedRole }).eq('id', userProfile.id);
+    }
 
     return NextResponse.json(
       {

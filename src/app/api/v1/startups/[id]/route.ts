@@ -52,7 +52,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const role = user?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'super-admin') {
+    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
+    if (!isStaff) {
       const isOwner =
         (startup.founder_id && startup.founder_id === user?.id) ||
         ((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
@@ -74,6 +75,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return PUT(req, context);
+}
+
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -89,7 +94,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     const role = user?.role?.toLowerCase() || '';
-    if (role !== 'admin' && role !== 'super-admin') {
+    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
+    if (!isStaff) {
       const isOwner = (startup.founder_id && startup.founder_id === user?.id) ||
         (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
       if (!isOwner) {

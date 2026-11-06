@@ -73,6 +73,12 @@ function LoginForm() {
 
       let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
 
+      // Fast-path: If user has an active organization, route directly to incubator dashboard
+      if (effectiveOrgId) {
+        router.push(`/dashboard?org=${effectiveOrgId}`);
+        return;
+      }
+
       if (isIncubatorRole) {
         if (!effectiveOrgId) {
           try {
