@@ -76,11 +76,11 @@ export default function StartupDashboard() {
         const resolvedTrack = savedTrack || (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null) || 'both';
 
         setProfile({
-          id: startup.id,
-          name: startup.name || fd.startup_name || `${user.email?.split('@')[0]}'s Startup`,
-          batch: startup.batch || app?.cohort_name || 'Batch 2026',
-          tagline: startup.description || startup.solution_description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
-          stage: startup.stage || fd.businessStage || 'Validation Phase',
+          id: startup?.id || app?.id || 'startup',
+          name: startup?.startup_name || startup?.name || fd.startup_name || fd.businessName || `${user.email?.split('@')[0]}'s Startup`,
+          batch: app?.cohort_name || 'Batch 2026',
+          tagline: startup?.description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
+          stage: startup?.stage || fd.businessStage || 'Validation Phase',
           stageProgress: 70,
           track: resolvedTrack as any,
           incubatorName: org?.name || app?.incubator_name_text || 'Incubator Hub',

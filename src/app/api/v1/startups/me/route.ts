@@ -67,9 +67,50 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. Fetch linked application if available
-    let linkedApp: any = null;
-    if (startup?.id) {
+      const isDashboardAssigned =
+        acceptedApp?.admission_status === 'dashboard_assigned' ||
+        acceptedApp?.form_data?.dashboard_access_granted === true;
+
+      if (!acceptedApp || !isDashboardAssigned) {
+        return NextResponse.json(
+          {
+            success: false,
+            has_assigned_dashboard: false,
+            message: 'No dashboard has been assigned to your startup application yet.',
+          },
+          { status: 403 }
+        );
+      }
+
+      linkedApp = acceptedApp;
+
+      // Auto-provision startup row for this assigned application
+      const startupName =
+        acceptedApp.form_data?.startup_name ||
+        acceptedApp.form_data?.businessName ||
+        acceptedApp.applicant_name ||
+        'My Startup';
+
+      const { data: createdStartup } = await supabaseAdmin
+        .from('startups')
+        .insert({
+          organization_id: acceptedApp.organization_id || acceptedApp.selected_incubator_id,
+          application_id: acceptedApp.id,
+          startup_name: startupName,
+          founder_name: acceptedApp.applicant_name,
+          founder_email: emailLower,
+          founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
+          sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
+          stage: acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage || 'Early Stage',
+          status: 'active',
+          is_active: true,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      startup = createdStartup;
+    } else if (startup.application_id) {
       const { data: appData } = await supabaseAdmin
         .from('applications')
         .select('*')

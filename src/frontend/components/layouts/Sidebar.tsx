@@ -26,15 +26,13 @@ export interface NavItem {
 }
 
 export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
-  { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Applications', href: '/dashboard/applications', icon: ClipboardCheck, count: 42 },
-  { label: 'Startups', href: '/dashboard/startups', icon: Building2 },
-  { label: 'Mentors', href: '/dashboard/mentors', icon: Users },
-  { label: 'Collaborators', href: '/dashboard/collaborators', icon: Users },
-  { label: 'Co-Incubations', href: '/dashboard/co-incubations', icon: GraduationCap },
-  { label: 'Events', href: '/dashboard/events', icon: Calendar },
-  { label: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+  { label: 'Home', href: '/incubator', icon: LayoutDashboard },
+  { label: 'Applications', href: '/incubator/applications', icon: ClipboardCheck, count: 42 },
+  { label: 'Startups', href: '/incubator/startups', icon: Building2 },
+  { label: 'Mentors', href: '/incubator/mentors', icon: Users },
+  { label: 'Collaborators', href: '/incubator/collaborators', icon: Users },
+  { label: 'Co-Incubations', href: '/incubator/co-incubations', icon: GraduationCap },
+  { label: 'Events', href: '/incubator/events', icon: Calendar },
 ];
 
 interface SidebarProps {
@@ -120,7 +118,7 @@ export function Sidebar({
             {items.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+                (item.href !== '/incubator' && pathname?.startsWith(item.href));
               const Icon = item.icon;
 
               return (

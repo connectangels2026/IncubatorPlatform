@@ -53,12 +53,15 @@ export async function POST(req: NextRequest) {
     if (tenantError) return tenantError;
 
     const body = await req.json();
-    if (!body.name || !body.founder_name) {
-      return NextResponse.json({ error: 'Validation Error: name and founder_name are required' }, { status: 400 });
+    const resolvedName = body.startup_name || body.name;
+    if (!resolvedName || !body.founder_name) {
+      return NextResponse.json({ error: 'Validation Error: startup_name and founder_name are required' }, { status: 400 });
     }
 
     const created = await StartupService.createStartup({
       ...body,
+      startup_name: resolvedName,
+      name: resolvedName,
       founder_id: role === 'founder' ? user?.id : (body.founder_id || user?.id),
       organization_id: orgId!,
     });

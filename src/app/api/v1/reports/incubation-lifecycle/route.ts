@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const { data: startups, error } = await supabaseAdmin
       .from('startups')
-      .select('id, name, stage, lifecycle_stage, status, incubation_start_date, incubation_end_date, created_at')
+      .select('id, startup_name, stage, lifecycle_stage, status, incubation_start_date, incubation_end_date, created_at')
       .eq('organization_id', realOrgId);
 
     if (error) throw error;
@@ -59,9 +59,10 @@ export async function GET(req: NextRequest) {
           graduation_rate_pct: graduationRatePct,
         },
         lifecycle_stages: lifecycleBreakdown,
-        startups_timeline: all.map((s) => ({
+        startups_timeline: (all as any[]).map((s) => ({
           id: s.id,
-          name: s.name,
+          name: s.startup_name,
+          startup_name: s.startup_name,
           stage: s.stage,
           lifecycle_stage: s.lifecycle_stage || 'active_incubation',
           incubation_start_date: s.incubation_start_date || s.created_at,

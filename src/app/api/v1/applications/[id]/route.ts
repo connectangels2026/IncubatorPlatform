@@ -190,17 +190,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }
       }
 
-      if (startupRecordId) {
-        await supabaseAdmin
-          .from('startups')
-          .update({ is_active: true, status: 'active', updated_at: new Date().toISOString() })
-          .eq('id', startupRecordId);
-      } else {
-        // Verify foreign keys to public.users before insert to prevent FK violations
-        let validCreatorId: string | null = null;
-        if (user?.id && isValidUUID(user.id)) {
-          const { data: creatorUser } = await supabaseAdmin
-            .from('users')
+          const { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
+            .from('startups')
+            .insert({
+              organization_id: targetOrgId,
+              application_id: currentApp.id,
+              startup_name: startupName,
+              founder_name: currentApp.applicant_name,
+              founder_email: applicantEmail,
+              founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
+              sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
+              stage: currentApp.form_data?.businessStage || currentApp.form_data?.stage || 'Early Stage',
+              problem_statement: currentApp.form_data?.problemStatement || null,
+              solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
+              target_market: currentApp.form_data?.targetAudience || null,
+              founder_id: currentApp.created_by || null,
+              status: 'active',
+              is_active: true,
+              created_by: user.id,
+            })
             .select('id')
             .eq('id', user.id)
             .maybeSingle();
@@ -523,10 +531,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             const { data: newStartup } = await supabaseAdmin
               .from('startups')
               .insert({
-                organization_id: hostOrgId,
-                application_id: updated.id,
-                name: startupName,
-                founder_name: updated.applicant_name,
+                organization_id: orgId,
+                startup_name: startupName,
                 founder_email: applicantEmail,
                 founder_phone: updated.applicant_phone || null,
                 sector: updated.form_data?.industryVertical || 'AI & DeepTech',

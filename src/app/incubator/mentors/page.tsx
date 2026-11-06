@@ -566,6 +566,48 @@ export default function MentorsHubPage() {
           </div>
         )}
 
+        {/* Global Sidebar Component */}
+        <Sidebar
+          mobileOpen={sidebarOpen}
+          onCloseMobile={() => setSidebarOpen(false)}
+          onLogout={async () => {
+            await logout();
+            router.push('/login');
+          }}
+        />
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
+          {/* Header */}
+          <header className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5 shrink-0">
+            {/* Breadcrumbs & Mobile Toggle */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="p-1 -ml-1 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
+                  aria-label="Open sidebar"
+                >
+                  <Menu className="w-4 h-4" />
+                </button>
+                <Link href="/incubator" className="hover:text-slate-800 transition">
+                  Dashboard
+                </Link>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+                <span className="text-slate-400 hidden sm:inline">Cohort 2026</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300 hidden sm:inline" />
+                <span className="text-slate-900 font-semibold">Mentors Directory</span>
+              </div>
+
+              <button
+                onClick={fetchMentors}
+                disabled={isLoading}
+                title="Refresh mentors list"
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+              </button>
+            </div>
 
         {/* Headline, Actions & Filters Control Card */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
@@ -1519,7 +1561,7 @@ export default function MentorsHubPage() {
                   Close Drawer
                 </button>
                 <Link
-                  href="/dashboard/startups"
+                  href="/incubator/startups"
                   className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition"
                 >
                   Explore Startups

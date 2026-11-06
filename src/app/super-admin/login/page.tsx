@@ -173,7 +173,7 @@ export default function SuperAdminLoginPage() {
             <p className="text-xs font-semibold text-slate-800">Switch to Tenant Admin Login →</p>
           </div>
           <Link
-            href="/dashboard"
+            href="/incubator"
             className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition shadow-xs"
           >
             Clean outline

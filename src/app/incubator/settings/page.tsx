@@ -70,7 +70,7 @@ export default function IncubatorSettingsPage() {
       >
         <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
+          <Link href="/incubator" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition">
             <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Incubator Organization Settings</h1>

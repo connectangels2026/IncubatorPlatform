@@ -343,39 +343,43 @@ export const StartupsPage: React.FC = () => {
 
         const apiData = res.data?.data;
         if (Array.isArray(apiData)) {
-          const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
-            return {
-              id: item.id || String(idx + 1),
-              name: item.name || 'Startup',
-              monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
-              monogramBg: 'bg-blue-600',
-              sector: item.sector || 'General',
-              industry: item.sector || 'General',
-              stage: item.stage || 'Idea',
-              status: item.status || 'Active',
-              mrr: typeof item.revenue === "number" ? item.revenue : (item.monthly_revenue || 0),
-              arr: typeof item.revenue === "number" ? item.revenue * 12 : (item.annual_revenue || 0),
-              customers: item.customer_count || 0,
-              funding: item.funding_raised ? `${item.funding_raised}` : '$0',
-              fundingRaised: item.funding_raised ? `${item.funding_raised}` : '$0',
-              burn: '$0',
-              monthlyBurn: '$0',
-              cohort: item.cohort || 'Cohort 2026',
-              healthScore: '85',
-              tagline: item.description || '',
-              pitch: item.description || '',
-              founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
-              founderEmail: item.email || item.founder_email || '',
-              founderPhone: item.founder_phone || '',
-              website: item.website || '',
-              location: 'Remote',
-              teamMembers: [],
-              allocatedMentors: item.allocatedMentors || [],
-              allocatedInvestors: item.allocatedInvestors || [],
-              coIncubators: item.coIncubators || [],
-            };
-          });
-          setStartups(merged);
+          if (apiData.length === 0) {
+            setStartups([]);
+          } else {
+            const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
+              return {
+                id: item.id || String(idx + 1),
+                name: item.startup_name || item.name || 'Startup',
+                startup_name: item.startup_name || item.name || 'Startup',
+                monogram: (item.startup_name || item.name) ? (item.startup_name || item.name).slice(0, 2).toUpperCase() : 'ST',
+                monogramBg: 'bg-blue-600',
+                sector: item.sector || 'General',
+                industry: item.sector || 'General',
+                stage: item.stage || 'Idea',
+                status: item.status || 'active',
+                mrr: typeof item.revenue === "number" ? item.revenue : 0,
+                arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
+                customers: item.customer_count || 0,
+                funding: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                fundingRaised: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                burn: '$0',
+                monthlyBurn: '$0',
+                cohort: item.cohort || 'Cohort 2026',
+                healthScore: '85',
+                tagline: item.description || '',
+                pitch: item.description || '',
+                founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
+                founderEmail: item.email || item.founder_email || '',
+                website: item.website || '',
+                location: 'Remote',
+                teamMembers: [],
+                allocatedMentors: item.allocatedMentors || [],
+                allocatedInvestors: item.allocatedInvestors || [],
+                coIncubators: item.coIncubators || [],
+              };
+            });
+            setStartups(merged);
+          }
         }
       } catch (e) {
         console.warn("Error fetching startups", e);
@@ -474,6 +478,14 @@ export const StartupsPage: React.FC = () => {
   const handleOpenProfile = (startup: StartupItem) => {
     setSelectedStartup(startup);
     setIsDetailOpen(true);
+  };
+
+  const handleStartupUpdated = (updatedStartup: StartupItem) => {
+    setStartups((prev) =>
+      prev.map((s) => (s.id === updatedStartup.id ? { ...s, ...updatedStartup } : s))
+    );
+    setSelectedStartup((prev) => (prev?.id === updatedStartup.id ? { ...prev, ...updatedStartup } : prev));
+    showToast(`Saved updates for ${updatedStartup.name}`);
   };
 
   // Handlers: Mentors with Backend Integration
@@ -1263,6 +1275,7 @@ export const StartupsPage: React.FC = () => {
         onAddCoIncubatorClick={handleTriggerAddCoIncubator}
         onSignMOUClick={handleTriggerSignMOU}
         onRemoveCoIncubator={handleRemoveCoIncubator}
+        onUpdateStartup={handleStartupUpdated}
       />
 
       {/* Action Modals */}

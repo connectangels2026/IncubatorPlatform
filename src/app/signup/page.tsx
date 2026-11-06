@@ -35,7 +35,7 @@ export default function SignupPage() {
       if (!role) {
         router.push('/auth/choose-role');
       } else {
-        router.push('/dashboard');
+        router.push('/incubator');
       }
     }
   }, [user, router]);
