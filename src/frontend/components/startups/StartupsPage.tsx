@@ -902,19 +902,7 @@ export const StartupsPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout
-      title="Startups Directory"
-      fluid={true}
-      headerActions={
-        <button
-          onClick={() => setIsOnboardOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>+ Add Startup</span>
-        </button>
-      }
-    >
+    <DashboardLayout breadcrumbs={[{ label: 'Startups' }]}>
       <div className="space-y-6">
         {/* Toast Notification */}
         {toast && (
@@ -924,205 +912,80 @@ export const StartupsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                Portfolio Hub
-              </span>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Startups Directory</h1>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Startups
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
               Manage cohort startups, track growth milestones, allocate mentors, investors, and MOUs.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={handleExportPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export PDF</span>
-            </button>
-            <button
               onClick={() => setIsOnboardOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Startup</span>
-            </button>
-            <button
-              onClick={() => {
-                if (startups.length > 0) handleTriggerAllocateMentor(startups[0]);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Allocate Mentor</span>
-            </button>
-            <button
-              onClick={() => {
-                if (startups.length > 0) handleTriggerAllocateInvestor(startups[0]);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-teal-600 border border-teal-200 rounded-lg hover:bg-teal-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Allocate Investor</span>
+              <Plus className="w-4 h-4" />
+              <span>Add startup</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* Main Content Area */}
-        <div className="p-6 space-y-5 flex-1">
-          {/* KPI Stats Bar (6 Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Total Startups</span>
-                <Rocket className="w-4 h-4 text-indigo-500" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCount}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-1">
-                {activeCount} active in program
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Total Capital Raised</span>
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCapitalRaisedFormatted}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-1">Across portfolio</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Graduation Rate</span>
-                <GraduationCap className="w-4 h-4 text-purple-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{graduationRate || 85}%</div>
-              <div className="text-[10px] text-purple-600 font-medium mt-1">Alumni completed</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Allocated Mentors</span>
-                <UserCheck className="w-4 h-4 text-indigo-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalMentorsAllocated}</div>
-              <div className="text-[10px] text-indigo-600 font-medium mt-1">General & SME pool</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Investor Allocated</span>
-                <TrendingUp className="w-4 h-4 text-teal-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalInvestorsAllocated}</div>
-              <div className="text-[10px] text-teal-600 font-medium mt-1">Warm to term sheets</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Co-Incubator MOUs</span>
-                <Handshake className="w-4 h-4 text-amber-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCoIncubations}</div>
-              <div className="text-[10px] text-amber-600 font-medium mt-1">Cross-hub alliances</div>
-            </div>
+        {/* KPI Stats Bar (6 Cards) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Total startups</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCount}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{activeCount} active</div>
           </div>
 
-          {/* Search & Filter Toolbar */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search startups by name, founder, industry..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <select
-                value={selectedIndustry}
-                onChange={(e) => setSelectedIndustry(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">All Industries</option>
-                <option value="HealthTech">HealthTech / AI</option>
-                <option value="FinTech">FinTech</option>
-                <option value="CleanTech">CleanTech</option>
-                <option value="AgriTech">AgriTech</option>
-                <option value="Cybersecurity">Cybersecurity</option>
-              </select>
-
-              <select
-                value={selectedStage}
-                onChange={(e) => setSelectedStage(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">All Stages</option>
-                <option value="Idea">Idea</option>
-                <option value="MVP">MVP</option>
-                <option value="Revenue">Revenue</option>
-                <option value="Growth">Growth</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="name-asc">Sort: Name (A-Z)</option>
-                <option value="name-desc">Sort: Name (Z-A)</option>
-              </select>
-
-              <div className="border-l border-slate-200 pl-2 flex items-center gap-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                    viewMode === "grid"
-                      ? "bg-indigo-50 text-indigo-600 font-semibold"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  title="Grid View"
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                    viewMode === "list"
-                      ? "bg-indigo-50 text-indigo-600 font-semibold"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  title="List View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Capital raised</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCapitalRaisedFormatted}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Across portfolio</div>
           </div>
 
-          {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Graduation rate</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{graduationRate || 85}%</div>
+            <div className="text-xs text-slate-500 mt-0.5">Alumni completed</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Allocated mentors</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalMentorsAllocated}</div>
+            <div className="text-xs text-slate-500 mt-0.5">General & SME pool</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Investor allocated</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalInvestorsAllocated}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Warm to term sheets</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Co-incubator MOUs</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCoIncubations}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Cross-hub alliances</div>
+          </div>
+        </div>
+
+        {/* Merged Filter & Status Tabs Row */}
+        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setSectionFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'all'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span>All Startups</span>
+              <span>All</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
@@ -1132,16 +995,16 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('queue')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'queue'
                   ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50/50'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span>Queue (Pending)</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Pending</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
+                sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {queueStartups.length}
               </span>
@@ -1149,16 +1012,16 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('active')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'active'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50/50'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>Active</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'active' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
+                sectionFilter === 'active' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {activeStartups.length}
               </span>
@@ -1166,16 +1029,15 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('inactive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'inactive'
-                  ? 'bg-slate-600 text-white shadow-xs'
+                  ? 'bg-slate-700 text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
               <span>Inactive</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'inactive' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                sectionFilter === 'inactive' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
                 {inactiveStartups.length}
               </span>
@@ -1183,42 +1045,94 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('exited')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'exited'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-50/50'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
               <span>Exited</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'exited' ? 'bg-purple-700 text-white' : 'bg-purple-100 text-purple-800'
+                sectionFilter === 'exited' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
                 {exitedStartups.length}
               </span>
             </button>
           </div>
 
-          {/* Section Content Display */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {sectionFilter === 'all' && <span className="w-2.5 h-2.5 rounded-full bg-slate-800" />}
-                {sectionFilter === 'queue' && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />}
-                {sectionFilter === 'active' && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
-                {sectionFilter === 'inactive' && <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />}
-                {sectionFilter === 'exited' && <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
-                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                  {sectionFilter === 'all' && 'All Startups'}
-                  {sectionFilter === 'queue' && 'Queue / Pending Assignment'}
-                  {sectionFilter === 'active' && 'Active Startups'}
-                  {sectionFilter === 'inactive' && 'Inactive Startups'}
-                  {sectionFilter === 'exited' && 'Exited Startups'}
-                </h2>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
-                  {displayedStartups.length}
-                </span>
-              </div>
+          {/* Filters, Search & View Controls */}
+          <div className="flex items-center gap-2 flex-1 justify-end min-w-[280px]">
+            <div className="relative max-w-xs flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search startups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full text-xs pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <select
+              value={selectedIndustry}
+              onChange={(e) => setSelectedIndustry(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">All industries</option>
+              <option value="HealthTech">HealthTech / AI</option>
+              <option value="FinTech">FinTech</option>
+              <option value="CleanTech">CleanTech</option>
+              <option value="AgriTech">AgriTech</option>
+              <option value="Cybersecurity">Cybersecurity</option>
+            </select>
+
+            <select
+              value={selectedStage}
+              onChange={(e) => setSelectedStage(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">All stages</option>
+              <option value="Idea">Idea</option>
+              <option value="MVP">MVP</option>
+              <option value="Revenue">Revenue</option>
+              <option value="Growth">Growth</option>
+            </select>
+
+            <div className="border-l border-slate-200 pl-2 flex items-center gap-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-slate-100 text-blue-600 font-semibold"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+                title="Grid view"
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-slate-100 text-blue-600 font-semibold"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+                title="List view"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Content Display */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-medium text-slate-900">
+                {displayedStartups.length} {displayedStartups.length === 1 ? 'startup' : 'startups'}
+              </h2>
+            </div>
               <p className="text-xs text-slate-400 hidden sm:block">
                 {sectionFilter === 'all' && 'All portfolio and applicant startups across all statuses'}
                 {sectionFilter === 'queue' && 'Startups with pending status assigned dashboard or awaiting cohort onboarding'}
@@ -1231,7 +1145,7 @@ export const StartupsPage: React.FC = () => {
             {displayedStartups.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
                 <Rocket className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <h3 className="text-xs font-semibold text-slate-700">No Startups Found</h3>
+                <h3 className="text-xs font-semibold text-slate-700">No startups found</h3>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
                   {sectionFilter === 'queue' && 'The queue is currently empty. Newly assigned dashboards appear here with Pending status.'}
                   {sectionFilter === 'active' && 'No active startups found. Set a startup status to Active to display it here.'}
@@ -1260,7 +1174,6 @@ export const StartupsPage: React.FC = () => {
               />
             )}
           </div>
-        </div>
 
       {/* Startup Profile Modal (Drawer) */}
       <StartupDetailModal

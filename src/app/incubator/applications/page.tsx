@@ -42,6 +42,7 @@ import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
 import Logo from '@/frontend/components/ui/Logo';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import { IncubatorTopBar } from '@/frontend/components/incubator/IncubatorTopBar';
 import { supabase } from '@/backend/lib/supabase';
 import { apiClient } from '@/services/apiClient';
 
@@ -280,26 +281,26 @@ const StatusBadge = ({ status }: { status: ApplicationItem['status'] }) => {
   const configs: Record<string, { label: string; style: string; dot: string }> = {
     submitted: {
       label: "Submitted",
-      style: "bg-slate-100 text-slate-700 border-slate-200",
+      style: "bg-slate-50 text-slate-700 border-slate-200",
       dot: "bg-slate-400"
     },
     forwarded: {
       label: "Pending",
-      style: "bg-amber-50 text-amber-800 border-amber-200",
-      dot: "bg-amber-500 animate-pulse"
+      style: "bg-amber-50 text-amber-700 border-amber-200",
+      dot: "bg-amber-500"
     },
     under_review: {
-      label: "Pending",
-      style: "bg-amber-50 text-amber-800 border-amber-200",
-      dot: "bg-amber-500 animate-pulse"
+      label: "Under review",
+      style: "bg-amber-50 text-amber-700 border-amber-200",
+      dot: "bg-amber-500"
     },
     pending: {
       label: "Pending",
-      style: "bg-amber-50 text-amber-800 border-amber-200",
-      dot: "bg-amber-500 animate-pulse"
+      style: "bg-amber-50 text-amber-700 border-amber-200",
+      dot: "bg-amber-500"
     },
     admitted: {
-      label: "Accepted",
+      label: "Admitted",
       style: "bg-emerald-50 text-emerald-700 border-emerald-200",
       dot: "bg-emerald-500"
     },
@@ -318,7 +319,7 @@ const StatusBadge = ({ status }: { status: ApplicationItem['status'] }) => {
   const config = configs[status] || configs.submitted;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${config.style}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-normal border ${config.style}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
       {config.label}
     </span>
@@ -328,12 +329,8 @@ const StatusBadge = ({ status }: { status: ApplicationItem['status'] }) => {
 const TypeBadge = ({ type }: { type: ApplicationItem['type'] }) => {
   const isIncubator = type === 'incubator';
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wider ${
-      isIncubator
-        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-        : 'bg-amber-50 text-amber-700 border border-amber-200'
-    }`}>
-      {isIncubator ? 'Incubator' : 'Pre-Incubator'}
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-normal bg-slate-100 text-slate-600 border border-slate-200/80">
+      {isIncubator ? 'Incubator' : 'Pre-incubator'}
     </span>
   );
 };
@@ -358,28 +355,10 @@ const SectorTag = ({ sector }: { sector: string }) => {
 };
 
 const ScoreBadge = ({ score }: { score: number }) => {
-  let color = "text-rose-600 bg-rose-50 border-rose-200";
-  let barColor = "bg-rose-500";
-  if (score >= 80) {
-    color = "text-emerald-700 bg-emerald-50 border-emerald-200";
-    barColor = "bg-emerald-500";
-  } else if (score >= 65) {
-    color = "text-blue-700 bg-blue-50 border-blue-200";
-    barColor = "bg-blue-500";
-  } else if (score >= 50) {
-    color = "text-amber-700 bg-amber-50 border-amber-200";
-    barColor = "bg-amber-500";
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <div className={`px-2 py-0.5 rounded text-xs font-bold border ${color}`}>
-        {score}/100
-      </div>
-      <div className="w-12 bg-slate-100 h-1.5 rounded-full overflow-hidden hidden sm:block">
-        <div className={`h-full ${barColor} transition-all duration-300`} style={{ width: `${score}%` }} />
-      </div>
-    </div>
+    <span className="font-mono text-xs font-medium text-slate-700 whitespace-nowrap">
+      {score}/100
+    </span>
   );
 };
 
@@ -966,94 +945,32 @@ export default function ApplicationsPage() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-xs">
-            <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-1.5 -ml-1.5 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
-                  aria-label="Open sidebar"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                  <Link href="/incubator" className="hover:text-blue-600 transition">
-                    Dashboard
-                  </Link>
-                  <span>/</span>
-                  <span className="font-semibold text-slate-900">Applications</span>
-                </div>
-
-                {/* Incubator Workspace Identity */}
-                <div className="flex items-center gap-2 px-3 py-1.5 ml-2 sm:ml-4 rounded-xl bg-slate-100 border border-slate-200">
-                  <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span className="font-bold text-xs text-slate-800 truncate max-w-[180px] sm:max-w-[240px]">
-                    {currentOrgName || 'My Incubator'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link href="/programs">
-                  <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs">
-                    Programs
-                  </Button>
-                </Link>
-                <Link href="/" className="hidden sm:block">
-                  <Button variant="ghost" size="sm" className="text-slate-700 hover:bg-slate-100 text-xs">
-                    Home
-                  </Button>
-                </Link>
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-300 text-slate-700 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 gap-1.5 transition text-xs"
-                  title="Log Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Log Out</span>
-                </Button>
-              </div>
-            </div>
-          </nav>
+          <IncubatorTopBar
+            breadcrumbs={[{ label: 'Applications' }]}
+            onOpenMobileSidebar={() => setSidebarOpen(true)}
+            orgNameOverride={currentOrgName}
+          />
 
           {/* Main Container */}
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-6 space-y-6">
             {/* Header Banner */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Applications Management
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  Applications
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-1">
                   Review applicant submissions, score rubric metrics, and admit startups to Arba360.
                 </p>
               </div>
 
               <div className="flex items-center gap-2.5">
-                <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-semibold shadow-2xs">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  <span>Live DB Sync</span>
-                </div>
-
-                <button
-                  onClick={() => fetchApplications()}
-                  disabled={isLoading || isProcessing}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition"
-                  title="Refresh applications"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
                 <button
                   onClick={handleExportCSV}
                   disabled={isLoading || isProcessing || filteredApplications.length === 0}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-xs transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-slate-500" />
+                  <Download className="w-4 h-4" />
                   Download CSV
                 </button>
               </div>
@@ -1261,7 +1178,7 @@ export default function ApplicationsPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr className="bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500">
                         <th className="py-3 px-4 w-10">
                           <input
                             type="checkbox"
@@ -1270,7 +1187,7 @@ export default function ApplicationsPage() {
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
                           />
                         </th>
-                        <th className="py-3 px-4">ID</th>
+                        <th className="py-3 px-4">Id</th>
                         <th className="py-3 px-4">Startup</th>
                         <th className="py-3 px-4">Founder</th>
                         <th className="py-3 px-4">Type</th>
@@ -1292,7 +1209,7 @@ export default function ApplicationsPage() {
                               isSelected ? 'bg-blue-50/30' : ''
                             }`}
                           >
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
@@ -1301,55 +1218,43 @@ export default function ApplicationsPage() {
                               />
                             </td>
 
-                            <td className="py-3.5 px-4 font-mono text-xs font-semibold text-slate-500 whitespace-nowrap">
+                            <td className="py-3 px-4 font-mono text-xs font-medium text-slate-500 whitespace-nowrap">
                               {app.id.startsWith('APP-') ? app.id : `APP-${app.id.slice(0, 6).toUpperCase()}`}
                             </td>
 
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-lg bg-blue-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-md bg-blue-600 text-white font-semibold text-xs flex items-center justify-center shrink-0">
                                   {initial}
                                 </div>
-                                <div>
-                                  <div
-                                    className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer flex items-center gap-1.5"
-                                    onClick={() => openDetailsModal(app)}
-                                  >
-                                    <span>{app.startupName}</span>
-                                  </div>
-                                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                    <SectorTag sector={app.sector} />
-                                    {app.organizationName && (
-                                      <span className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200/60 px-1.5 py-0.5 rounded font-medium">
-                                        {app.organizationName}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                                <span
+                                  className="font-medium text-slate-900 hover:text-blue-600 cursor-pointer truncate max-w-[180px]"
+                                  onClick={() => openDetailsModal(app)}
+                                  title={app.startupName}
+                                >
+                                  {app.startupName}
+                                </span>
                               </div>
                             </td>
 
-                            <td className="py-3.5 px-4">
-                              <div className="font-semibold text-slate-900">{app.founderName}</div>
-                              <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                                <Mail className="w-3 h-3 text-slate-400" />
-                                {app.founderEmail}
-                              </div>
+                            <td className="py-3 px-4">
+                              <div className="font-medium text-slate-900 truncate max-w-[150px]">{app.founderName}</div>
+                              <div className="text-[11px] text-slate-500 truncate max-w-[150px]">{app.founderEmail}</div>
                             </td>
 
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <TypeBadge type={app.type} />
                             </td>
 
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <StatusBadge status={app.status} />
                             </td>
 
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <ScoreBadge score={app.score} />
                             </td>
 
-                            <td className="py-3.5 px-4 text-xs text-slate-600 whitespace-nowrap">
+                            <td className="py-3 px-4 text-xs text-slate-600 whitespace-nowrap">
                               {new Date(app.submittedDate).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',

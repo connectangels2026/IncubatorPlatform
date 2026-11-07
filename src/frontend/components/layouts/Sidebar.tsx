@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   LogOut,
   X,
+  UserCheck,
+  Handshake,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -29,8 +31,8 @@ export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
   { label: 'Home', href: '/incubator', icon: LayoutDashboard },
   { label: 'Applications', href: '/incubator/applications', icon: ClipboardCheck, count: 42 },
   { label: 'Startups', href: '/incubator/startups', icon: Building2 },
-  { label: 'Mentors', href: '/incubator/mentors', icon: Users },
-  { label: 'Collaborators', href: '/incubator/collaborators', icon: Users },
+  { label: 'Mentors', href: '/incubator/mentors', icon: UserCheck },
+  { label: 'Collaborators', href: '/incubator/collaborators', icon: Handshake },
   { label: 'Co-Incubations', href: '/incubator/co-incubations', icon: GraduationCap },
   { label: 'Events', href: '/incubator/events', icon: Calendar },
 ];
@@ -131,7 +133,7 @@ export function Sidebar({
                       ? 'bg-blue-50 text-blue-600 font-bold shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   } ${isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'}`}
-                  title={!isHovered ? item.label : undefined}
+                  title={item.label}
                 >
                   {/* Left indicator bar when collapsed */}
                   {isActive && !isHovered && (

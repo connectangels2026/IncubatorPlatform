@@ -28,6 +28,7 @@ import {
 import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { Sidebar } from '@/frontend/components/layouts/Sidebar';
+import { IncubatorTopBar } from '@/frontend/components/incubator/IncubatorTopBar';
 import { apiClient } from '@/services/apiClient';
 
 export interface MentorExpertise {
@@ -565,80 +566,78 @@ export default function MentorsHubPage() {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
-          {/* Header */}
-          <header className="bg-white border-b border-slate-200 px-6 sm:px-8 py-5 shrink-0">
-            {/* Breadcrumbs & Mobile Toggle */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-1 -ml-1 rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
-                  aria-label="Open sidebar"
-                >
-                  <Menu className="w-4 h-4" />
-                </button>
-                <Link href="/incubator" className="hover:text-slate-800 transition">
-                  Dashboard
-                </Link>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-                <span className="text-slate-400 hidden sm:inline">Cohort 2026</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-300 hidden sm:inline" />
-                <span className="text-slate-900 font-semibold">Mentors Directory</span>
-              </div>
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
+          {/* Top Bar */}
+          <IncubatorTopBar
+            breadcrumbs={[{ label: 'Mentors' }]}
+            onOpenMobileSidebar={() => setSidebarOpen(true)}
+          />
 
-              <button
-                onClick={fetchMentors}
-                disabled={isLoading}
-                title="Refresh mentors list"
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
-              </button>
-            </div>
-
-            {/* Headline & Primary Actions */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Main Content Container */}
+          <main className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto px-6 py-6 space-y-6">
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mentorship & Advisory Hub</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h1 className="text-2xl font-semibold text-slate-900">
+                  Mentors
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">
                   Manage advisor availability, match startups with industry experts, and track performance.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={triggerCalendarSync}
-                  className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-xs"
-                >
-                  <CalendarSync className="w-4 h-4 text-slate-500" />
-                  <span className="hidden sm:inline">Sync Google/Outlook Calendar</span>
-                  <span className="sm:hidden">Sync</span>
-                </button>
-
+              <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition shadow-xs active:scale-95"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 transition shadow-xs cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>+ Add Mentor</span>
+                  <span>Add mentor</span>
                 </button>
               </div>
             </div>
 
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
+                <div className="text-xs font-normal text-slate-500">Active advisors</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">{filterCounts.available} available</div>
+                <div className="text-xs text-slate-500 mt-0.5">Open for booking this week</div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
+                <div className="text-xs font-normal text-slate-500">Sessions conducted</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">
+                  {mentors.reduce((acc, m) => acc + (m.sessionsCount || 0), 0)}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">Total completed hours</div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
+                <div className="text-xs font-normal text-slate-500">Avg founder rating</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">4.9 / 5.0</div>
+                <div className="text-xs text-slate-500 mt-0.5">Across 150+ reviews</div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
+                <div className="text-xs font-normal text-slate-500">Match velocity</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">92%</div>
+                <div className="text-xs text-slate-500 mt-0.5">Startups paired with mentors</div>
+              </div>
+            </div>
+
             {/* Filter Chips & Search Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
               {/* Filter Chips & Type Dropdown */}
-              <div className="flex items-center gap-3 overflow-x-auto pb-1 sm:pb-0 flex-wrap">
-                {/* Filter by Type Dropdown */}
-                <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
-                  <span className="text-xs font-semibold text-slate-500">Filter by Type:</span>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 flex-wrap">
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                  <span className="text-xs font-medium text-slate-500">Type:</span>
                   <select
                     value={mentorTypeFilter}
                     onChange={(e) => setMentorTypeFilter(e.target.value as 'ALL' | 'General' | 'SME')}
-                    className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                    className="text-xs font-medium text-slate-800 bg-transparent focus:outline-none cursor-pointer"
                   >
-                    <option value="ALL">All Types</option>
+                    <option value="ALL">All types</option>
                     <option value="General">General</option>
                     <option value="SME">SME</option>
                   </select>
@@ -646,56 +645,66 @@ export default function MentorsHubPage() {
 
                 <button
                   onClick={() => setCurrentFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                     currentFilter === 'all'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                      ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span>All Status</span>
-                  <span className="bg-blue-200/60 text-blue-800 px-1.5 py-0.2 rounded-md text-[10px]">
+                  <span>All</span>
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    currentFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+                  }`}>
                     {filterCounts.all}
                   </span>
                 </button>
 
                 <button
                   onClick={() => setCurrentFilter('Available')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                     currentFilter === 'Available'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                      ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span>Available</span>
-                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-md text-[10px]">
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    currentFilter === 'Available' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
                     {filterCounts.available}
                   </span>
                 </button>
 
                 <button
                   onClick={() => setCurrentFilter('Booked')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                     currentFilter === 'Booked'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                      ? 'bg-amber-600 text-white shadow-xs'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span>Fully Booked</span>
-                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-md text-[10px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span>Fully booked</span>
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    currentFilter === 'Booked' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
                     {filterCounts.booked}
                   </span>
                 </button>
 
                 <button
                   onClick={() => setCurrentFilter('Deactivated')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer ${
                     currentFilter === 'Deactivated'
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                      ? 'bg-slate-700 text-white shadow-xs'
                       : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   <span>Deactivated</span>
-                  <span className="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-md text-[10px]">
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                    currentFilter === 'Deactivated' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+                  }`}>
                     {filterCounts.deactivated}
                   </span>
                 </button>
@@ -709,68 +718,16 @@ export default function MentorsHubPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search name, company, or domain..."
-                  className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs transition"
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs transition"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
-              </div>
-            </div>
-          </header>
-
-          {/* Main Content Area */}
-          <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
-            {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active Advisors</span>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                    {filterCounts.all}
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">{filterCounts.available} Available</div>
-                <p className="text-xs text-slate-400 mt-1">Open for booking this week</p>
-              </div>
-
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Sessions Conducted</span>
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">
-                  {mentors.reduce((acc, m) => acc + (m.sessionsCount || 0), 0)}
-                </div>
-                <p className="text-xs text-slate-400 mt-1">Total completed hours</p>
-              </div>
-
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Avg Founder Rating</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center font-bold text-xs">
-                    <Star className="w-4 h-4 fill-amber-400" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">4.9 ★</div>
-                <p className="text-xs text-slate-400 mt-1">Across 150+ startup reviews</p>
-              </div>
-
-              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-sm transition">
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Match Velocity</span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-slate-900 tracking-tight">92%</div>
-                <p className="text-xs text-slate-400 mt-1">Startups paired with lead mentors</p>
               </div>
             </div>
 
@@ -827,16 +784,16 @@ export default function MentorsHubPage() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500">
                       <tr>
-                        <th className="py-3.5 px-6">Name &amp; Organization</th>
-                        <th className="py-3.5 px-4">Mentor Type</th>
-                        <th className="py-3.5 px-4">Core Domain Expertise</th>
-                        <th className="py-3.5 px-4">Performance</th>
-                        <th className="py-3.5 px-4">Mentorship Sessions</th>
-                        <th className="py-3.5 px-4">Weekly Availability</th>
-                        <th className="py-3.5 px-4">Match Status</th>
-                        <th className="py-3.5 px-6 text-right">Actions</th>
+                        <th className="py-3 px-4">Name &amp; organization</th>
+                        <th className="py-3 px-4">Mentor type</th>
+                        <th className="py-3 px-4">Core domain expertise</th>
+                        <th className="py-3 px-4">Performance</th>
+                        <th className="py-3 px-4">Sessions</th>
+                        <th className="py-3 px-4">Weekly availability</th>
+                        <th className="py-3 px-4">Match status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -848,19 +805,19 @@ export default function MentorsHubPage() {
                           }`}
                         >
                           {/* Name & Org */}
-                          <td className="py-3.5 px-6">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <img
-                                className="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200"
+                                className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
                                 src={m.avatar}
                                 alt={m.name}
                               />
                               <div>
-                                <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
+                                <div className="font-medium text-slate-900 flex items-center gap-1.5 flex-wrap">
                                   <span>{m.name}</span>
                                   {m.active && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 inline" />}
                                 </div>
-                                <div className="text-[11px] text-slate-500 font-medium">
+                                <div className="text-[11px] text-slate-500">
                                   {m.role} @ <span className="text-slate-700">{m.company}</span> •{' '}
                                   <span className="text-slate-400 font-mono">{m.handle}</span>
                                 </div>
@@ -869,27 +826,21 @@ export default function MentorsHubPage() {
                           </td>
 
                           {/* Mentor Type Column Badge */}
-                          <td className="py-3.5 px-4">
-                            {m.mentorType === 'SME' ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                SME
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                General
-                              </span>
-                            )}
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center text-xs px-2 py-0.5 rounded font-normal bg-slate-100 text-slate-600 border border-slate-200/80">
+                              {m.mentorType === 'SME' ? 'SME' : 'General'}
+                            </span>
                           </td>
 
                           {/* Expertise Tags */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-4">
                             <div className="flex flex-wrap gap-1">
                               {m.expertise.map((e, idx) => (
                                 <span
                                   key={idx}
                                   className={`${tagColorClass(
                                     e.type
-                                  )} border text-[10px] px-2 py-0.5 rounded-md font-medium`}
+                                  )} border text-[10px] px-2 py-0.5 rounded font-normal`}
                                 >
                                   {e.name}
                                 </span>
@@ -898,9 +849,9 @@ export default function MentorsHubPage() {
                           </td>
 
                           {/* Performance Rating */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-4">
                             <div
-                              className="flex items-center gap-1 font-bold text-slate-800"
+                              className="flex items-center gap-1 font-medium text-slate-800"
                               title="Average based on post-session startup reviews"
                             >
                               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
@@ -910,44 +861,45 @@ export default function MentorsHubPage() {
                           </td>
 
                           {/* Sessions */}
-                          <td className="py-3.5 px-4">
-                            <span className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-normal px-2 py-0.5 rounded">
                               <Calendar className="w-3 h-3 text-slate-500" />
                               {m.sessions}
                             </span>
                           </td>
 
                           {/* Weekly Availability */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-4">
                             {m.availStatus === 'Available' ? (
-                              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-normal px-2.5 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 {m.availability}
                               </span>
                             ) : m.availStatus === 'Booked' ? (
-                              <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                              <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-xs font-normal px-2.5 py-0.5 rounded-full">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                 {m.availability}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                              <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 border border-slate-200 text-xs font-normal px-2.5 py-0.5 rounded-full">
                                 {m.availability}
                               </span>
                             )}
                           </td>
 
                           {/* Match Status Button */}
-                          <td className="py-3.5 px-4">
+                          <td className="py-3 px-4">
                             <button
                               onClick={() => openMatchDrawer(m)}
-                              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition flex items-center gap-1 shadow-2xs"
+                              className="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
                             >
-                              <Link2 className="w-3 h-3" /> Matched with {m.matchedCount} Startups
+                              <Link2 className="w-3 h-3 text-slate-400" />
+                              <span>{m.matchedCount} {m.matchedCount === 1 ? 'startup' : 'startups'}</span>
                             </button>
                           </td>
 
                           {/* Actions */}
-                          <td className="py-3.5 px-6 text-right">
+                          <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => openEditModal(m)}
@@ -985,8 +937,8 @@ export default function MentorsHubPage() {
                 </div>
               </div>
             )}
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
 
       {/* Onboard Mentor Modal */}

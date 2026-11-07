@@ -188,32 +188,14 @@ export default function CollaboratorsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout
-        title="Collaborator Network"
-        headerActions={
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            size="sm"
-            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 h-8 rounded-xl shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Collaborator</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        }
+        breadcrumbs={[{ label: 'Collaborators' }]}
       >
         <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <Link
-              href="/incubator"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
-            </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Users className="w-8 h-8 text-blue-600" />
-              Collaborator Network
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Collaborators
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Manage investment partners, corporate affiliates, and academic institutional linkages.
@@ -221,100 +203,94 @@ export default function CollaboratorsPage() {
           </div>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm"
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Add Collaborator
+            <Plus className="w-4 h-4" />
+            <span>Add collaborator</span>
           </Button>
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search partner name, contact, or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Type:
-            </span>
+          <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
             {['all', 'Investor', 'Corporate', 'Academic', 'Partner'].map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap ${
                   typeFilter === t
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                {t === 'all' ? 'All Partners' : t}
+                {t === 'all' ? 'All partners' : t}
               </button>
             ))}
           </div>
         </div>
 
         {/* Grid of Collaborators */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c) => (
             <div
               key={c.id}
-              className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+              className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-xs transition flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-semibold text-xs">
                     {c.name.charAt(0)}
                   </div>
                   <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    className={`text-xs font-normal px-2 py-0.5 rounded border ${
                       c.type === 'Investor'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                        : c.type === 'Corporate'
-                        ? 'bg-purple-50 text-purple-700 border border-purple-200/60'
-                        : c.type === 'Academic'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                        : 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-slate-100 text-slate-700 border-slate-200'
                     }`}
                   >
                     {c.type}
                   </span>
                 </div>
 
-                <h3 className="font-bold text-slate-900 text-base">{c.name}</h3>
-                <div className="mt-3 space-y-1.5 text-xs text-slate-600">
+                <h3 className="font-semibold text-slate-900 text-sm">{c.name}</h3>
+                <div className="mt-2.5 space-y-1 text-xs text-slate-600">
                   <p className="flex items-center gap-2">
-                    <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Lead: <strong className="text-slate-800">{c.contact_name}</strong></span>
+                    <Briefcase className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Lead: <span className="font-medium text-slate-800">{c.contact_name}</span></span>
                   </p>
                   <p className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">{c.email}</span>
                   </p>
                   {c.phone && (
                     <p className="flex items-center gap-2">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{c.phone}</span>
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-slate-500 font-medium">
+              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-xs text-slate-500 font-normal">
                   <FileCheck
-                    className={`w-4 h-4 ${c.mou_signed ? 'text-emerald-600' : 'text-slate-400'}`}
+                    className={`w-3.5 h-3.5 ${c.mou_signed ? 'text-emerald-600' : 'text-slate-400'}`}
                   />
-                  MOU: {c.mou_signed ? <strong className="text-emerald-700">Signed</strong> : 'Pending'}
+                  <span>MOU: {c.mou_signed ? <strong className="font-medium text-emerald-700">Signed</strong> : 'Pending'}</span>
                 </span>
-                <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                  {c.matched_startups?.length || 0} Startups
+                <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                  {c.matched_startups?.length || 0} {(c.matched_startups?.length || 0) === 1 ? 'startup' : 'startups'}
                 </span>
               </div>
             </div>

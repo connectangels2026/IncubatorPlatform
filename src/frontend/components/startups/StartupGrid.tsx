@@ -28,7 +28,7 @@ export const StartupGrid: React.FC<StartupGridProps> = ({
         <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
           <Rocket className="w-6 h-6" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-800 mb-1">No Startups Found</h3>
+        <h3 className="text-sm font-semibold text-slate-800 mb-1">No startups found</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
           No startups matched your search query or filter selection. Try clearing filters.
         </p>
