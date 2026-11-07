@@ -263,6 +263,7 @@ export class StartupService {
     if (data.customer_count !== undefined) updatePayload.customer_count = Number(data.customer_count) || 0;
     if (data.team_size !== undefined) updatePayload.team_size = Number(data.team_size) || 1;
     if (data.team_members !== undefined) updatePayload.team_members = data.team_members;
+    if ((data as any).cofounders !== undefined) updatePayload.cofounders = (data as any).cofounders;
     if (data.revenue !== undefined || data.monthly_revenue !== undefined) {
       const rev = Number(data.monthly_revenue !== undefined ? data.monthly_revenue : data.revenue) || 0;
       updatePayload.monthly_revenue = rev;

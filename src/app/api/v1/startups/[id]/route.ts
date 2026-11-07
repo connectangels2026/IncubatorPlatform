@@ -10,24 +10,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
 
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
+    const { orgId } = requireOrg(req);
 
-    const startup = await StartupService.getStartupById(id, orgId!);
+    const startup = await StartupService.getStartupById(id, orgId || '');
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
     }
 
-    // Ownership check: non-staff can only view their own startup
+    // Ownership & Tenant check
     const role = user?.role?.toLowerCase() || '';
-    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
-    if (!isStaff && user?.email) {
-      const isOwner =
-        Boolean(startup.founder_id && startup.founder_id === user?.id) ||
-        Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user.email.toLowerCase()) ||
-        Boolean(startup.email && startup.email.toLowerCase() === user.email.toLowerCase());
-      if (!isOwner) {
-        return NextResponse.json({ error: 'Forbidden: Founders can only view their own startup' }, { status: 403 });
+    const isSuperAdmin = role === 'super-admin' || role === 'super_admin';
+    const isStaff = isSuperAdmin || role === 'admin' || role === 'incubator_admin' || role === 'incubator';
+
+    if (!isSuperAdmin) {
+      if (isStaff && orgId && startup.organization_id !== orgId) {
+        return NextResponse.json({ error: 'Forbidden: Startup does not belong to this organization' }, { status: 403 });
+      }
+
+      if (!isStaff && user?.email) {
+        const isOwner =
+          Boolean(startup.founder_id && startup.founder_id === user?.id) ||
+          Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user.email.toLowerCase()) ||
+          Boolean(startup.email && startup.email.toLowerCase() === user.email.toLowerCase());
+        if (!isOwner) {
+          return NextResponse.json({ error: 'Forbidden: Founders can only view their own startup' }, { status: 403 });
+        }
       }
     }
 

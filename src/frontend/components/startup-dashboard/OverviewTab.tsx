@@ -126,7 +126,13 @@ const SCHEDULE_EVENTS: ScheduleEventItem[] = [
   },
 ];
 
-export function OverviewTab() {
+interface OverviewTabProps {
+  startup?: any;
+  onNavigateTab?: (tab: any) => void;
+  onOpenProfile?: () => void;
+}
+
+export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewTabProps) {
   const [milestones, setMilestones] = useState<MilestoneItem[]>(INITIAL_MILESTONES);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -154,51 +160,40 @@ export function OverviewTab() {
               <span className="text-xs font-bold text-slate-500">Stage Tracker</span>
               <Award className="w-4 h-4 text-indigo-500" />
             </div>
-            <h3 className="text-lg font-black text-[#1A2151]">Validation Phase</h3>
-            <p className="text-[11px] font-extrabold text-emerald-600 flex items-center gap-1 mt-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>+15% velocity this month</span>
+            <h3 className="text-lg font-black text-[#1A2151]">{startup?.stage || 'Validation Phase'}</h3>
+            <p className="text-[11px] font-extrabold text-indigo-600 flex items-center gap-1 mt-1">
+              <span>{startup?.sector || 'Technology Sector'}</span>
             </p>
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-medium text-slate-500">
-            <span>Next Gate: Seed Gate</span>
-            <span className="font-extrabold text-slate-800">Q1 2027</span>
+            <span>Funding Raised</span>
+            <span className="font-extrabold text-emerald-700 font-mono">
+              ${Number(startup?.funding_raised || 0).toLocaleString()}
+            </span>
           </div>
         </div>
 
-        {/* Card 2: Mentors Assigned */}
+        {/* Card 2: Traction & Revenue */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold text-slate-500">Mentors Assigned</span>
-              <Users className="w-4 h-4 text-blue-500" />
+              <span className="text-xs font-bold text-slate-500">Monthly Recurring (MRR)</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-[#1A2151]">4 Active Mentors</h3>
+              <h3 className="text-lg font-black text-[#1A2151]">
+                ${Number(startup?.mrr || startup?.monthly_revenue || 0).toLocaleString()}
+              </h3>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-                100% Engaged
+                {startup?.customer_count || 0} Customers
               </span>
             </div>
           </div>
-          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center gap-2">
-            <div className="flex -space-x-1.5 overflow-hidden">
-              <img
-                className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80"
-                alt="Mentor 1"
-              />
-              <img
-                className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
-                alt="Mentor 2"
-              />
-              <img
-                className="inline-block h-6 w-6 rounded-full ring-2 ring-white"
-                src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80"
-                alt="Mentor 3"
-              />
-            </div>
-            <span className="text-[11px] font-bold text-slate-500">+1 Guest VCs</span>
+          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-medium text-slate-500">
+            <span>Annual Run Rate (ARR)</span>
+            <span className="font-extrabold text-slate-800 font-mono">
+              ${Number(startup?.annual_revenue || (startup?.mrr ? startup.mrr * 12 : 0)).toLocaleString()}
+            </span>
           </div>
         </div>
 
@@ -207,7 +202,7 @@ export function OverviewTab() {
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-2">
               <span className="text-xs font-bold text-slate-500">Milestone Velocity</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <CheckCircle2 className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-black text-[#1A2151]">
@@ -233,15 +228,35 @@ export function OverviewTab() {
               <span className="text-xs font-bold text-slate-500">Pitch Deck Status</span>
               <FileText className="w-4 h-4 text-indigo-500" />
             </div>
-            <h3 className="text-lg font-black text-[#1A2151]">v2.4 - Seed Ready</h3>
+            <h3 className="text-lg font-black text-[#1A2151]">
+              {startup?.pitch_deck_url ? 'Pitch Deck Linked' : 'Deck Not Uploaded'}
+            </h3>
             <p className="text-[11px] font-extrabold text-blue-600 flex items-center gap-1 mt-1">
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-              <span>Approved by Lead VC</span>
+              <span>{startup?.pitch_deck_url ? 'Ready for Investor Review' : 'Upload in Startup Profile'}</span>
             </p>
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-medium text-slate-500">
-            <span>Updated 2d ago</span>
-            <span className="font-mono text-slate-700 font-bold">14.2 MB PDF</span>
+            {startup?.pitch_deck_url ? (
+              <a
+                href={startup.pitch_deck_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline font-bold inline-flex items-center gap-1"
+              >
+                <span>View Deck</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={() => (onOpenProfile ? onOpenProfile() : onNavigateTab?.('overview'))}
+                className="text-blue-600 hover:underline font-bold cursor-pointer"
+              >
+                + Add in Profile
+              </button>
+            )}
+            <span className="font-mono text-slate-700 font-bold">{startup?.team_size || 1} Members</span>
           </div>
         </div>
       </div>

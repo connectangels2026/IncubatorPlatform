@@ -2,65 +2,265 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/frontend/context/AuthContext';
-import { Clock, CheckCircle2, FileText, Building2, ArrowRight } from 'lucide-react';
+import { apiClient } from '@/services/apiClient';
+import {
+  ArrowLeft,
+  Building2,
+  Rocket,
+  Globe,
+  ExternalLink,
+  DollarSign,
+  TrendingUp,
+  Users,
+  Award,
+  FileText,
+  Loader2,
+  ShieldAlert,
+  Edit3,
+} from 'lucide-react';
+import { StartupProfileManager } from '@/frontend/components/startup-profile/StartupProfileManager';
 
-export default function StartupDashboardPage() {
+export default function StartupDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, isLoading: authLoading } = useAuth();
-  const userId = params?.id as string;
+  const startupId = params?.id as string;
 
-  const [appStatus, setAppStatus] = useState('pending_super_admin_review');
+  const [startup, setStartup] = useState<any | null>(null);
+  const [organization, setOrganization] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-  }, [user, authLoading, router]);
+    async function fetchStartupDetail() {
+      if (authLoading) return;
+      if (!user) {
+        router.push(`/login?redirect=/startup/${startupId}`);
+        return;
+      }
 
-  if (authLoading || !user) {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Fetch startup data
+        const endpoint = startupId === 'me' ? '/startups/me' : `/startups/${startupId}`;
+        const res = await apiClient.get(endpoint);
+
+        if (res.data?.startup || res.data?.data) {
+          const st = res.data.startup || res.data.data;
+          setStartup(st);
+          if (res.data.organization) {
+            setOrganization(res.data.organization);
+          }
+        } else {
+          setError('Startup details not found or access restricted.');
+        }
+      } catch (err: any) {
+        console.error('Error fetching startup details:', err);
+        setError(err?.response?.data?.error || err.message || 'Failed to load startup profile');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (startupId) {
+      fetchStartupDetail();
+    }
+  }, [startupId, user, authLoading, router]);
+
+  if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-xs font-semibold text-slate-500">Loading startup profile...</p>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 sm:p-10">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Startup Dashboard</h1>
-        <p className="text-slate-600 mb-8">User ID: <span className="font-mono text-sm bg-slate-100 px-2 py-0.5 rounded">{userId || user?.id}</span></p>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Application Status */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                <Clock className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Application Status</h2>
-            </div>
-            <p className="text-sm font-semibold text-amber-600 mb-1">{appStatus}</p>
-            <p className="text-sm text-slate-500">Waiting for super admin assignment to an incubator.</p>
+  if (error || !startup) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] p-6 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-6 h-6" />
           </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h2>
-            <a
-              href="/startup/application"
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition"
+          <h2 className="text-lg font-bold text-slate-900">Unable to View Startup</h2>
+          <p className="text-xs text-slate-500">{error || 'Startup profile not found.'}</p>
+          <div className="pt-2">
+            <button
+              onClick={() => router.back()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition"
             >
-              <FileText className="w-4 h-4" />
-              Apply / Manage Application
-              <ArrowRight className="w-4 h-4" />
-            </a>
+              <ArrowLeft className="w-3.5 h-3.5" /> Go Back
+            </button>
           </div>
         </div>
       </div>
+    );
+  }
+
+  const isOwner =
+    Boolean(user?.id && startup.founder_id === user.id) ||
+    Boolean(user?.email && startup.founder_email && startup.founder_email.toLowerCase() === user.email.toLowerCase()) ||
+    Boolean(startupId === 'me') ||
+    Boolean(user?.role === 'startup');
+
+  const displayName = startup.startup_name || startup.name || 'Startup';
+  const monogram = displayName.slice(0, 2).toUpperCase();
+
+  const handleEditClick = () => {
+    const target = document.getElementById('section-basic');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const editBtn = target.querySelector('button') as HTMLButtonElement | null;
+      if (editBtn) editBtn.click();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 pb-16">
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-30 bg-white border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition cursor-pointer"
+            title="Go back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <Link href="/startup/dashboard" className="hover:text-blue-600 transition font-medium">
+              Startup Dashboard
+            </Link>
+            <span>/</span>
+            <span className="font-bold text-slate-900 truncate max-w-[200px]">{displayName}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {isOwner && (
+            <button
+              onClick={handleEditClick}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              title="Edit startup details"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Edit Details</span>
+            </button>
+          )}
+          <Link
+            href="/startup/dashboard"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition"
+          >
+            Workspace
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Full-Width Container */}
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 py-6 space-y-6">
+        {/* Hero Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-4">
+            {startup.logo_url ? (
+              <img
+                src={startup.logo_url}
+                alt={displayName}
+                className="w-16 h-16 rounded-2xl object-cover border border-slate-200 shadow-xs"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black flex items-center justify-center text-xl shadow-md shrink-0">
+                {monogram}
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">{displayName}</h1>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  <Rocket className="w-3 h-3 text-blue-600" />
+                  {startup.stage || 'MVP'}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                  {startup.sector || 'Technology'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                {startup.description || startup.solution_description || 'Accelerated portfolio startup.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {startup.website && (
+              <a
+                href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition"
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-500" />
+                <span>Website</span>
+                <ExternalLink className="w-3 h-3 text-slate-400" />
+              </a>
+            )}
+            {startup.pitch_deck_url && (
+              <a
+                href={startup.pitch_deck_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Pitch Deck</span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* High-Level Traction Stats Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Funding Raised</span>
+            <span className="text-lg font-black text-emerald-700 mt-0.5 block">
+              ${Number(startup.funding_raised || 0).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Monthly Recurring (MRR)</span>
+            <span className="text-lg font-black text-slate-900 mt-0.5 block">
+              ${Number(startup.mrr || startup.monthly_revenue || 0).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Customers</span>
+            <span className="text-lg font-black text-blue-700 mt-0.5 block">
+              {Number(startup.customer_count || 0).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Team Size</span>
+            <span className="text-lg font-black text-slate-800 mt-0.5 block">
+              {startup.team_size || 1} Members
+            </span>
+          </div>
+        </div>
+
+        {/* Complete Section-Wise Startup Profile */}
+        <StartupProfileManager
+          initialStartup={startup}
+          organization={organization}
+          onStartupUpdate={setStartup}
+          isReadOnly={!isOwner}
+        />
+      </main>
     </div>
   );
 }

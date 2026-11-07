@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   Rocket,
+  Pencil,
   Settings,
   LogOut,
   ChevronDown,
@@ -24,6 +25,8 @@ interface StartupProfileMenuProps {
   user: any;
   startup: any;
   onStartupUpdate?: (updated: any) => void;
+  onNavigateTab?: (tab: string) => void;
+  onOpenStartupModal?: () => void;
   onLogout: () => void;
 }
 
@@ -31,6 +34,8 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
   user,
   startup,
   onStartupUpdate,
+  onNavigateTab,
+  onOpenStartupModal,
   onLogout,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -221,12 +226,6 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
             {user?.email}
           </p>
         </div>
-
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-            dropdownOpen ? 'rotate-180 text-blue-600' : ''
-          }`}
-        />
       </button>
 
       {/* Dropdown Menu */}
@@ -248,24 +247,18 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
           {/* Menu Items */}
           <div className="py-1">
             <button
+              type="button"
               onClick={() => {
                 setDropdownOpen(false);
-                setActiveModal('profile');
+                if (onOpenStartupModal) {
+                  onOpenStartupModal();
+                } else if (onNavigateTab) {
+                  onNavigateTab('profile');
+                }
               }}
               className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
             >
-              <User className="w-4 h-4 text-slate-400" />
-              <span>My Profile</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setDropdownOpen(false);
-                setActiveModal('startup');
-              }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
-            >
-              <Rocket className="w-4 h-4 text-slate-400" />
+              <Pencil className="w-4 h-4 text-blue-500" />
               <span>Startup Details</span>
             </button>
 
