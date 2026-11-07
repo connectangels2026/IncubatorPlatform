@@ -43,6 +43,13 @@ export default function StartupDashboard() {
   const [profile, setProfile] = useState<StartupProfile | null>(null);
   const [rawStartup, setRawStartup] = useState<any | null>(null);
 
+  const handleOpenProfileSection = (section: string = 'basic') => {
+    setIsStartupModalOpen(true);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('edit-startup-section', { detail: section }));
+    }, 120);
+  };
+
   const handleStartupUpdate = (updated: any) => {
     setRawStartup(updated);
     setProfile((prev) =>
@@ -403,10 +410,15 @@ export default function StartupDashboard() {
             <OverviewTab
               startup={rawStartup}
               onNavigateTab={setActiveTab}
-              onOpenProfile={() => setIsStartupModalOpen(true)}
+              onOpenProfile={(section) => handleOpenProfileSection(section || 'basic')}
             />
           )}
-          {activeTab === 'pitch' && <PitchPrototypeTab />}
+          {activeTab === 'pitch' && (
+            <PitchPrototypeTab
+              startup={rawStartup}
+              onOpenProfile={(section) => handleOpenProfileSection(section || 'documents')}
+            />
+          )}
           {activeTab === 'tech' && (
             <SoftwareHardwareTab
               track={profile.track}

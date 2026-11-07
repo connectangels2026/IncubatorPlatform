@@ -1008,9 +1008,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/super-admin/Sidebar.tsx": {
-    "mtime": 1794060232.3283632,
-    "seen": 1794062156.261032,
-    "ast_hash": "9407cc9071501f434ce29ab0e7972eed",
+    "mtime": 1794064552.0773907,
+    "seen": 1794065470.6658955,
+    "ast_hash": "c112c820adb9d2fb83710cae5fe32eb3",
     "semantic_hash": ""
   },
   "src/frontend/components/table/DataTable.tsx": {
@@ -1938,9 +1938,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/MentorAllocationSection.tsx": {
-    "mtime": 1794060230.7818131,
-    "seen": 1794062156.2585037,
-    "ast_hash": "659854adb9de765d09792a1c0c085575",
+    "mtime": 1794064540.981505,
+    "seen": 1794065470.6605372,
+    "ast_hash": "041bfdc729427f0e2e6df50e7c403b12",
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/TeamInfo.tsx": {
@@ -2196,15 +2196,15 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/OverviewTab.tsx": {
-    "mtime": 1794060224.7048924,
-    "seen": 1794062156.245314,
-    "ast_hash": "a015a46c6352832241ae52a654141f49",
+    "mtime": 1794065462.9423294,
+    "seen": 1794065470.6410873,
+    "ast_hash": "ca208cef52a9d2bac468678010130709",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx": {
-    "mtime": 1794060224.714893,
-    "seen": 1794062156.245314,
-    "ast_hash": "395937b9cc4b3b1a81df988adee65229",
+    "mtime": 1794065463.2562387,
+    "seen": 1794065470.6410873,
+    "ast_hash": "4d224bf73bd289e5b3ed668c56c9f847",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/SoftwareHardwareTab.tsx": {
@@ -2214,9 +2214,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboard.tsx": {
-    "mtime": 1794060226.7770987,
-    "seen": 1794062156.245314,
-    "ast_hash": "0acfed09ee4f7935f76b6c11ec07d66b",
+    "mtime": 1794065463.4292326,
+    "seen": 1794065470.642087,
+    "ast_hash": "0cec60477129dae689dae9d0028c03df",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx": {
@@ -2244,9 +2244,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/StartupProfilePreview.tsx": {
-    "mtime": 1794060231.5256293,
-    "seen": 1794062156.2600172,
-    "ast_hash": "97d93e697fa65457273006d8180f5a74",
+    "mtime": 1794062177.8088522,
+    "seen": 1794065470.663538,
+    "ast_hash": "a4d1b1e521057cdb56405cbe6e9ea94a",
     "semantic_hash": ""
   },
   "src/app/incubator/applications/page.tsx": {

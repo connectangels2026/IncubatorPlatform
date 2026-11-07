@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   Activity,
   Layers,
+  Sparkles,
+  Upload,
 } from 'lucide-react';
 import { DeckRevision } from './types';
 
@@ -68,10 +70,28 @@ const SAMPLE_REVISIONS: DeckRevision[] = [
   },
 ];
 
-export function PitchPrototypeTab() {
+interface PitchPrototypeTabProps {
+  startup?: any;
+  onOpenProfile?: (section?: string) => void;
+}
+
+export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabProps) {
   const [revisions, setRevisions] = useState<DeckRevision[]>(SAMPLE_REVISIONS);
   const [isUploading, setIsUploading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const renderEmptyField = (section: string, addLabel: string = 'Add') => (
+    <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
+      <span>Not added yet</span>
+      <button
+        type="button"
+        onClick={() => onOpenProfile?.(section)}
+        className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+      >
+        + {addLabel}
+      </button>
+    </span>
+  );
 
   const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,6 +115,196 @@ export function PitchPrototypeTab() {
 
   return (
     <div className="space-y-6">
+      {/* Pitch Summary Section (Above the deck) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6">
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-base font-medium text-slate-900">Pitch summary</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenProfile?.('overview')}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+          >
+            Edit
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Problem Statement */}
+          <div>
+            <span className="text-xs text-slate-500 block mb-1">Problem statement</span>
+            {startup?.problem_statement ? (
+              <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                {startup.problem_statement}
+              </p>
+            ) : (
+              renderEmptyField('overview', 'Add problem statement')
+            )}
+          </div>
+
+          {/* Solution Description */}
+          <div className="pt-3 border-t border-slate-100">
+            <span className="text-xs text-slate-500 block mb-1">Solution description</span>
+            {startup?.solution_description ? (
+              <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                {startup.solution_description}
+              </p>
+            ) : (
+              renderEmptyField('overview', 'Add solution description')
+            )}
+          </div>
+
+          {/* Target Market, Business Model, Revenue Model Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
+            <div>
+              <span className="text-xs text-slate-500 block mb-1">Target market</span>
+              {startup?.target_market ? (
+                <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                  {startup.target_market}
+                </p>
+              ) : (
+                renderEmptyField('business', 'Add target market')
+              )}
+            </div>
+
+            <div>
+              <span className="text-xs text-slate-500 block mb-1">Business model</span>
+              {startup?.business_model ? (
+                <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                  {startup.business_model}
+                </p>
+              ) : (
+                renderEmptyField('business', 'Add business model')
+              )}
+            </div>
+
+            <div>
+              <span className="text-xs text-slate-500 block mb-1">Revenue model</span>
+              {startup?.revenue_model ? (
+                <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                  {startup.revenue_model}
+                </p>
+              ) : (
+                renderEmptyField('business', 'Add revenue model')
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Documents Row (Pitch Deck & Business Plan) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Pitch Deck Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${startup?.pitch_deck_url ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs text-slate-500 block">Pitch deck</span>
+              {startup?.pitch_deck_url ? (
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {startup.pitch_deck_url.split('/').pop() || 'Pitch_Deck.pdf'}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 font-normal">Not uploaded</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {startup?.pitch_deck_url ? (
+              <>
+                <a
+                  href={startup.pitch_deck_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 inline-flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View</span>
+                </a>
+                <a
+                  href={startup.pitch_deck_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-medium text-blue-700 inline-flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('documents')}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium inline-flex items-center gap-1 transition shadow-xs cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Business Plan Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${startup?.business_plan_url ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-400'}`}>
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs text-slate-500 block">Business plan</span>
+              {startup?.business_plan_url ? (
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {startup.business_plan_url.split('/').pop() || 'Business_Plan.pdf'}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400 font-normal">Not uploaded</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {startup?.business_plan_url ? (
+              <>
+                <a
+                  href={startup.business_plan_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-medium text-slate-700 inline-flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View</span>
+                </a>
+                <a
+                  href={startup.business_plan_url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-medium text-blue-700 inline-flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('documents')}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium inline-flex items-center gap-1 transition shadow-xs cursor-pointer"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Top Row: Active Pitch Deck + Deck Revision History */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Card: Active Pitch Deck (5 cols) */}

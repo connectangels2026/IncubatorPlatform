@@ -15,6 +15,8 @@ import {
   ExternalLink,
   AlertCircle,
   Upload,
+  Building2,
+  Globe,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 
@@ -131,7 +133,7 @@ const SCHEDULE_EVENTS: ScheduleEventItem[] = [
 interface OverviewTabProps {
   startup?: any;
   onNavigateTab?: (tab: any) => void;
-  onOpenProfile?: () => void;
+  onOpenProfile?: (section?: string) => void;
 }
 
 export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewTabProps) {
@@ -154,6 +156,37 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
   const customerCount = Number(startup?.customer_count || 0);
   const hasPitchDeck = Boolean(startup?.pitch_deck_url);
 
+  // Guard against empty or malformed jsonb
+  const parseTeamList = (raw: any): Array<{ name?: string; fullName?: string; role?: string; avatar?: string }> => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter((item) => item && typeof item === 'object');
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item === 'object') : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const cofounders = parseTeamList(startup?.cofounders);
+  const teamMembers = parseTeamList(startup?.team_members);
+
+  const renderEmptyField = (section: string, addLabel: string = 'Add') => (
+    <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
+      <span>Not added yet</span>
+      <button
+        type="button"
+        onClick={() => onOpenProfile?.(section)}
+        className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+      >
+        + {addLabel}
+      </button>
+    </span>
+  );
+
   return (
     <div className="space-y-6">
       {/* 4 Top KPI Cards Row */}
@@ -162,7 +195,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium text-slate-500">Stage Tracker</span>
+              <span className="text-xs font-medium text-slate-500">Stage tracker</span>
               <Award className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="flex items-center justify-between">
@@ -182,7 +215,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
             </div>
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Funding Raised</span>
+            <span>Funding raised</span>
             <span className="font-semibold text-slate-900 font-mono">
               ${Number(startup?.funding_raised || 0).toLocaleString()}
             </span>
@@ -193,7 +226,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium text-slate-500">Monthly Recurring (MRR)</span>
+              <span className="text-xs font-medium text-slate-500">Monthly recurring (MRR)</span>
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
             <div className="flex items-center justify-between">
@@ -211,7 +244,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
             </div>
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
-            <span>Annual Run Rate (ARR)</span>
+            <span>Annual run rate (ARR)</span>
             <span className="font-semibold text-slate-900 font-mono">
               ${Number(startup?.annual_revenue || (startup?.mrr ? startup.mrr * 12 : 0)).toLocaleString()}
             </span>
@@ -222,7 +255,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium text-slate-500">Milestone Velocity</span>
+              <span className="text-xs font-medium text-slate-500">Milestone velocity</span>
               <CheckCircle2 className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="flex items-center justify-between">
@@ -242,18 +275,18 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
           </div>
         </div>
 
-        {/* Card 4: Pitch Deck Status (Amber warning when not uploaded, green only when success) */}
+        {/* Card 4: Pitch Deck Status */}
         {hasPitchDeck ? (
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-slate-400 mb-2">
-                <span className="text-xs font-medium text-slate-500">Pitch Deck Status</span>
+                <span className="text-xs font-medium text-slate-500">Pitch deck status</span>
                 <FileText className="w-4 h-4 text-indigo-500" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-900">Pitch Deck Linked</h3>
+              <h3 className="text-lg font-semibold text-slate-900">Pitch deck linked</h3>
               <p className="text-xs font-medium text-emerald-700 flex items-center gap-1.5 mt-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Ready for Investor Review</span>
+                <span>Ready for investor review</span>
               </p>
             </div>
             <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
@@ -263,7 +296,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                 rel="noreferrer"
                 className="text-blue-600 hover:text-blue-700 hover:underline font-semibold inline-flex items-center gap-1"
               >
-                <span>View Deck</span>
+                <span>View deck</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
               <span className="font-mono text-slate-700 font-medium">{startup?.team_size || 1} Members</span>
@@ -273,10 +306,10 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
           <div className="bg-amber-50/50 rounded-2xl border border-amber-200 shadow-2xs p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-amber-700 mb-2">
-                <span className="text-xs font-medium text-amber-800">Pitch Deck Status</span>
+                <span className="text-xs font-medium text-amber-800">Pitch deck status</span>
                 <AlertCircle className="w-4 h-4 text-amber-600" />
               </div>
-              <h3 className="text-lg font-semibold text-amber-950">Deck Not Uploaded</h3>
+              <h3 className="text-lg font-semibold text-amber-950">Deck not uploaded</h3>
               <p className="text-xs font-medium text-amber-800 flex items-center gap-1 mt-1">
                 <span>Investor deck required for cohort review</span>
               </p>
@@ -284,7 +317,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
             <div className="pt-3 mt-3 border-t border-amber-200/70 flex items-center justify-between text-xs font-medium text-amber-900">
               <button
                 type="button"
-                onClick={() => (onOpenProfile ? onOpenProfile() : onNavigateTab?.('overview'))}
+                onClick={() => onOpenProfile?.('documents')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
@@ -294,6 +327,184 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
             </div>
           </div>
         )}
+      </div>
+
+      {/* Overview & KPIs: Company Snapshot & Team Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Company Snapshot Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-base font-medium text-slate-900">Company snapshot</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('overview')}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+              >
+                Edit
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Description</span>
+                {startup?.description ? (
+                  <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                    {startup.description}
+                  </p>
+                ) : (
+                  renderEmptyField('overview', 'Add description')
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+                <div>
+                  <span className="text-xs text-slate-500 block mb-1">Founder</span>
+                  {startup?.founder_name ? (
+                    <p className="text-sm font-medium text-slate-900">
+                      {startup.founder_name}
+                    </p>
+                  ) : (
+                    renderEmptyField('team', 'Add founder')
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-xs text-slate-500 block mb-1">Website</span>
+                  {startup?.website ? (
+                    <a
+                      href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5"
+                    >
+                      <Globe className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{startup.website.replace(/^https?:\/\//, '')}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  ) : (
+                    renderEmptyField('basic', 'Add website')
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Team Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-base font-medium text-slate-900">Team</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  {startup?.team_size || (1 + cofounders.length + teamMembers.length)} {Number(startup?.team_size || (1 + cofounders.length + teamMembers.length)) === 1 ? 'member' : 'members'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.('team')}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
+              {/* Founder Row */}
+              {startup?.founder_name ? (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs flex items-center justify-center shrink-0">
+                      {startup.founder_name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {startup.founder_name}
+                      </p>
+                      <p className="text-xs text-slate-500">Lead Founder</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-slate-500 block">Founder</span>
+                    {renderEmptyField('team', 'Add founder')}
+                  </div>
+                </div>
+              )}
+
+              {/* Co-founders */}
+              {cofounders.map((cf, idx) => {
+                const name = cf.name || cf.fullName || `Co-Founder ${idx + 1}`;
+                const role = cf.role || 'Co-Founder';
+                const monogram = name.slice(0, 2).toUpperCase();
+                return (
+                  <div key={`cf-${idx}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {cf.avatar ? (
+                        <img src={cf.avatar} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-xs flex items-center justify-center shrink-0">
+                          {monogram}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{name}</p>
+                        <p className="text-xs text-slate-500">{role}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Team Members */}
+              {teamMembers.map((tm, idx) => {
+                const name = tm.name || tm.fullName || `Member ${idx + 1}`;
+                const role = tm.role || 'Team Member';
+                const monogram = name.slice(0, 2).toUpperCase();
+                return (
+                  <div key={`tm-${idx}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {tm.avatar ? (
+                        <img src={tm.avatar} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0">
+                          {monogram}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{name}</p>
+                        <p className="text-xs text-slate-500">{role}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Empty cofounder/team fallback */}
+              {cofounders.length === 0 && teamMembers.length === 0 && (
+                <div className="pt-2 text-center text-xs text-slate-400">
+                  <span>No additional team members added yet. </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile?.('team')}
+                    className="text-blue-600 hover:underline font-medium cursor-pointer"
+                  >
+                    + Add team
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Grid: Left Roadmap + Right Schedule */}
@@ -363,7 +574,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                     {item.category}
                   </span>
                   <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-3.5 h-3.5" />
                     <span>{item.dueDate}</span>
                   </div>
                 </div>
@@ -448,4 +659,3 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
     </div>
   );
 }
-
