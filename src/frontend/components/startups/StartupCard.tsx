@@ -3,6 +3,7 @@
 import React from "react";
 import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake } from "lucide-react";
 import { StartupItem } from "./types";
+import StartupLogo from "@/frontend/components/ui/StartupLogo";
 
 interface StartupCardProps {
   startup: StartupItem;
@@ -87,9 +88,13 @@ export const StartupCard: React.FC<StartupCardProps> = ({
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center shrink-0 border border-indigo-100/80 shadow-xs">
-              {startup.name.slice(0, 2).toUpperCase()}
-            </div>
+            <StartupLogo
+              name={startup.name}
+              logoUrl={(startup as any).logo_url}
+              logoColor={(startup as any).logo_color}
+              initials={(startup as any).initials}
+              className="w-10 h-10 rounded-lg text-xs shrink-0 border border-slate-200/80 shadow-xs"
+            />
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
                 {startup.name}

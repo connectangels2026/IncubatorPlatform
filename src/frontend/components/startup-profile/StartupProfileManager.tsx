@@ -37,6 +37,7 @@ import {
 import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
 import { apiClient } from '@/services/apiClient';
+import StartupLogo, { LOGO_SWATCH_COLORS, getDerivedColor, getDerivedInitials } from '@/frontend/components/ui/StartupLogo';
 
 interface StartupProfileManagerProps {
   initialStartup: any;
@@ -55,6 +56,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
   const [activeEditingSection, setActiveEditingSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<any>(initialStartup || {});
   const [isSaving, setIsSaving] = useState(false);
+  const [logoMode, setLogoMode] = useState<'upload' | 'generate'>('upload');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -72,6 +74,9 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
   const handleStartEdit = (section: string) => {
     if (isReadOnly) return;
     setFormData({ ...startup });
+    if (section === 'basic') {
+      setLogoMode(startup?.logo_url ? 'upload' : (startup?.logo_color || startup?.initials ? 'generate' : 'upload'));
+    }
     setActiveEditingSection(section);
   };
 
@@ -97,6 +102,8 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         payload.startup_name = formData.startup_name || formData.name;
         payload.tagline = formData.tagline;
         payload.logo_url = formData.logo_url;
+        payload.logo_color = formData.logo_color || null;
+        payload.initials = formData.initials || null;
         payload.website = formData.website;
         payload.sector = formData.sector;
         payload.stage = formData.stage;
@@ -434,12 +441,115 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   placeholder="e.g. Next-generation AI copilot for hardware lab engineering"
                 />
               </div>
-              <div className="sm:col-span-2">
-                <LogoImageUploader
-                  value={formData.logo_url || ''}
-                  onChange={(url) => handleFieldChange('logo_url', url)}
-                  maxImages={3}
-                />
+              <div className="sm:col-span-2 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-medium text-slate-700">Startup logo</label>
+                  {/* Upload | Generate toggle */}
+                  <div className="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setLogoMode('upload')}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+                        logoMode === 'upload'
+                          ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogoMode('generate')}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+                        logoMode === 'generate'
+                          ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      Generate
+                    </button>
+                  </div>
+                </div>
+
+                {logoMode === 'upload' ? (
+                  <LogoImageUploader
+                    value={formData.logo_url || ''}
+                    onChange={(url) => handleFieldChange('logo_url', url)}
+                    maxImages={3}
+                  />
+                ) : (
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-5">
+                      {/* Live 64px rounded-xl preview */}
+                      <div className="flex flex-col items-center gap-1.5 shrink-0">
+                        <StartupLogo
+                          name={formData.startup_name || formData.name || displayName}
+                          logoUrl={null}
+                          logoColor={formData.logo_color}
+                          initials={formData.initials}
+                          className="w-16 h-16 rounded-xl text-lg font-bold shadow-xs border border-white/20"
+                        />
+                        <span className="text-[11px] text-slate-400 font-medium">64px preview</span>
+                      </div>
+
+                      {/* Controls: Initials Input + Swatches */}
+                      <div className="flex-1 w-full space-y-3">
+                        <div>
+                          <label className="block text-xs text-slate-500 mb-1">Initials (max 2 letters)</label>
+                          <input
+                            type="text"
+                            maxLength={2}
+                            value={formData.initials ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value.toUpperCase();
+                              handleFieldChange('initials', val);
+                            }}
+                            placeholder={getDerivedInitials(formData.startup_name || formData.name || displayName)}
+                            className="w-24 px-3 py-1.5 text-xs font-semibold uppercase rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-slate-500 mb-1.5">Background color</label>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {LOGO_SWATCH_COLORS.map((hex) => {
+                              const activeColor = formData.logo_color || getDerivedColor(formData.startup_name || formData.name || displayName);
+                              const isSelected = activeColor.toLowerCase() === hex.toLowerCase();
+                              return (
+                                <button
+                                  key={hex}
+                                  type="button"
+                                  onClick={() => handleFieldChange('logo_color', hex)}
+                                  style={{ backgroundColor: hex }}
+                                  className={`w-7 h-7 rounded-full transition-transform cursor-pointer focus:outline-none ${
+                                    isSelected
+                                      ? 'ring-2 ring-offset-2 ring-slate-800 scale-110 shadow-xs'
+                                      : 'hover:scale-105'
+                                  }`}
+                                  title={hex}
+                                  aria-label={hex}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {formData.logo_url && (
+                      <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-200/70 flex items-center justify-between text-xs text-blue-900">
+                        <span>An uploaded image exists. Uploading an image takes priority over the generated logo.</span>
+                        <button
+                          type="button"
+                          onClick={() => handleFieldChange('logo_url', '')}
+                          className="text-xs font-semibold text-rose-600 hover:underline cursor-pointer shrink-0 ml-2"
+                        >
+                          Clear image
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -466,18 +576,18 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             {/* First Row: Active Logo, Startup Name, Industry Sector */}
             <div>
               <span className="text-xs text-slate-500 font-normal block">Active logo</span>
-              {startup?.logo_url ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <img
-                    src={startup.logo_url}
-                    alt={displayName}
-                    className="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200"
-                  />
-                  <span className="font-medium text-emerald-700 text-xs">Uploaded & active</span>
-                </div>
-              ) : (
-                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
-              )}
+              <div className="flex items-center gap-2.5 mt-1">
+                <StartupLogo
+                  name={displayName}
+                  logoUrl={startup?.logo_url}
+                  logoColor={startup?.logo_color}
+                  initials={startup?.initials}
+                  className="w-8 h-8 rounded-lg text-xs border border-slate-200/80"
+                />
+                <span className="font-medium text-slate-700 text-xs">
+                  {startup?.logo_url ? 'Uploaded logo' : 'Generated logo'}
+                </span>
+              </div>
             </div>
             <div>
               <span className="text-xs text-slate-500 font-normal block">Startup name</span>

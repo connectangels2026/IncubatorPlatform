@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { DashboardTab, StartupProfile } from './types';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface HeaderProps {
   profile: StartupProfile;
@@ -64,9 +65,13 @@ export function StartupDashboardHeader({
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Startup Brand & Identity */}
         <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200/70 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
-            <Sparkles className="w-6 h-6 text-indigo-600" />
-          </div>
+          <StartupLogo
+            name={profile.name}
+            logoUrl={profile.logo_url}
+            logoColor={profile.logo_color}
+            initials={profile.initials}
+            className="w-12 h-12 rounded-xl text-sm shadow-2xs border border-slate-200/80"
+          />
 
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">

@@ -68,6 +68,8 @@ export interface StartupItem {
   founder_id?: string;
   website?: string;
   logo_url?: string;
+  logo_color?: string;
+  initials?: string;
   sector: string;
   industry?: string;
   stage: 'Idea' | 'MVP' | 'Revenue' | 'Growth' | 'Pre-revenue' | 'Scale' | string;

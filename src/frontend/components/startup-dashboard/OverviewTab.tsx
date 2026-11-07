@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Award,
   Users,
@@ -130,6 +130,33 @@ const SCHEDULE_EVENTS: ScheduleEventItem[] = [
   },
 ];
 
+const STAGE_PROGRESS_MAP: Record<string, number> = {
+  idea: 17,
+  mvp: 33,
+  'pre-revenue': 50,
+  revenue: 67,
+  growth: 83,
+  scale: 100,
+};
+
+function getStageProgress(stage?: string): number {
+  if (!stage) return 33;
+  const key = stage.toLowerCase().trim().replace(/\s+/g, '-');
+  return STAGE_PROGRESS_MAP[key] ?? 33;
+}
+
+function getDomainOnly(url?: string): string {
+  if (!url) return '';
+  return url.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0];
+}
+
+interface MergedMember {
+  name: string;
+  role: string;
+  email?: string;
+  avatar?: string;
+}
+
 interface OverviewTabProps {
   startup?: any;
   onNavigateTab?: (tab: any) => void;
@@ -156,8 +183,8 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
   const customerCount = Number(startup?.customer_count || 0);
   const hasPitchDeck = Boolean(startup?.pitch_deck_url);
 
-  // Guard against empty or malformed jsonb
-  const parseTeamList = (raw: any): Array<{ name?: string; fullName?: string; role?: string; avatar?: string }> => {
+  // Safe parsing for team JSONB
+  const parseTeamList = (raw: any): Array<{ name?: string; fullName?: string; role?: string; avatar?: string; email?: string }> => {
     if (!raw) return [];
     if (Array.isArray(raw)) return raw.filter((item) => item && typeof item === 'object');
     if (typeof raw === 'string') {
@@ -171,8 +198,50 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
     return [];
   };
 
-  const cofounders = parseTeamList(startup?.cofounders);
-  const teamMembers = parseTeamList(startup?.team_members);
+  // Merged founder_name, cofounders[], and team_members[] deduped by email (or name)
+  const mergedTeam: MergedMember[] = useMemo(() => {
+    const list: MergedMember[] = [];
+    const seen = new Set<string>();
+
+    const addMember = (name?: string, role?: string, email?: string, avatar?: string) => {
+      const cleanName = (name || '').trim();
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (!cleanName && !cleanEmail) return;
+
+      const key = cleanEmail || cleanName.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      list.push({
+        name: cleanName || cleanEmail,
+        role: role || 'Team member',
+        email: cleanEmail || undefined,
+        avatar: avatar || undefined,
+      });
+    };
+
+    // 1. Primary Founder
+    if (startup?.founder_name || startup?.founder_email) {
+      addMember(startup.founder_name, 'Founder', startup.founder_email, startup.founder_avatar);
+    }
+
+    // 2. Co-founders
+    const cofounders = parseTeamList(startup?.cofounders);
+    for (const cf of cofounders) {
+      addMember(cf.name || cf.fullName, cf.role || 'Co-founder', cf.email, cf.avatar);
+    }
+
+    // 3. Team members
+    const teamMembers = parseTeamList(startup?.team_members);
+    for (const tm of teamMembers) {
+      addMember(tm.name || tm.fullName, tm.role || 'Team member', tm.email, tm.avatar);
+    }
+
+    return list;
+  }, [startup]);
+
+  const teamCount = mergedTeam.length > 0 ? mergedTeam.length : Number(startup?.team_size || 1);
+  const computedStageProgress = getStageProgress(startup?.stage);
 
   const renderEmptyField = (section: string, addLabel: string = 'Add') => (
     <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
@@ -201,16 +270,18 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">{startup?.stage || 'Validation Phase'}</h3>
               <span className="text-xs font-semibold text-blue-600">
-                {typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70}%
+                {computedStageProgress}%
               </span>
             </div>
-            <p className="text-xs font-medium text-indigo-600 flex items-center gap-1 mt-1">
-              <span>{startup?.sector || 'Technology Sector'}</span>
-            </p>
+            {startup?.sector ? (
+              <p className="text-xs text-slate-500 mt-1">
+                Sector: <span className="font-medium text-slate-700">{startup.sector}</span>
+              </p>
+            ) : null}
             <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
-                style={{ width: `${Math.min(100, Math.max(0, typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70))}%` }}
+                style={{ width: `${computedStageProgress}%` }}
               />
             </div>
           </div>
@@ -299,7 +370,7 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                 <span>View deck</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
-              <span className="font-mono text-slate-700 font-medium">{startup?.team_size || 1} Members</span>
+              <span className="font-normal text-slate-600">{teamCount} {teamCount === 1 ? 'member' : 'members'}</span>
             </div>
           </div>
         ) : (
@@ -323,205 +394,148 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                 <Upload className="w-3.5 h-3.5" />
                 <span>Upload</span>
               </button>
-              <span className="font-mono text-amber-800/80 font-medium">{startup?.team_size || 1} Members</span>
+              <span className="font-normal text-slate-600">{teamCount} {teamCount === 1 ? 'member' : 'members'}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Overview & KPIs: Company Snapshot & Team Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Overview & KPIs: Company Snapshot & Team Cards (aligned to top, no stretched empty space) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Company Snapshot Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-base font-medium text-slate-900">Company snapshot</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => onOpenProfile?.('overview')}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-              >
-                Edit
-              </button>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6">
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-base font-medium text-slate-900">Company snapshot</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.('overview')}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+            >
+              Edit
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-xs text-slate-500 block mb-1">Description</span>
+              {startup?.description ? (
+                <p className="text-sm text-slate-800 leading-relaxed font-normal">
+                  {startup.description}
+                </p>
+              ) : (
+                renderEmptyField('overview', 'Add description')
+              )}
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
               <div>
-                <span className="text-xs text-slate-500 block mb-1">Description</span>
-                {startup?.description ? (
-                  <p className="text-sm text-slate-800 leading-relaxed font-normal">
-                    {startup.description}
+                <span className="text-xs text-slate-500 block mb-1">Founder</span>
+                {startup?.founder_name ? (
+                  <p className="text-sm font-medium text-slate-900">
+                    {startup.founder_name}
                   </p>
                 ) : (
-                  renderEmptyField('overview', 'Add description')
+                  renderEmptyField('team', 'Add founder')
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-                <div>
-                  <span className="text-xs text-slate-500 block mb-1">Founder</span>
-                  {startup?.founder_name ? (
-                    <p className="text-sm font-medium text-slate-900">
-                      {startup.founder_name}
-                    </p>
-                  ) : (
-                    renderEmptyField('team', 'Add founder')
-                  )}
-                </div>
-
-                <div>
-                  <span className="text-xs text-slate-500 block mb-1">Website</span>
-                  {startup?.website ? (
-                    <a
-                      href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5"
-                    >
-                      <Globe className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{startup.website.replace(/^https?:\/\//, '')}</span>
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                    </a>
-                  ) : (
-                    renderEmptyField('basic', 'Add website')
-                  )}
-                </div>
+              <div>
+                <span className="text-xs text-slate-500 block mb-1">Website</span>
+                {startup?.website ? (
+                  <a
+                    href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5 truncate max-w-[220px]"
+                    title={startup.website}
+                  >
+                    <Globe className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+                    <span className="truncate">{getDomainOnly(startup.website)}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                ) : (
+                  renderEmptyField('basic', 'Add website')
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Team Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-base font-medium text-slate-900">Team</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                  {startup?.team_size || (1 + cofounders.length + teamMembers.length)} {Number(startup?.team_size || (1 + cofounders.length + teamMembers.length)) === 1 ? 'member' : 'members'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile?.('team')}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-                >
-                  Edit
-                </button>
-              </div>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6">
+          <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-600" />
+              <h3 className="text-base font-medium text-slate-900">Team</h3>
             </div>
-
-            <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
-              {/* Founder Row */}
-              {startup?.founder_name ? (
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs flex items-center justify-center shrink-0">
-                      {startup.founder_name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {startup.founder_name}
-                      </p>
-                      <p className="text-xs text-slate-500">Lead Founder</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-slate-500 block">Founder</span>
-                    {renderEmptyField('team', 'Add founder')}
-                  </div>
-                </div>
-              )}
-
-              {/* Co-founders */}
-              {cofounders.map((cf, idx) => {
-                const name = cf.name || cf.fullName || `Co-Founder ${idx + 1}`;
-                const role = cf.role || 'Co-Founder';
-                const monogram = name.slice(0, 2).toUpperCase();
-                return (
-                  <div key={`cf-${idx}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {cf.avatar ? (
-                        <img src={cf.avatar} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-xs flex items-center justify-center shrink-0">
-                          {monogram}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">{name}</p>
-                        <p className="text-xs text-slate-500">{role}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Team Members */}
-              {teamMembers.map((tm, idx) => {
-                const name = tm.name || tm.fullName || `Member ${idx + 1}`;
-                const role = tm.role || 'Team Member';
-                const monogram = name.slice(0, 2).toUpperCase();
-                return (
-                  <div key={`tm-${idx}`} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {tm.avatar ? (
-                        <img src={tm.avatar} alt={name} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0">
-                          {monogram}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">{name}</p>
-                        <p className="text-xs text-slate-500">{role}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Empty cofounder/team fallback */}
-              {cofounders.length === 0 && teamMembers.length === 0 && (
-                <div className="pt-2 text-center text-xs text-slate-400">
-                  <span>No additional team members added yet. </span>
-                  <button
-                    type="button"
-                    onClick={() => onOpenProfile?.('team')}
-                    className="text-blue-600 hover:underline font-medium cursor-pointer"
-                  >
-                    + Add team
-                  </button>
-                </div>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 shrink-0 whitespace-nowrap">
+                {mergedTeam.length} {mergedTeam.length === 1 ? 'member' : 'members'}
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('team')}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+              >
+                Edit
+              </button>
             </div>
           </div>
+
+          {/* Plain rows with dividers, no nested cards */}
+          {mergedTeam.length > 0 ? (
+            <div className="divide-y divide-slate-100 max-h-[260px] overflow-y-auto pr-1">
+              {mergedTeam.map((member, idx) => (
+                <div key={idx} className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {member.avatar ? (
+                      <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-medium text-xs flex items-center justify-center shrink-0 border border-slate-200">
+                        {member.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
+                      <p className="text-xs text-slate-500">{member.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-4 text-center text-xs text-slate-400">
+              <span>No team members added yet. </span>
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('team')}
+                className="text-blue-600 hover:underline font-medium cursor-pointer"
+              >
+                + Add team
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main Grid: Left Roadmap + Right Schedule */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (Roadmap): 8 cols */}
         <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100 gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-base font-black text-[#1A2151]">Incubator Milestone Roadmap</h2>
+                <h2 className="text-base font-medium text-slate-900">Incubator milestone roadmap</h2>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 font-normal mt-0.5">
                 Toggle checkboxes to update cohort progress dynamically
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200/70">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/70 shrink-0 whitespace-nowrap">
               Progress: {completedCount}/{totalCount}
             </span>
           </div>
@@ -586,13 +600,13 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
         {/* Right Column (Upcoming Schedule): 4 cols */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 gap-2">
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-indigo-600" />
-                <h2 className="text-base font-black text-[#1A2151]">Upcoming Schedule</h2>
+                <h2 className="text-base font-medium text-slate-900">Upcoming schedule</h2>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 text-indigo-700">
-                {SCHEDULE_EVENTS.length} Events
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 shrink-0 whitespace-nowrap">
+                {SCHEDULE_EVENTS.length} events
               </span>
             </div>
 

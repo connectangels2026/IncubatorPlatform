@@ -21,6 +21,7 @@ import { TeamContactSection } from './profile/TeamContactSection';
 import { NetworkTabSection } from './profile/NetworkTabSection';
 import { ActivityTabSection } from './profile/ActivityTabSection';
 import { RequestChangeModal } from './profile/RequestChangeModal';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 import { apiClient } from '@/services/apiClient';
 
 interface StartupDetailModalProps {
@@ -307,9 +308,13 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
         {/* 1. Unified Drawer Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
           <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-2xs shrink-0">
-              {activeStartup.monogram || displayName.slice(0, 2).toUpperCase()}
-            </div>
+            <StartupLogo
+              name={displayName}
+              logoUrl={activeStartup.logo_url}
+              logoColor={activeStartup.logo_color}
+              initials={activeStartup.initials}
+              className="w-10 h-10 rounded-xl text-sm shrink-0 border border-slate-200/80 shadow-2xs"
+            />
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900 tracking-tight truncate">

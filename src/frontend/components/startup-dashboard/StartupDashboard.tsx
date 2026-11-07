@@ -56,9 +56,12 @@ export default function StartupDashboard() {
       prev
         ? {
           ...prev,
-          name: updated.name || prev.name,
-          tagline: updated.description || updated.solution_description || prev.tagline,
+          name: updated.startup_name || updated.name || prev.name,
+          tagline: updated.tagline || updated.description || updated.solution_description || prev.tagline,
           stage: updated.stage || prev.stage,
+          logo_url: updated.logo_url !== undefined ? updated.logo_url : prev.logo_url,
+          logo_color: updated.logo_color !== undefined ? updated.logo_color : prev.logo_color,
+          initials: updated.initials !== undefined ? updated.initials : prev.initials,
         }
         : null
     );
@@ -112,6 +115,9 @@ export default function StartupDashboard() {
           stageProgress: typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70,
           track: resolvedTrack as any,
           incubatorName: org?.name || app?.incubator_name_text || 'Incubator Hub',
+          logo_url: startup?.logo_url || null,
+          logo_color: startup?.logo_color || null,
+          initials: startup?.initials || null,
         });
       } catch (err) {
         console.warn('Startup data fetch error:', err);
@@ -356,7 +362,7 @@ export default function StartupDashboard() {
             <TrendingUp className="w-4 h-4" />
             <span>Overview &amp; KPIs</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${activeTab === 'overview'
+              className={`px-1.5 py-0.5 rounded-full text-xs font-semibold shrink-0 whitespace-nowrap ${activeTab === 'overview'
                 ? 'bg-blue-50 text-blue-700'
                 : 'bg-slate-100 text-slate-500'
                 }`}

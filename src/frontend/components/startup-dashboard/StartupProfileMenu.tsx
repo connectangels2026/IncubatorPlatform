@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface StartupProfileMenuProps {
   user: any;
@@ -250,9 +251,13 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
         title={user?.email || 'Account'}
       >
         <div className="relative">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1A2151] to-blue-600 flex items-center justify-center text-white text-xs font-semibold shadow-xs ring-2 ring-white">
-            {userInitial}
-          </div>
+          <StartupLogo
+            name={startup?.startup_name || startup?.name || ''}
+            logoUrl={startup?.logo_url}
+            logoColor={startup?.logo_color}
+            initials={startup?.initials}
+            className="w-9 h-9 rounded-full text-xs shadow-xs ring-2 ring-white"
+          />
         </div>
       </button>
 

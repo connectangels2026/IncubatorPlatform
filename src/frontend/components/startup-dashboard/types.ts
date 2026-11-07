@@ -9,6 +9,9 @@ export interface StartupProfile {
   stageProgress: number; // e.g. 70
   track: 'hardware' | 'software' | 'both';
   incubatorName: string;
+  logo_url?: string | null;
+  logo_color?: string | null;
+  initials?: string | null;
 }
 
 export interface MilestoneItem {

@@ -18,6 +18,8 @@ export interface Startup {
   mrr?: number;
   customer_count?: number;
   logo_url?: string;
+  logo_color?: string;
+  initials?: string;
   website?: string;
   description?: string;
   problem_statement?: string;

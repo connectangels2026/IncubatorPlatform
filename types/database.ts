@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -907,6 +907,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           logo_url: string | null
+          logo_color: string | null
+          initials: string | null
           max_mentors_allowed: number | null
           max_startups_allowed: number | null
           name: string
@@ -937,6 +939,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
+          logo_color?: string | null
+          initials?: string | null
           max_mentors_allowed?: number | null
           max_startups_allowed?: number | null
           name: string
@@ -967,6 +971,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           logo_url?: string | null
+          logo_color?: string | null
+          initials?: string | null
           max_mentors_allowed?: number | null
           max_startups_allowed?: number | null
           name?: string
@@ -1222,6 +1228,8 @@ export type Database = {
           is_active: boolean | null
           lifecycle_stage: string | null
           logo_url: string | null
+          logo_color: string | null
+          initials: string | null
           monthly_revenue: number | null
           mrr: number | null
           name: string
@@ -1265,6 +1273,8 @@ export type Database = {
           is_active?: boolean | null
           lifecycle_stage?: string | null
           logo_url?: string | null
+          logo_color?: string | null
+          initials?: string | null
           monthly_revenue?: number | null
           mrr?: number | null
           name: string
@@ -1308,6 +1318,8 @@ export type Database = {
           is_active?: boolean | null
           lifecycle_stage?: string | null
           logo_url?: string | null
+          logo_color?: string | null
+          initials?: string | null
           monthly_revenue?: number | null
           mrr?: number | null
           name?: string

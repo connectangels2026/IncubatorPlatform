@@ -16,6 +16,7 @@ import {
   Award,
 } from 'lucide-react';
 import { StartupProfileManager } from '../startup-profile/StartupProfileManager';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface StartupDetailModalProps {
   isOpen: boolean;
@@ -98,17 +99,13 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
         {/* Sticky Header: Logo, Name, one-line description, Stage + Batch chips, Edit Details primary */}
         <div className="sticky top-0 z-20 px-6 py-3.5 bg-white border-b border-slate-200 flex items-center justify-between shrink-0 shadow-2xs">
           <div className="flex items-center gap-3 min-w-0">
-            {startup.logo_url ? (
-              <img
-                src={startup.logo_url}
-                alt={displayName}
-                className="w-9 h-9 rounded-lg object-contain bg-slate-50 border border-slate-200 shrink-0"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1A2151] to-blue-600 text-white font-semibold flex items-center justify-center text-xs shrink-0">
-                {monogram}
-              </div>
-            )}
+            <StartupLogo
+              name={displayName}
+              logoUrl={startup.logo_url}
+              logoColor={startup.logo_color}
+              initials={startup.initials}
+              className="w-9 h-9 rounded-lg text-xs shrink-0 border border-slate-200/80"
+            />
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

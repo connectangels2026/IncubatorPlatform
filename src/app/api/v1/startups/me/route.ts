@@ -165,6 +165,8 @@ export async function PUT(req: NextRequest) {
     if (body.startup_name !== undefined) updatePayload.startup_name = body.startup_name;
     else if (body.name !== undefined) updatePayload.startup_name = body.name;
     if (body.logo_url !== undefined) updatePayload.logo_url = body.logo_url;
+    if (body.logo_color !== undefined) updatePayload.logo_color = body.logo_color;
+    if (body.initials !== undefined) updatePayload.initials = body.initials;
     if (body.website !== undefined) updatePayload.website = body.website;
     if (body.sector !== undefined) updatePayload.sector = body.sector;
     if (body.stage !== undefined) updatePayload.stage = body.stage;
@@ -217,12 +219,36 @@ export async function PUT(req: NextRequest) {
     if (body.tech_stack !== undefined) updatePayload.tech_stack = Array.isArray(body.tech_stack) ? body.tech_stack : [];
 
     // 3. Persist update in startups table
-    const { data: updatedStartup, error: updateErr } = await supabaseAdmin
+    let { data: updatedStartup, error: updateErr } = await supabaseAdmin
       .from('startups')
       .update(updatePayload)
       .eq('id', startup.id)
       .select()
       .single();
+
+    // If update failed because logo_color or initials columns do not exist in schema cache
+    if (updateErr && (updateErr.message?.includes('initials') || updateErr.message?.includes('logo_color'))) {
+      const fallbackPayload = { ...updatePayload };
+      delete fallbackPayload.logo_color;
+      delete fallbackPayload.initials;
+
+      // Automatically store generated logo as an SVG into existing logo_url
+      if (!fallbackPayload.logo_url && (body.logo_color || body.initials)) {
+        const bg = body.logo_color || '#4F46E5';
+        const init = (body.initials || 'ST').slice(0, 2).toUpperCase();
+        fallbackPayload.logo_url = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${encodeURIComponent(bg)}"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="%23ffffff" font-family="sans-serif" font-weight="700" font-size="24">${encodeURIComponent(init)}</text></svg>`;
+      }
+
+      const retryRes = await supabaseAdmin
+        .from('startups')
+        .update(fallbackPayload)
+        .eq('id', startup.id)
+        .select()
+        .single();
+
+      updatedStartup = retryRes.data;
+      updateErr = retryRes.error;
+    }
 
     if (updateErr) {
       return NextResponse.json({ success: false, error: updateErr.message }, { status: 400 });
