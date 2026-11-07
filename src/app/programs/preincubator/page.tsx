@@ -666,7 +666,7 @@ export default function PreIncubatorApplicationPage() {
           <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 sticky top-24">
             <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-xl max-h-[calc(100vh-120px)] flex flex-col">
               <div className="mb-4 pb-3 border-b border-slate-200/80 flex items-center justify-between">
-                <h3 className="text-xs uppercase tracking-wider font-extrabold text-slate-400">
+                <h3 className="text-xs font-medium text-slate-500">
                   Application Steps
                 </h3>
                 <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
@@ -735,7 +735,7 @@ export default function PreIncubatorApplicationPage() {
                 {/* Step Header Title & Subtitle */}
                 <div className="mb-8 pb-5 border-b border-slate-200/80">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
+                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 border border-blue-200">
                       Section {currentStep} of 14
                     </span>
                     {validationErrors.length > 0 && (
@@ -759,7 +759,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       {/* Target Incubator Name Input */}
                       <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-50/80 via-slate-50 to-cyan-50/60 border border-blue-200/80 space-y-2">
-                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center justify-between">
+                        <label className="block text-xs font-medium text-slate-700 flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
                             Incubator Name *
@@ -782,7 +782,7 @@ export default function PreIncubatorApplicationPage() {
 
                       {/* Startup / Venture Name Input */}
                       <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
+                        <label className="block text-xs font-medium text-slate-700 flex items-center justify-between">
                           <span className="flex items-center gap-2">
                             <Rocket className="w-4 h-4 text-blue-600" />
                             Startup / Venture Name *
@@ -806,7 +806,7 @@ export default function PreIncubatorApplicationPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <label className="block text-xs font-medium text-slate-700">
                               Full Name *
                             </label>
                             {formData.fullName && (
@@ -826,7 +826,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                            <label className="block text-xs font-medium text-slate-700">
                               Email Address *
                             </label>
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
@@ -856,7 +856,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Phone Number *
                           </label>
                           <input
@@ -868,7 +868,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Operating Location *
                           </label>
                           <input
@@ -883,7 +883,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Professional Status *
                           </label>
                           <select
@@ -905,7 +905,7 @@ export default function PreIncubatorApplicationPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Years of Experience *
                           </label>
                           <input
@@ -923,7 +923,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Previous Entrepreneurial History
                         </label>
                         <textarea
@@ -938,7 +938,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
+                        <label className="block text-xs font-medium text-slate-700 mb-3">
                           Primary Reasons for Joining Arba360
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -975,7 +975,7 @@ export default function PreIncubatorApplicationPage() {
                   {currentStep === 2 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
+                        <label className="block text-xs font-medium text-slate-700 mb-3">
                           Current Business Stage *
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1015,7 +1015,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Project/Company Start Date *
                           </label>
                           <input
@@ -1028,7 +1028,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Legal Registration Status *
                           </label>
                           <select
@@ -1050,7 +1050,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Primary Industry / Vertical *
                         </label>
                         <input
@@ -1070,7 +1070,7 @@ export default function PreIncubatorApplicationPage() {
                   {currentStep === 3 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           One-Sentence Pitch *
                         </label>
                         <input
@@ -1085,7 +1085,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Detailed Problem Statement *
                         </label>
                         <textarea
@@ -1101,7 +1101,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Target Audience Suffering Most *
                           </label>
                           <input
@@ -1115,7 +1115,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Why Existing Alternatives Fail *
                           </label>
                           <input
@@ -1131,7 +1131,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Problem Validation Evidence *
                         </label>
                         <textarea
@@ -1151,7 +1151,7 @@ export default function PreIncubatorApplicationPage() {
                   {currentStep === 4 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Solution Overview *
                         </label>
                         <textarea
@@ -1167,7 +1167,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Key Differentiator *
                           </label>
                           <input
@@ -1181,7 +1181,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Unfair Competitive Advantage
                           </label>
                           <input
@@ -1197,7 +1197,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Prototype / Demo / Deck Link (Optional)
                         </label>
                         <div className="relative">
@@ -1221,7 +1221,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Ideal Customer Persona *
                           </label>
                           <textarea
@@ -1235,7 +1235,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Paying Customer Profile *
                           </label>
                           <textarea
@@ -1251,7 +1251,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Estimated Market Size (TAM / SAM / SOM) *
                         </label>
                         <input
@@ -1264,7 +1264,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Primary Target Geography *
                         </label>
                         <input
@@ -1285,7 +1285,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Total Active Users / Beta Testers *
                           </label>
                           <input
@@ -1300,7 +1300,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Paying Customers Count *
                           </label>
                           <input
@@ -1318,7 +1318,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Past 12 Months Revenue (USD/INR) *
                           </label>
                           <input
@@ -1332,7 +1332,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Monthly Growth Rate (%) *
                           </label>
                           <input
@@ -1348,7 +1348,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Primary Customer Acquisition Channels *
                         </label>
                         <input
@@ -1372,7 +1372,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Business / Revenue Model *
                           </label>
                           <select
@@ -1396,7 +1396,7 @@ export default function PreIncubatorApplicationPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Estimated Gross Margins (%) *
                           </label>
                           <input
@@ -1413,7 +1413,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Monthly Burn Rate *
                           </label>
                           <input
@@ -1427,7 +1427,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Runway Months Remaining *
                           </label>
                           <input
@@ -1443,7 +1443,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Biggest Financial Bottleneck Right Now *
                         </label>
                         <input
@@ -1464,7 +1464,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Hours Dedicated Per Week *
                           </label>
                           <input
@@ -1480,7 +1480,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Full-Time Commitment Status *
                           </label>
                           <select
@@ -1505,7 +1505,7 @@ export default function PreIncubatorApplicationPage() {
                       {/* Slider for Uncertainty */}
                       <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                          <label className="text-xs font-medium text-slate-700">
                             Comfort with High Uncertainty & Ambiguity *
                           </label>
                           <span className="text-base font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
@@ -1533,7 +1533,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Openness to Critical Feedback & Pivoting *
                         </label>
                         <textarea
@@ -1554,7 +1554,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Team Structure *
                           </label>
                           <select
@@ -1570,7 +1570,7 @@ export default function PreIncubatorApplicationPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Number of Co-Founders *
                           </label>
                           <input
@@ -1588,7 +1588,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Missing Key Skills on Team *
                         </label>
                         <input
@@ -1603,7 +1603,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
+                        <label className="block text-xs font-medium text-slate-700 mb-3">
                           Are you currently seeking a Co-Founder? *
                         </label>
                         <div className="flex gap-4">
@@ -1637,7 +1637,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Personal Capital Invested To-Date *
                           </label>
                           <input
@@ -1651,7 +1651,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             External Capital Raised (Grants, Angels) *
                           </label>
                           <input
@@ -1668,7 +1668,7 @@ export default function PreIncubatorApplicationPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Target Funding Seeking *
                           </label>
                           <input
@@ -1682,7 +1682,7 @@ export default function PreIncubatorApplicationPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                          <label className="block text-xs font-medium text-slate-700 mb-2">
                             Primary Use of Funds *
                           </label>
                           <input
@@ -1703,7 +1703,7 @@ export default function PreIncubatorApplicationPage() {
                   {currentStep === 11 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Top 3 Goals for the Pre-Incubation Program *
                         </label>
                         <textarea
@@ -1718,7 +1718,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
+                        <label className="block text-xs font-medium text-slate-700 mb-3">
                           Support Areas Needed (Select all that apply)
                         </label>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1742,7 +1742,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Single Key 90-Day Success Metric *
                         </label>
                         <input
@@ -1763,7 +1763,7 @@ export default function PreIncubatorApplicationPage() {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                          <label className="text-xs font-medium text-slate-700">
                             Accountability & Extreme Ownership Rating *
                           </label>
                           <span className="text-base font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
@@ -1786,7 +1786,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Execution vs Ideation Focus *
                         </label>
                         <textarea
@@ -1801,7 +1801,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Handling Severe Pushback or Rejection *
                         </label>
                         <textarea
@@ -1821,7 +1821,7 @@ export default function PreIncubatorApplicationPage() {
                   {currentStep === 13 && (
                     <div className="space-y-6 animate-in fade-in duration-300">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Biggest Unproven Assumption *
                         </label>
                         <textarea
@@ -1839,7 +1839,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Biggest Mistake Made So Far *
                         </label>
                         <textarea
@@ -1854,7 +1854,7 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                        <label className="block text-xs font-medium text-slate-700 mb-2">
                           Hard Truth You Are Actively Avoiding *
                         </label>
                         <textarea
@@ -1896,7 +1896,7 @@ export default function PreIncubatorApplicationPage() {
                       {/* Target Incubator Review Card */}
                       <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-cyan-50/60 border border-blue-200">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-extrabold uppercase text-blue-800 tracking-wider flex items-center gap-1.5">
+                          <span className="text-[10px] font-medium text-blue-800 flex items-center gap-1.5">
                             <Building2 className="w-3.5 h-3.5 text-blue-600" />
                             Target Incubator
                           </span>
@@ -1921,7 +1921,7 @@ export default function PreIncubatorApplicationPage() {
                       {/* Summary Cards Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
+                          <span className="text-xs text-slate-500">
                             Startup & Founder
                           </span>
                           <p className="text-sm font-extrabold text-[#1A2151] mt-1">
@@ -1934,7 +1934,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
 
                         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
+                          <span className="text-xs text-slate-500">
                             Pitch & Vertical
                           </span>
                           <p className="text-xs font-semibold text-slate-800 mt-1 line-clamp-2">
@@ -1946,7 +1946,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
 
                         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
+                          <span className="text-xs text-slate-500">
                             Traction & Funding
                           </span>
                           <p className="text-xs text-slate-700 font-bold mt-1">
@@ -1964,7 +1964,7 @@ export default function PreIncubatorApplicationPage() {
                         </div>
 
                         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
+                          <span className="text-xs text-slate-500">
                             Commitment & Mindset
                           </span>
                           <p className="text-xs text-slate-700 mt-1">

@@ -191,7 +191,7 @@ export function PitchPrototypeTab() {
           <div className="overflow-x-auto pt-3 flex-1">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-100 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                <tr className="border-b border-slate-100 text-xs font-medium text-slate-500">
                   <th className="pb-3 pr-2">Version</th>
                   <th className="pb-3 px-2">Date</th>
                   <th className="pb-3 px-2">Author</th>
@@ -311,7 +311,7 @@ export function PitchPrototypeTab() {
           <div className="md:col-span-4 flex flex-col">
             <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 flex-1 flex flex-col justify-between p-4 group">
               <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs">
+                <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-600 text-white shadow-xs">
                   Product Demo
                 </span>
                 <span className="text-[10px] font-mono text-slate-300 font-bold bg-slate-800/80 px-2 py-0.5 rounded">

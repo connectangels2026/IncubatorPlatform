@@ -855,7 +855,7 @@ function StatusContent() {
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-600" />
-                <span className="font-extrabold text-[#1A2151] uppercase tracking-wider text-[11px]">
+                <span className="font-semibold text-slate-900 text-xs">
                   Admissions Review & Feedback
                 </span>
               </div>
@@ -870,12 +870,12 @@ function StatusContent() {
                 /* Super Admin Rejection (Source: Arba360) */
                 <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-rose-800 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
                       Rejection Source: Arba360 Central Admissions
                     </span>
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
-                      REJECTED BY ARBA360
+                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      Rejected by Arba360
                     </span>
                   </div>
                   <p className="text-slate-800 text-xs leading-relaxed font-medium">
@@ -892,12 +892,12 @@ function StatusContent() {
                 /* Incubator Rejection (Source: Actual Incubator Name) */
                 <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                    <span className="text-xs font-medium text-rose-800 flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
                       Rejection Source: {targetIncubatorName}
                     </span>
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
-                      NOT SELECTED BY INCUBATOR
+                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                      Not selected by incubator
                     </span>
                   </div>
                   <p className="text-slate-800 text-xs leading-relaxed font-medium">
@@ -915,14 +915,14 @@ function StatusContent() {
                 <>
                   <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <span className="text-xs text-slate-500">
                         Super Admin Evaluation (Arba360)
                       </span>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${(application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${(application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-blue-100 text-blue-800'
                         }`}>
-                        {((application as any)?.super_admin_status || 'Under Review').toUpperCase()}
+                        {(application as any)?.super_admin_status || 'Under review'}
                       </span>
                     </div>
                     <p className="text-slate-700 text-xs leading-relaxed">
@@ -933,18 +933,18 @@ function StatusContent() {
 
                   <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900">
+                      <span className="text-xs font-medium text-blue-900">
                         {targetIncubatorName} Decision & Notes
                       </span>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${statusInfo.key === 'admitted'
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusInfo.key === 'admitted'
                           ? 'bg-emerald-100 text-emerald-800'
                           : 'bg-amber-100 text-amber-800'
                         }`}>
                         {statusInfo.key === 'admitted'
-                          ? 'ACCEPTED BY INCUBATOR'
+                          ? 'Accepted by incubator'
                           : statusInfo.key === 'forwarded'
-                            ? 'PENDING EVALUATION'
-                            : (application?.status || 'pending').toUpperCase()}
+                            ? 'Pending evaluation'
+                            : application?.status || 'Pending'}
                       </span>
                     </div>
                     <p className="text-slate-700 text-xs leading-relaxed">
@@ -970,7 +970,7 @@ function StatusContent() {
               {Array.isArray((application as any)?.form_data?.rejection_replies) &&
                 (application as any).form_data.rejection_replies.length > 0 && (
                   <div className="pt-2 border-t border-slate-200/80 space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-medium text-slate-500">
                       Conversation & Appeal History
                     </p>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">

@@ -70,11 +70,11 @@ export async function GET(req: NextRequest) {
           ...user,
           role: resolvedRole,
           is_super_admin: isSuperAdmin,
-          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || effectiveOrgData?.founder_name,
+          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
           user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
-          founder_name: effectiveOrgData?.founder_name || userProfile?.full_name,
+          founder_name: orgData?.founder_name || userProfile?.full_name,
         },
-        organization: effectiveOrgData,
+        organization: orgData,
       },
       { status: 200 }
     );

@@ -240,6 +240,12 @@ export class StartupService {
     if (data.sector !== undefined) updatePayload.sector = data.sector;
     if (data.stage !== undefined) updatePayload.stage = data.stage;
     if (data.status !== undefined) updatePayload.status = data.status;
+    if ((data as any).cohort !== undefined) updatePayload.cohort = (data as any).cohort;
+    if ((data as any).batch !== undefined) updatePayload.cohort = (data as any).batch;
+    if ((data as any).track !== undefined) updatePayload.track = (data as any).track;
+    if ((data as any).lifecycle_stage !== undefined) updatePayload.lifecycle_stage = (data as any).lifecycle_stage;
+    if ((data as any).is_active !== undefined) updatePayload.is_active = (data as any).is_active;
+    if ((data as any).milestones !== undefined) updatePayload.milestones = (data as any).milestones;
     if (data.description !== undefined) updatePayload.description = data.description;
     if (data.website !== undefined) updatePayload.website = data.website;
     if (data.logo_url !== undefined) updatePayload.logo_url = data.logo_url;
@@ -263,6 +269,7 @@ export class StartupService {
     if (data.customer_count !== undefined) updatePayload.customer_count = Number(data.customer_count) || 0;
     if (data.team_size !== undefined) updatePayload.team_size = Number(data.team_size) || 1;
     if (data.team_members !== undefined) updatePayload.team_members = data.team_members;
+    if ((data as any).cofounders !== undefined) updatePayload.cofounders = (data as any).cofounders;
     if (data.revenue !== undefined || data.monthly_revenue !== undefined) {
       const rev = Number(data.monthly_revenue !== undefined ? data.monthly_revenue : data.revenue) || 0;
       updatePayload.monthly_revenue = rev;

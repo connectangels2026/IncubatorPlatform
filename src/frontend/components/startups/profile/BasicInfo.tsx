@@ -20,20 +20,20 @@ export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
     <div className="p-5 space-y-4 text-xs text-slate-600 border-t border-slate-100">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-          <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+          <span className="text-xs font-medium text-slate-500 block mb-1">
             Problem Statement
           </span>
           <p>{startup.problem || 'Standard problem statement under incubation review.'}</p>
         </div>
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-          <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+          <span className="text-xs font-medium text-slate-500 block mb-1">
             Proposed Solution
           </span>
           <p>{startup.solution || startup.pitch || 'Modular software architecture and algorithms.'}</p>
         </div>
       </div>
       <div>
-        <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+        <span className="text-xs font-medium text-slate-500 block mb-1">
           Target Market & TAM
         </span>
         <p>{startup.market || 'Global Enterprise Technology ($25B TAM).'}</p>

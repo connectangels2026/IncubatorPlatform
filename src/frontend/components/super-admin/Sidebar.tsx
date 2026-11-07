@@ -76,9 +76,8 @@ export default function SuperAdminSidebar() {
       <aside
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed inset-y-0 left-0 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none z-40 transition-all duration-300 ease-in-out ${
-          isHovered ? 'w-[260px] shadow-2xl' : 'w-20'
-        }`}
+        className={`fixed inset-y-0 left-0 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none z-40 transition-all duration-300 ease-in-out ${isHovered ? 'w-[260px] shadow-2xl' : 'w-20'
+          }`}
       >
         <div className="flex flex-col flex-1 min-h-0">
           {/* Brand Header - ONLY LOGO ICON (no text) centered perfectly */}
@@ -103,11 +102,10 @@ export default function SuperAdminSidebar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group relative flex items-center h-11 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-sky-50 text-sky-700 font-bold'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  } ${isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'}`}
+                  className={`group relative flex items-center h-11 rounded-xl text-xs font-semibold transition-all ${isActive
+                    ? 'bg-sky-50 text-sky-700 font-bold'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    } ${isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'}`}
                   title={!isHovered ? item.name : undefined}
                 >
                   {/* Active Indicator Bar on Left */}
@@ -117,16 +115,14 @@ export default function SuperAdminSidebar() {
 
                   <div className="flex items-center min-w-0">
                     <Icon
-                      className={`w-5 h-5 shrink-0 transition ${
-                        isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600'
-                      }`}
+                      className={`w-5 h-5 shrink-0 transition ${isActive ? 'text-sky-600' : 'text-slate-400 group-hover:text-slate-600'
+                        }`}
                     />
                     <span
-                      className={`whitespace-nowrap overflow-hidden transition-all duration-200 font-medium ${
-                        isHovered
-                          ? 'max-w-[150px] opacity-100 ml-3'
-                          : 'max-w-0 opacity-0 md:hidden ml-3'
-                      }`}
+                      className={`whitespace-nowrap overflow-hidden transition-all duration-200 font-medium ${isHovered
+                        ? 'max-w-[150px] opacity-100 ml-3'
+                        : 'max-w-0 opacity-0 md:hidden ml-3'
+                        }`}
                     >
                       {item.name}
                     </span>
@@ -134,11 +130,9 @@ export default function SuperAdminSidebar() {
 
                   {item.badge && (
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide transition-all duration-200 ${
-                        item.badgeColor
-                      } ${
-                        isHovered ? 'opacity-100 ml-auto' : 'opacity-0 max-w-0 overflow-hidden md:hidden'
-                      }`}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${item.badgeColor
+                        } ${isHovered ? 'opacity-100 ml-auto' : 'opacity-0 max-w-0 overflow-hidden md:hidden'
+                        }`}
                     >
                       {item.badge}
                     </span>
@@ -152,9 +146,8 @@ export default function SuperAdminSidebar() {
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-slate-100 space-y-2 shrink-0 bg-white">
           <div
-            className={`p-2 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center transition-all ${
-              isHovered ? 'justify-between' : 'justify-center'
-            }`}
+            className={`p-2 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center transition-all ${isHovered ? 'justify-between' : 'justify-center'
+              }`}
           >
             <div className="flex items-center gap-2.5 overflow-hidden">
               <img
@@ -182,16 +175,14 @@ export default function SuperAdminSidebar() {
 
           <button
             onClick={() => router.push('/super-admin/login')}
-            className={`w-full py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:border-slate-300 transition shadow-2xs flex items-center justify-center gap-2 ${
-              !isHovered ? 'px-0' : 'px-3'
-            }`}
+            className={`w-full py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:border-slate-300 transition shadow-2xs flex items-center justify-center gap-2 ${!isHovered ? 'px-0' : 'px-3'
+              }`}
             title="Sign out"
           >
             <LogOut className="w-4 h-4 text-slate-400" />
             <span
-              className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${
-                isHovered ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 md:hidden'
-              }`}
+              className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${isHovered ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 md:hidden'
+                }`}
             >
               Sign out
             </span>

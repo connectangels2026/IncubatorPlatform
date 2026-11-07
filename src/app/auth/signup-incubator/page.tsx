@@ -332,7 +332,7 @@ function SignupIncubatorContent() {
                 {currentStep > 1 ? <Check className="w-4 h-4" /> : '1'}
               </div>
               <div className="hidden md:block">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Step 01</p>
+                <p className="text-[11px] font-medium text-slate-500">Step 01</p>
                 <p className={`text-xs font-bold ${currentStep === 1 ? 'text-[#1A2151]' : 'text-slate-600'}`}>
                   Profile & Identity
                 </p>
@@ -351,7 +351,7 @@ function SignupIncubatorContent() {
                 {currentStep > 2 ? <Check className="w-4 h-4" /> : '2'}
               </div>
               <div className="hidden md:block">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Step 02</p>
+                <p className="text-[11px] font-medium text-slate-500">Step 02</p>
                 <p className={`text-xs font-bold ${currentStep === 2 ? 'text-[#1A2151]' : 'text-slate-600'}`}>
                   Location & Contact
                 </p>
@@ -369,7 +369,7 @@ function SignupIncubatorContent() {
                 3
               </div>
               <div className="hidden md:block">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Step 03</p>
+                <p className="text-[11px] font-medium text-slate-500">Step 03</p>
                 <p className={`text-xs font-bold ${currentStep === 3 ? 'text-[#1A2151]' : 'text-slate-600'}`}>
                   Plan & Review
                 </p>
@@ -404,7 +404,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
                       Organization / Incubator Name <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -421,7 +421,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
                       Mission & Sector Focus <span className="text-rose-500">*</span>
                     </label>
                     <textarea
@@ -438,7 +438,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
                       Incubator Logo URL or Upload
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
@@ -476,7 +476,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <div className="pt-2 border-t border-slate-100">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-2 flex items-center gap-2">
                       <Palette className="w-4 h-4 text-[#0066ff]" /> Custom Portal Palette
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -552,7 +552,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
                       Director / Head of Incubator Name <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -570,7 +570,7 @@ function SignupIncubatorContent() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         Founder Official Email <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -587,7 +587,7 @@ function SignupIncubatorContent() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         Billing Email <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -620,7 +620,7 @@ function SignupIncubatorContent() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         Contact Phone <span className="text-rose-500">*</span>
                       </label>
                       <div className="flex gap-2">
@@ -651,7 +651,7 @@ function SignupIncubatorContent() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         Official Website
                       </label>
                       <input
@@ -667,7 +667,7 @@ function SignupIncubatorContent() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         City / Location <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -681,7 +681,7 @@ function SignupIncubatorContent() {
                       {errors.city && <p className="text-xs text-rose-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5"/>{errors.city}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-medium text-slate-700 mb-1.5">
                         Country
                       </label>
                       <input
@@ -711,7 +711,7 @@ function SignupIncubatorContent() {
 
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      <label className="block text-xs font-medium text-slate-700">
                         Select Platform Subscription Plan
                       </label>
                       <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs">
@@ -868,10 +868,10 @@ function SignupIncubatorContent() {
           {/* RIGHT COLUMN: Sticky Real-time Hub Preview */}
           <div className="lg:col-span-5 sticky top-28 space-y-4">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <span className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
                 <Eye className="w-4 h-4 text-[#0066ff]" /> Live Portal Header Preview
               </span>
-              <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-medium">
                 Real-Time
               </span>
             </div>
@@ -907,7 +907,7 @@ function SignupIncubatorContent() {
                   </div>
 
                   <span 
-                    className="text-[10px] uppercase font-extrabold px-2.5 py-1 rounded-full text-white shadow-2xs shrink-0"
+                    className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full text-white shadow-2xs shrink-0"
                     style={{ backgroundColor: formData.secondary_color }}
                   >
                     {activePlanInfo.name}
@@ -923,14 +923,14 @@ function SignupIncubatorContent() {
               <div className="p-5 space-y-4 bg-slate-50/60">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white p-3 rounded-xl border border-slate-200/70">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">Head of Incubator</span>
+                    <span className="text-slate-500 text-xs font-medium block">Head of Incubator</span>
                     <span className="font-semibold text-slate-800 truncate block mt-0.5">
                       {formData.founder_name || 'Not specified'}
                     </span>
                   </div>
 
                   <div className="bg-white p-3 rounded-xl border border-slate-200/70">
-                    <span className="text-slate-400 text-[10px] uppercase font-bold block">HQ Location</span>
+                    <span className="text-slate-500 text-xs font-medium block">HQ Location</span>
                     <span className="font-semibold text-slate-800 truncate block mt-0.5">
                       {formData.city ? `${formData.city}, ${formData.country}` : 'City, Country'}
                     </span>

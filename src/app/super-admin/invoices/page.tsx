@@ -175,7 +175,7 @@ export default function SuperAdminInvoicesPage() {
           {/* Card 1: Total Revenue */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">
+              <span className="text-xs text-slate-500">
                 Total Revenue (This Month)
               </span>
               <div className="flex items-baseline gap-2 mt-2">
@@ -224,7 +224,7 @@ export default function SuperAdminInvoicesPage() {
           {/* Card 2: Outstanding Amount Due */}
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
             <div>
-              <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">
+              <span className="text-xs text-slate-500">
                 Outstanding Amount Due
               </span>
               <div className="text-3xl font-extrabold text-slate-900 tracking-tight mt-2">
@@ -386,7 +386,7 @@ export default function SuperAdminInvoicesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 tracking-wider uppercase">
+                <tr className="bg-slate-50/70 border-b border-slate-200 text-xs font-medium text-slate-500">
                   <th className="py-3 px-4 w-10">
                     <input
                       type="checkbox"

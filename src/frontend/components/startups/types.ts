@@ -83,6 +83,11 @@ export interface StartupItem {
   monthlyBurn?: string;
   healthScore?: string;
   cohort?: string;
+  batch?: string;
+  track?: string;
+  lifecycle_stage?: string;
+  is_active?: boolean;
+  milestones?: any[];
   location?: string;
   customers: number;
   customer_count?: number;
@@ -121,4 +126,12 @@ export interface StartupItem {
   allocatedInvestors?: AllocatedInvestor[];
   coIncubators?: CoIncubatorItem[];
   organization_id?: string;
+  activity_logs?: Array<{
+    id?: string;
+    action?: string;
+    description?: string;
+    triggered_by?: string;
+    created_at?: string;
+    metadata?: any;
+  }>;
 }

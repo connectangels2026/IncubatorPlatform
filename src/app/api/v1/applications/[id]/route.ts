@@ -8,8 +8,6 @@ import { NotificationService } from '@/backend/services/notificationService';
 const isValidUUID = (s?: string | null): s is string =>
   typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
 
-const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
-
 const VALID_TRANSITIONS: Record<string, string[]> = {
   submitted: ['under_review', 'forwarded', 'admitted', 'accepted', 'rejected'],
   forwarded: ['under_review', 'accepted', 'admitted', 'rejected', 'submitted'],
@@ -135,7 +133,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const appOrgId = currentApp.organization_id || currentApp.selected_incubator_id;
       const isAuthorizedIncubator = isSuperAdminCaller || (userOrgId && appOrgId && userOrgId === appOrgId);
 
-      if (!isAuthorizedIncubator && !isSuperAdminCaller && user?.role !== 'admin' && user?.role !== 'incubator_admin' && user?.role !== 'incubator') {
+      if (!isAuthorizedIncubator && !isSuperAdminCaller && user?.role !== 'admin') {
         return NextResponse.json(
           { error: 'Forbidden: Only the authorized host incubator or super admin can assign dashboards to applications.' },
           { status: 403 }
@@ -158,26 +156,25 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       // 3. Create or link startup record in startups table, preventing duplicate assignments
       const applicantEmail = (currentApp.applicant_email || body.applicant_email || '').toLowerCase().trim();
-      const rawTargetOrg = appOrgId || userOrgId || currentApp.form_data?.selected_incubator_id;
-      const targetOrgId = (rawTargetOrg && isValidUUID(rawTargetOrg)) ? rawTargetOrg : DEFAULT_ORG_ID;
+      const targetOrgId = appOrgId || userOrgId;
 
       let startupRecordId: string | null = null;
 
-      // Check if startup already exists linked to this application
-      if (currentApp.startup_id && isValidUUID(currentApp.startup_id)) {
-        const { data: existingById } = await supabaseAdmin
+      // Check if startup already exists linked to this application ID
+      const { data: existingByAppId } = await supabaseAdmin
+        .from('startups')
+        .select('id, application_id')
+        .eq('application_id', currentApp.id)
+        .maybeSingle();
+
+      if (existingByAppId?.id) {
+        startupRecordId = existingByAppId.id;
+        await supabaseAdmin
           .from('startups')
-          .select('id')
-          .eq('id', currentApp.startup_id)
-          .maybeSingle();
-
-        if (existingById?.id) {
-          startupRecordId = existingById.id;
-        }
-      }
-
-      // Check by founder email and organization to avoid duplicate
-      if (!startupRecordId && applicantEmail) {
+          .update({ is_active: true, status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', existingByAppId.id);
+      } else {
+        // Fallback: check by email and organization to avoid duplicate
         const { data: existingByEmail } = await supabaseAdmin
           .from('startups')
           .select('id')
@@ -187,8 +184,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         if (existingByEmail?.id) {
           startupRecordId = existingByEmail.id;
-        }
-      }
+          await supabaseAdmin
+            .from('startups')
+            .update({
+              application_id: currentApp.id,
+              is_active: true,
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingByEmail.id);
+        } else {
+          // Create new record in startups table
+          const startupName =
+            currentApp.form_data?.startup_name ||
+            currentApp.form_data?.businessName ||
+            currentApp.form_data?.name ||
+            body.startup_name ||
+            `${currentApp.applicant_name}'s Startup`;
 
           const { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
             .from('startups')
@@ -210,73 +222,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               created_by: user.id,
             })
             .select('id')
-            .eq('id', user.id)
-            .maybeSingle();
-          if (creatorUser) validCreatorId = creatorUser.id;
-        }
+            .single();
 
-        let validFounderId: string | null = null;
-        const candidateFounderId = currentApp.created_by || currentApp.form_data?.founder_id;
-        if (candidateFounderId && isValidUUID(candidateFounderId)) {
-          const { data: founderUser } = await supabaseAdmin
-            .from('users')
-            .select('id')
-            .eq('id', candidateFounderId)
-            .maybeSingle();
-          if (founderUser) validFounderId = founderUser.id;
-        }
-
-        // Create new record in startups table (startups schema does NOT have application_id; link is via applications.startup_id)
-        const startupName =
-          currentApp.startup_name ||
-          currentApp.form_data?.startup_name ||
-          currentApp.form_data?.businessName ||
-          currentApp.form_data?.name ||
-          body.startup_name ||
-          `${currentApp.applicant_name}'s Startup`;
-
-        const allowedStages = ['Idea', 'MVP', 'Pre-revenue', 'Revenue', 'Growth', 'Scale'];
-        const rawStage = currentApp.form_data?.businessStage || currentApp.form_data?.stage || '';
-        const matchedStage = allowedStages.find((s) => s.toLowerCase() === String(rawStage).toLowerCase());
-        const validStage = matchedStage || 'MVP';
-
-        const founderMembers = currentApp.applicant_name
-          ? [{ name: currentApp.applicant_name, email: applicantEmail, role: 'Founder' }]
-          : [];
-
-        const { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
-          .from('startups')
-          .insert({
-            organization_id: targetOrgId,
-            name: startupName,
-            founder_name: currentApp.applicant_name || null,
-            founder_email: applicantEmail,
-            founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
-            sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
-            stage: validStage,
-            problem_statement: currentApp.form_data?.problemStatement || null,
-            solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
-            target_market: currentApp.form_data?.targetAudience || null,
-            founder_id: validFounderId,
-            cofounders: founderMembers,
-            team_members: founderMembers,
-            status: 'pending',
-            is_active: true,
-            created_by: validCreatorId,
-          })
-          .select('id')
-          .single();
-
-        if (stInsertErr) {
-          console.error('Failed to create startup record in database:', stInsertErr);
-          return NextResponse.json(
-            { error: `Database error creating startup record: ${stInsertErr.message}` },
-            { status: 500 }
-          );
-        }
-
-        if (newStartupRecord?.id) {
-          startupRecordId = newStartupRecord.id;
+          if (!stInsertErr && newStartupRecord?.id) {
+            startupRecordId = newStartupRecord.id;
+          }
         }
       }
 
@@ -510,19 +460,46 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       throw updateError;
     }
 
-    // When admitted or accepted by Incubator, link startup record to host incubator (do NOT create incubator organization)
+    // When admitted or accepted by Incubator, create organization & assign organization_id to user
     if ((newStatus === 'admitted' || newStatus === 'accepted') && updated) {
       try {
         const applicantEmail = (updated.applicant_email || '').toLowerCase().trim();
         const startupName = updated.form_data?.startup_name || updated.form_data?.name || `${updated.applicant_name}'s Startup`;
-        const hostOrgId = updated.organization_id || updated.selected_incubator_id;
+        const slug = startupName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || `org-${Date.now()}`;
 
-        if (hostOrgId) {
-          // Ensure startup record exists for this host incubator & founder
+        let orgId = updated.organization_id;
+        // Check if organization already exists to prevent duplicate creation on retry
+        const { data: existingOrg } = await supabaseAdmin
+          .from('organizations')
+          .select('id')
+          .ilike('founder_email', applicantEmail)
+          .maybeSingle();
+
+        if (existingOrg) {
+          orgId = existingOrg.id;
+        } else {
+          const { data: newOrg } = await supabaseAdmin
+            .from('organizations')
+            .insert({
+              name: startupName,
+              slug: `${slug}-${Math.floor(1000 + Math.random() * 9000)}`,
+                founder_name: updated.applicant_name,
+                founder_email: applicantEmail,
+                is_verified: true,
+              })
+              .select('id')
+              .single();
+          if (newOrg) orgId = newOrg.id;
+        }
+
+        if (orgId) {
+          await supabaseAdmin.from('users').update({ organization_id: orgId }).ilike('email', applicantEmail);
+
+          // Ensure startup record exists for this organization & founder
           const { data: existingStartup } = await supabaseAdmin
             .from('startups')
             .select('id')
-            .eq('organization_id', hostOrgId)
+            .eq('organization_id', orgId)
             .ilike('founder_email', applicantEmail)
             .maybeSingle();
 
@@ -541,7 +518,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 solution_description: updated.form_data?.oneSentencePitch || updated.form_data?.solutionOverview || null,
                 target_market: updated.form_data?.targetAudience || null,
                 founder_id: updated.created_by || null,
-                status: 'pending',
                 is_active: true,
               })
               .select('id')
@@ -549,13 +525,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             if (newStartup?.id) startupId = newStartup.id;
           }
 
-          if (startupId) {
-            await supabaseAdmin.from('applications').update({ startup_id: startupId }).eq('id', id);
-            updated.startup_id = startupId;
-          }
+          const appUpdates: any = { organization_id: orgId };
+          if (startupId) appUpdates.startup_id = startupId;
+
+          await supabaseAdmin.from('applications').update(appUpdates).eq('id', id);
+          updated.organization_id = orgId;
+          if (startupId) updated.startup_id = startupId;
         }
       } catch (orgErr) {
-        console.warn('Link startup on admission error:', orgErr);
+        console.warn('Auto-create organization on admission error:', orgErr);
       }
     }
 

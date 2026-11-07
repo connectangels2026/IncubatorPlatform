@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Cpu,
   Layers,
@@ -12,6 +12,7 @@ import {
   Check,
   Calendar,
 } from 'lucide-react';
+import { apiClient } from '@/services/apiClient';
 
 interface TechItem {
   category: 'FRONTEND' | 'BACKEND' | 'CLOUD & DATABASE' | 'AI MODELS';
@@ -39,23 +40,48 @@ const DEFAULT_STACK: TechItem[] = [
 
 interface Props {
   track?: 'hardware' | 'software' | 'both';
+  startup?: any;
+  onStartupUpdate?: (updated: any) => void;
 }
 
-export function SoftwareHardwareTab({ track = 'both' }: Props) {
-  const [techStack, setTechStack] = useState<TechItem[]>(DEFAULT_STACK);
+export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }: Props) {
+  const [techStack, setTechStack] = useState<TechItem[]>(() => {
+    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
+      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
+        return startup.tech_stack as TechItem[];
+      }
+    }
+    return DEFAULT_STACK;
+  });
   const [showAddTagModal, setShowAddTagModal] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [targetCategory, setTargetCategory] = useState<string>('FRONTEND');
 
-  const handleAddTag = () => {
+  useEffect(() => {
+    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
+      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
+        setTechStack(startup.tech_stack as TechItem[]);
+      }
+    }
+  }, [startup?.tech_stack]);
+
+  const handleAddTag = async () => {
     if (!newTag.trim()) return;
-    setTechStack((prev) =>
-      prev.map((cat) =>
-        cat.category === targetCategory ? { ...cat, items: [...cat.items, newTag.trim()] } : cat
-      )
+    const updated = techStack.map((cat) =>
+      cat.category === targetCategory ? { ...cat, items: [...cat.items, newTag.trim()] } : cat
     );
+    setTechStack(updated);
     setNewTag('');
     setShowAddTagModal(false);
+
+    try {
+      const res = await apiClient.put('/startups/me', { tech_stack: updated });
+      if (res.data?.startup && onStartupUpdate) {
+        onStartupUpdate(res.data.startup);
+      }
+    } catch (err) {
+      console.warn('Failed to save tech stack:', err);
+    }
   };
 
   return (
@@ -94,11 +120,11 @@ export function SoftwareHardwareTab({ track = 'both' }: Props) {
               >
                 <div>
                   <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/70">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-medium text-slate-500">
                       {cat.category}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-400">
-                      {cat.items.length} ITEMS
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {cat.items.length} {cat.items.length === 1 ? 'item' : 'items'}
                     </span>
                   </div>
 
@@ -150,7 +176,7 @@ export function SoftwareHardwareTab({ track = 'both' }: Props) {
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  <span className="text-xs font-medium text-slate-500">
                     Key Components Checklist
                   </span>
                   <div className="space-y-1.5">

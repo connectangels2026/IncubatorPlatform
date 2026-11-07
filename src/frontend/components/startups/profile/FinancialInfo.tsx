@@ -10,24 +10,24 @@ export function FinancialInfo({ startup }: FinancialInfoProps) {
     <div className="p-5 border-t border-slate-100 space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Monthly MRR</span>
-          <p className="text-base font-extrabold text-slate-900 mt-0.5 tabular-nums">
+          <span className="text-[11px] font-medium text-slate-500">Monthly MRR</span>
+          <p className="text-base font-semibold text-slate-900 mt-0.5 tabular-nums">
             ${startup.mrr.toLocaleString()}
           </p>
         </div>
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">ARR</span>
-          <p className="text-base font-extrabold text-slate-900 mt-0.5 tabular-nums">
+          <span className="text-[11px] font-medium text-slate-500">ARR</span>
+          <p className="text-base font-semibold text-slate-900 mt-0.5 tabular-nums">
             ${startup.arr.toLocaleString()}
           </p>
         </div>
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Capital Raised</span>
-          <p className="text-base font-extrabold text-blue-600 mt-0.5">{startup.funding}</p>
+          <span className="text-[11px] font-medium text-slate-500">Capital Raised</span>
+          <p className="text-base font-semibold text-blue-600 mt-0.5">{startup.funding}</p>
         </div>
         <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/60">
-          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Active Customers</span>
-          <p className="text-base font-extrabold text-slate-900 mt-0.5 tabular-nums">
+          <span className="text-[11px] font-medium text-slate-500">Active Customers</span>
+          <p className="text-base font-semibold text-slate-900 mt-0.5 tabular-nums">
             {startup.customers.toLocaleString()}
           </p>
         </div>

@@ -129,11 +129,11 @@ export const StartupCard: React.FC<StartupCardProps> = ({
         {/* Key Metrics Pill Grid */}
         <div className="grid grid-cols-2 gap-2 py-2.5 px-3 bg-slate-50/70 rounded-lg border border-slate-100 text-xs mb-3">
           <div>
-            <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">Cohort</span>
+            <span className="text-[10px] text-slate-500 block font-medium">Cohort</span>
             <span className="text-slate-800 font-medium truncate block">{startup.cohort || "Cohort 2026"}</span>
           </div>
           <div>
-            <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">Funding</span>
+            <span className="text-[10px] text-slate-500 block font-medium">Funding</span>
             <span className="text-emerald-700 font-semibold truncate block">{startup.fundingRaised || "$0"}</span>
           </div>
         </div>

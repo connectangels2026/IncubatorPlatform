@@ -18,7 +18,7 @@ export function MentorAllocationSection({
       {/* Header and Allocate CTA */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-blue-600" />
             Allocated Mentors
           </h4>
@@ -64,11 +64,10 @@ export function MentorAllocationSection({
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-900">{mentor.name}</span>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                          mentor.type === 'SME'
-                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${mentor.type === 'SME'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}
                       >
                         {mentor.type}
                       </span>
