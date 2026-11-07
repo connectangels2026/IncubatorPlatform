@@ -165,10 +165,21 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
               <span className="text-xs font-medium text-slate-500">Stage Tracker</span>
               <Award className="w-4 h-4 text-indigo-500" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-900">{startup?.stage || 'Validation Phase'}</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900">{startup?.stage || 'Validation Phase'}</h3>
+              <span className="text-xs font-semibold text-blue-600">
+                {typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70}%
+              </span>
+            </div>
             <p className="text-xs font-medium text-indigo-600 flex items-center gap-1 mt-1">
               <span>{startup?.sector || 'Technology Sector'}</span>
             </p>
+            <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.max(0, typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70))}%` }}
+              />
+            </div>
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
             <span>Funding Raised</span>

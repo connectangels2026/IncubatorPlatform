@@ -100,9 +100,9 @@ export default function StartupDashboard() {
           id: startup?.id || app?.id || 'startup',
           name: startup?.startup_name || startup?.name || fd.startup_name || fd.businessName || `${user.email?.split('@')[0]}'s Startup`,
           batch: app?.cohort_name || 'Batch 2026',
-          tagline: startup?.description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
+          tagline: startup?.tagline || startup?.description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
           stage: startup?.stage || fd.businessStage || 'Validation Phase',
-          stageProgress: 70,
+          stageProgress: typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70,
           track: resolvedTrack as any,
           incubatorName: org?.name || app?.incubator_name_text || 'Incubator Hub',
         });
@@ -394,7 +394,13 @@ export default function StartupDashboard() {
             />
           )}
           {activeTab === 'pitch' && <PitchPrototypeTab />}
-          {activeTab === 'tech' && <SoftwareHardwareTab track={profile.track} />}
+          {activeTab === 'tech' && (
+            <SoftwareHardwareTab
+              track={profile.track}
+              startup={rawStartup}
+              onStartupUpdate={handleStartupUpdate}
+            />
+          )}
           {activeTab === 'activity' && <ActivityLogTab />}
         </div>
       </main>

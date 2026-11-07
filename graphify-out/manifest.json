@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/OverviewTab.tsx": {
-    "mtime": 1794040627.1176252,
-    "seen": 1794040650.677884,
-    "ast_hash": "cf8d1a50af34890e7ed72b7ab16004a4",
+    "mtime": 1794041463.9515963,
+    "seen": 1794041586.404527,
+    "ast_hash": "482cb8d9828327ff285af6833ad114bc",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx": {
@@ -2208,15 +2208,15 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/SoftwareHardwareTab.tsx": {
-    "mtime": 1793355569.4182787,
-    "seen": 1793873704.693461,
-    "ast_hash": "0d65473a46e7fa52ed4a189ef1e8087a",
+    "mtime": 1794041443.682119,
+    "seen": 1794041586.4055312,
+    "ast_hash": "ab31949b1d86edeac09dd0fba66047d8",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboard.tsx": {
-    "mtime": 1794040627.3735023,
-    "seen": 1794040650.679884,
-    "ast_hash": "eb13a0f7a2c691c4f2981d09cab5defe",
+    "mtime": 1794041405.2782602,
+    "seen": 1794041586.4055312,
+    "ast_hash": "68b2f928221b57a81ed86da5ed9881fc",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx": {
@@ -2328,9 +2328,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-profile/StartupProfileManager.tsx": {
-    "mtime": 1794041073.8015685,
-    "seen": 1794041108.4974976,
-    "ast_hash": "b7c30947de5b2d0d75bce4f3c7671969",
+    "mtime": 1794041515.7742822,
+    "seen": 1794041586.4115307,
+    "ast_hash": "30504638efdb88152aee1b7bb065af18",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-profile/LogoImageUploader.tsx": {

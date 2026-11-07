@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Cpu,
   Layers,
@@ -12,6 +12,7 @@ import {
   Check,
   Calendar,
 } from 'lucide-react';
+import { apiClient } from '@/services/apiClient';
 
 interface TechItem {
   category: 'FRONTEND' | 'BACKEND' | 'CLOUD & DATABASE' | 'AI MODELS';
@@ -39,23 +40,48 @@ const DEFAULT_STACK: TechItem[] = [
 
 interface Props {
   track?: 'hardware' | 'software' | 'both';
+  startup?: any;
+  onStartupUpdate?: (updated: any) => void;
 }
 
-export function SoftwareHardwareTab({ track = 'both' }: Props) {
-  const [techStack, setTechStack] = useState<TechItem[]>(DEFAULT_STACK);
+export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }: Props) {
+  const [techStack, setTechStack] = useState<TechItem[]>(() => {
+    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
+      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
+        return startup.tech_stack as TechItem[];
+      }
+    }
+    return DEFAULT_STACK;
+  });
   const [showAddTagModal, setShowAddTagModal] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [targetCategory, setTargetCategory] = useState<string>('FRONTEND');
 
-  const handleAddTag = () => {
+  useEffect(() => {
+    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
+      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
+        setTechStack(startup.tech_stack as TechItem[]);
+      }
+    }
+  }, [startup?.tech_stack]);
+
+  const handleAddTag = async () => {
     if (!newTag.trim()) return;
-    setTechStack((prev) =>
-      prev.map((cat) =>
-        cat.category === targetCategory ? { ...cat, items: [...cat.items, newTag.trim()] } : cat
-      )
+    const updated = techStack.map((cat) =>
+      cat.category === targetCategory ? { ...cat, items: [...cat.items, newTag.trim()] } : cat
     );
+    setTechStack(updated);
     setNewTag('');
     setShowAddTagModal(false);
+
+    try {
+      const res = await apiClient.put('/startups/me', { tech_stack: updated });
+      if (res.data?.startup && onStartupUpdate) {
+        onStartupUpdate(res.data.startup);
+      }
+    } catch (err) {
+      console.warn('Failed to save tech stack:', err);
+    }
   };
 
   return (

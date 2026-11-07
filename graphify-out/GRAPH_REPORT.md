@@ -1,17 +1,17 @@
 # Graph Report - Incubator-WebApp  (2026-11-07)
 
 ## Corpus Check
-- 365 files · ~315,791 words
+- 365 files · ~316,137 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 100 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 3)
 
 ## Summary
-- 3417 nodes · 5860 edges · 221 communities (165 shown, 56 thin omitted)
+- 3417 nodes · 5862 edges · 225 communities (165 shown, 60 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 25 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7d0dec7e`
+- Built from commit: `0f8f0816`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -24,7 +24,7 @@
 - test_sync_brand_to_tokens.py
 - services/apiClient.ts
 - taskService.ts
-- argparse
+- cip/generate.py
 - Tailwind CSS Utility Reference
 - UI/UX Pro Max - Design Intelligence
 - Brand Guidelines v1.0
@@ -37,7 +37,7 @@
 - spacing
 - Form & Input Components
 - Tailwind CSS Responsive Design
-- design_system.py
+- DesignSystemGenerator
 - ✅ Multi-Tenant Data Isolation Fix - Complete Implementation
 - Typography Specifications
 - TestTailwindConfigGenerator
@@ -67,7 +67,7 @@
 - session.ts
 - compilerOptions
 - Routing by Task Type
-- json
+- fetch-background.py
 - shadcn/ui Theming & Customization
 - incubator/page.tsx
 - Asset Organization Guide
@@ -206,6 +206,8 @@
 - test_flow.js
 - notifications/[id]/route.ts
 - reports/mentorship/route.ts
+- json
+- pathlib
 - emailTemplates.ts
 
 ## God Nodes (most connected - your core abstractions)
@@ -235,15 +237,11 @@
 ## Import Cycles
 - None detected.
 
-## Communities (221 total, 56 thin omitted)
+## Communities (225 total, 60 thin omitted)
 
 ### Community 0 - "next"
 Cohesion: 0.06
 Nodes (37): next, dynamic, dynamic, VALID_TRANSITIONS, dynamic, GET(), VALID_ROLES, RouteContext (+29 more)
-
-### Community 1 - "ShadcnInstaller"
-Cohesion: 0.04
-Nodes (3): main(), ShadcnInstaller, TestShadcnInstaller
 
 ### Community 2 - "incubator/applications/page.tsx"
 Cohesion: 0.10
@@ -258,8 +256,8 @@ Cohesion: 0.05
 Nodes (53): $type, $value, $type, $value, $type, $value, $type, $value (+45 more)
 
 ### Community 5 - "test_sync_brand_to_tokens.py"
-Cohesion: 0.07
-Nodes (20): _run(), test_creates_default_output_directory_when_missing(), test_dark_base_color_does_not_collapse_shades_to_black(), test_force_allows_sync_with_existing_css_token_source(), test_ignores_commented_root_custom_properties(), test_ignores_custom_properties_outside_root(), test_ignores_external_css_imports(), test_refuses_css_custom_property_source_without_force() (+12 more)
+Cohesion: 0.11
+Nodes (16): _run(), test_creates_default_output_directory_when_missing(), test_dark_base_color_does_not_collapse_shades_to_black(), test_force_allows_sync_with_existing_css_token_source(), test_ignores_commented_root_custom_properties(), test_ignores_custom_properties_outside_root(), test_ignores_external_css_imports(), test_refuses_css_custom_property_source_without_force() (+8 more)
 
 ### Community 6 - "services/apiClient.ts"
 Cohesion: 0.12
@@ -269,9 +267,9 @@ Nodes (16): StartupDetailPage(), StartupDetailModal(), StartupDetailModalProps, 
 Cohesion: 0.08
 Nodes (30): GET(), isValidUUID(), resolveOrg(), RouteParams, DELETE(), GET(), isValidUUID(), PUT() (+22 more)
 
-### Community 8 - "argparse"
-Cohesion: 0.11
-Nodes (11): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main(), format_brief() (+3 more)
+### Community 8 - "cip/generate.py"
+Cohesion: 0.19
+Nodes (7): build_cip_prompt(), check_logo_required(), generate_cip_set(), generate_with_nano_banana(), load_env(), load_logo_image(), main()
 
 ### Community 9 - "Tailwind CSS Utility Reference"
 Cohesion: 0.05
@@ -320,10 +318,6 @@ Nodes (32): Accordion, Alert, Alert Dialog, Avatar, Badge, Button, Card, Checkbo
 ### Community 20 - "Tailwind CSS Responsive Design"
 Cohesion: 0.06
 Nodes (32): 1. Mobile-First Design, 2. Consistent Breakpoint Usage, 3. Test at Breakpoint Boundaries, 4. Use Container for Content Width, 5. Progressive Enhancement, 6. Avoid Too Many Breakpoints, Best Practices, Breakpoint System (+24 more)
-
-### Community 21 - "design_system.py"
-Cohesion: 0.08
-Nodes (5): DesignSystemGenerator, format_ascii_box(), format_markdown(), generate_design_system(), format_output()
 
 ### Community 22 - "✅ Multi-Tenant Data Isolation Fix - Complete Implementation"
 Cohesion: 0.09
@@ -429,7 +423,7 @@ Nodes (20): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModu
 Cohesion: 0.10
 Nodes (19): Banner Design Tasks, Brand Identity Tasks, Component Creation, Corporate Identity Program Tasks, Design Routing Guide, Design System Migration, Icon Design Tasks, Implementation Tasks (+11 more)
 
-### Community 51 - "json"
+### Community 51 - "fetch-background.py"
 Cohesion: 0.15
 Nodes (9): generate_css_for_background(), get_background_image(), get_curated_images(), get_overlay_css(), get_pexels_search_url(), load_backgrounds_config(), load_brand_colors(), main() (+1 more)
 
@@ -897,10 +891,18 @@ Nodes (5): DELETE(), GET(), isValidUUID(), Params, resolveOrg()
 Cohesion: 0.83
 Nodes (3): GET(), isValidUUID(), resolveOrg()
 
+### Community 220 - "json"
+Cohesion: 0.10
+Nodes (8): format_brief(), format_results(), main(), main(), format_ascii_box(), format_markdown(), generate_design_system(), format_output()
+
+### Community 221 - "pathlib"
+Cohesion: 0.14
+Nodes (5): main(), _run(), test_flags_hardcoded_hex_sharing_line_with_token(), test_token_only_line_reports_no_violation(), main()
+
 ## Knowledge Gaps
 - **1437 isolated node(s):** `fs`, `path`, `fs`, `path`, `fs` (+1432 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1882 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **56 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **60 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -914,7 +916,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `react` connect `react` to `incubator/applications/page.tsx`, `useAuth`, `services/apiClient.ts`, `checked-components/page.tsx`, `services/auth.ts`, `package.json`, `incubator/page.tsx`, `lucide-react`, `StartupDashboard.tsx`, `StartupsPage.tsx`, `super-admin/Sidebar.tsx`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Should `ShadcnInstaller` be split into smaller, more focused modules?**
-  _Cohesion score 0.04265010351966874 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05551020408163265 - nodes in this community are weakly interconnected._
 - **Why does `@supabase/supabase-js` connect `@supabase/supabase-js` to `test_forward.js`, `next`, `test_workflow_e2e.js`, `useAuth`, `check_cols.js`, `verify_latest.js`, `check_users.js`, `package.json`, `test_flow.js`, `ref_fs`, `session.ts`, `lucide-react`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **Should `incubator/applications/page.tsx` be split into smaller, more focused modules?**
