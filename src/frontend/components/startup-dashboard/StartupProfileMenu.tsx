@@ -28,6 +28,9 @@ interface StartupProfileMenuProps {
   onNavigateTab?: (tab: string) => void;
   onOpenStartupModal?: () => void;
   onLogout: () => void;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  onClose?: () => void;
 }
 
 export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
@@ -37,8 +40,29 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
   onNavigateTab,
   onOpenStartupModal,
   onLogout,
+  isOpen,
+  onToggle,
+  onClose,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isDropdownOpen = isOpen !== undefined ? isOpen : internalOpen;
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalOpen((prev) => !prev);
+    }
+  };
+
   const [activeModal, setActiveModal] = useState<'profile' | 'startup' | 'settings' | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -98,16 +122,29 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
     }
   }, [startup]);
 
-  // Click Outside Detection
+  // Click Outside & Esc Key Detection
   useEffect(() => {
+    if (!isDropdownOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+        handleClose();
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
 
   // Save Personal Profile
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -206,9 +243,9 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
 
       {/* Profile Trigger Button */}
       <button
-        onClick={() => setDropdownOpen((prev) => !prev)}
+        onClick={handleToggle}
         className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 cursor-pointer focus:outline-none"
-        aria-expanded={dropdownOpen}
+        aria-expanded={isDropdownOpen}
         aria-haspopup="true"
         title={user?.email || 'Account'}
       >
@@ -220,17 +257,17 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
       </button>
 
       {/* Dropdown Menu */}
-      {dropdownOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+      {isDropdownOpen && (
+        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header Info */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-800 truncate">
+            <p className="text-xs font-semibold text-slate-900 truncate">
               {profileForm.fullName || startupForm.name || 'Founder'}
             </p>
-            <p className="text-[11px] text-slate-400 truncate mt-0.5">{user?.email}</p>
+            <p className="text-[11px] text-slate-500 truncate mt-0.5">{user?.email}</p>
             <div className="mt-2 flex items-center gap-1.5">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                Admitted Startup
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                Admitted startup
               </span>
             </div>
           </div>
@@ -240,27 +277,27 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
             <button
               type="button"
               onClick={() => {
-                setDropdownOpen(false);
+                handleClose();
                 if (onOpenStartupModal) {
                   onOpenStartupModal();
-                } else if (onNavigateTab) {
-                  onNavigateTab('profile');
+                } else {
+                  setActiveModal('startup');
                 }
               }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-4 py-2 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
             >
-              <Pencil className="w-4 h-4 text-blue-500" />
+              <Pencil className="w-4 h-4 text-slate-500" />
               <span>Startup Details</span>
             </button>
 
             <button
               onClick={() => {
-                setDropdownOpen(false);
+                handleClose();
                 setActiveModal('settings');
               }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-4 py-2 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
             >
-              <Settings className="w-4 h-4 text-slate-400" />
+              <Settings className="w-4 h-4 text-slate-500" />
               <span>Account Settings</span>
             </button>
           </div>
@@ -268,16 +305,16 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
           <div className="border-t border-slate-100 my-1" />
 
           {/* Logout */}
-          <div className="px-1.5 pb-1">
+          <div className="px-1.5 pb-0.5">
             <button
               onClick={() => {
-                setDropdownOpen(false);
+                handleClose();
                 onLogout();
               }}
-              className="w-full px-3 py-2 text-xs text-left font-semibold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-3 py-2 text-xs text-left font-normal text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2.5 transition cursor-pointer"
             >
-              <LogOut className="w-4 h-4 text-rose-500" />
-              <span>Sign Out</span>
+              <LogOut className="w-4 h-4 text-slate-500" />
+              <span>Sign out</span>
             </button>
           </div>
         </div>

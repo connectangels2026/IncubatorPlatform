@@ -38,7 +38,7 @@ export default function StartupDashboard() {
   const { user, isLoading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [isStartupModalOpen, setIsStartupModalOpen] = useState(false);
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<'more' | 'profile' | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const [profile, setProfile] = useState<StartupProfile | null>(null);
   const [rawStartup, setRawStartup] = useState<any | null>(null);
@@ -131,14 +131,27 @@ export default function StartupDashboard() {
   };
 
   useEffect(() => {
+    if (!activeDropdown) return;
+
     function handleClickOutside(event: MouseEvent) {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setIsMoreMenuOpen(false);
+        setActiveDropdown(null);
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setActiveDropdown(null);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeDropdown]);
 
   if (isLoading || authLoading) {
     return (
@@ -211,11 +224,15 @@ export default function StartupDashboard() {
               <span className="hidden sm:inline">Export</span>
             </button>
 
-            {/* Share (primary) */}
+            {/* Share (primary, or secondary on activity log tab) */}
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm transition shadow-xs cursor-pointer"
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-medium text-sm transition shadow-xs cursor-pointer ${
+                activeTab === 'activity'
+                  ? 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
               title="Share dashboard"
             >
               <Share2 className="w-4 h-4" />
@@ -226,7 +243,7 @@ export default function StartupDashboard() {
             <div className="relative" ref={moreMenuRef}>
               <button
                 type="button"
-                onClick={() => setIsMoreMenuOpen((prev) => !prev)}
+                onClick={() => setActiveDropdown((prev) => (prev === 'more' ? null : 'more'))}
                 className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition shadow-xs cursor-pointer flex items-center justify-center"
                 title="More options"
                 aria-label="More options"
@@ -234,17 +251,17 @@ export default function StartupDashboard() {
                 <MoreHorizontal className="w-4 h-4" />
               </button>
 
-              {isMoreMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-slate-200 shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              {activeDropdown === 'more' && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-slate-200 shadow-lg py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                   <button
                     type="button"
                     onClick={() => {
-                      setIsMoreMenuOpen(false);
+                      setActiveDropdown(null);
                       setIsStartupModalOpen(true);
                     }}
-                    className="w-full px-3.5 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
                   >
-                    <Pencil className="w-4 h-4 text-blue-600" />
+                    <Pencil className="w-4 h-4 text-slate-500" />
                     <span>Startup Details</span>
                   </button>
 
@@ -271,7 +288,7 @@ export default function StartupDashboard() {
                             <a
                               key={app.id}
                               href={`/programs/preincubator/status?id=${app.id}`}
-                              onClick={() => setIsMoreMenuOpen(false)}
+                              onClick={() => setActiveDropdown(null)}
                               className="px-3.5 py-2 hover:bg-slate-50 transition flex items-center justify-between gap-2 group"
                             >
                               <div className="min-w-0">
@@ -311,6 +328,9 @@ export default function StartupDashboard() {
                 onStartupUpdate={handleStartupUpdate}
                 onOpenStartupModal={() => setIsStartupModalOpen(true)}
                 onLogout={() => (logout ? logout() : router.push('/login'))}
+                isOpen={activeDropdown === 'profile'}
+                onToggle={() => setActiveDropdown((prev) => (prev === 'profile' ? null : 'profile'))}
+                onClose={() => setActiveDropdown(null)}
               />
             </div>
           </div>

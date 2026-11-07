@@ -30,6 +30,9 @@ import {
   Video,
   Play,
   Code,
+  Copy,
+  Check,
+  Download,
 } from 'lucide-react';
 import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
@@ -200,8 +203,72 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
     const el = document.getElementById(`section-${sectionId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setActiveEditingSection(sectionId);
     }
+  };
+
+  const [activeSection, setActiveSection] = useState<string>('basic');
+
+  useEffect(() => {
+    const sectionIds = ['basic', 'team', 'financials', 'legal', 'overview', 'business', 'incubation', 'documents'];
+
+    const handleScroll = () => {
+      const firstEl = document.getElementById('section-basic');
+      if (!firstEl) return;
+      const scrollParent = firstEl.closest('.overflow-y-auto') as HTMLElement | null;
+
+      const parentRectTop = scrollParent ? scrollParent.getBoundingClientRect().top : 0;
+
+      let current = 'basic';
+      for (const id of sectionIds) {
+        const el = document.getElementById(`section-${id}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const relativeTop = scrollParent ? rect.top - parentRectTop : rect.top;
+          if (relativeTop <= 160) {
+            current = id;
+          }
+        }
+      }
+      setActiveSection(current);
+    };
+
+    const firstEl = document.getElementById('section-basic');
+    const scrollParent = firstEl?.closest('.overflow-y-auto') || window;
+
+    scrollParent.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      scrollParent.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, key: string) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      const section = e.detail || 'basic';
+      if (!isReadOnly) {
+        handleStartEdit(section);
+      }
+      scrollToSection(section);
+    };
+    window.addEventListener('edit-startup-section', handler);
+    return () => window.removeEventListener('edit-startup-section', handler);
+  }, [isReadOnly, startup]);
+
+  const renderDash = (val: any) => {
+    if (val !== null && val !== undefined && val !== '') {
+      return val;
+    }
+    return <span className="text-slate-400 font-normal">—</span>;
   };
 
   const displayName = startup?.startup_name || startup?.name || 'My Startup';
@@ -228,27 +295,67 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
       {/* Dynamic Profile Completeness Widget */}
       <ProfileCompletionWidget startup={startup} onFocusSection={scrollToSection} />
 
-      {/* Section 1: Basic Information */}
-      <div id="section-basic" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">1. Basic Information</h3>
-              <p className="text-xs text-slate-500">Core company identity, stage, branding, and web presence.</p>
-            </div>
+      {/* 2-Column Layout: Left Sticky Navigation + Right Divider Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-2">
+        {/* Sticky Left Section Nav */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <div className="sticky top-4 p-2 rounded-xl bg-slate-50 border border-slate-200/80 space-y-0.5">
+            <span className="text-xs font-semibold text-slate-400 px-3 py-1.5 block">
+              Sections
+            </span>
+            {[
+              { id: 'basic', label: 'Basic' },
+              { id: 'team', label: 'Team' },
+              { id: 'financials', label: 'Funding' },
+              { id: 'legal', label: 'Legal' },
+              { id: 'overview', label: 'Overview' },
+              { id: 'business', label: 'Business' },
+              { id: 'incubation', label: 'Incubation' },
+              { id: 'documents', label: 'Documents' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActiveSection(item.id);
+                  scrollToSection(item.id);
+                }}
+                className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                  activeSection === item.id
+                    ? 'bg-blue-50 font-semibold text-blue-600'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 font-medium'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-          {!isReadOnly && activeEditingSection !== 'basic' && (
-            <button
-              onClick={() => handleStartEdit('basic')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
+        </aside>
+
+        {/* Right Content: Clean Divider Layout (No Nested Card Borders) */}
+        <div className="lg:col-span-9 divide-y divide-slate-200">
+          {/* Section: Basic Information */}
+          <div id="section-basic" className="space-y-4 pb-6 first:pt-0">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Basic information</h3>
+                  <p className="text-xs text-slate-500 font-normal">Core company identity, stage, branding, and web presence.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'basic' && (
+                <button
+                  onClick={() => handleStartEdit('basic')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
+            </div>
 
         {activeEditingSection === 'basic' ? (
           <div className="space-y-4 pt-2">
@@ -355,98 +462,109 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 text-xs">
-            <div className="col-span-2 sm:col-span-3">
-              <span className="text-slate-400 font-medium block">Elevator Tagline</span>
-              <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
-                {startup?.tagline || '—'}
-              </span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+            {/* First Row: Active Logo, Startup Name, Industry Sector */}
             <div>
-              <span className="text-slate-400 font-medium block">Startup Name</span>
-              <span className="font-bold text-slate-900 text-sm mt-0.5 block">{displayName}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Industry Sector</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block">{startup?.sector || '—'}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Current Stage</span>
-              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[11px]">
-                {startup?.stage || 'Idea'}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Cohort &amp; Program Track</span>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[11px]">
-                  {startup?.batch || 'Batch 2026'}
-                </span>
-                <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
-                  {startup?.track === 'both' ? 'DeepTech' : startup?.track || 'DeepTech'}
-                </span>
-              </div>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Founded Date</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block">{startup?.founded_date ? new Date(startup.founded_date).toLocaleDateString() : '—'}</span>
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Official Website</span>
-              {startup?.website ? (
-                <a
-                  href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold text-blue-600 hover:underline inline-flex items-center gap-1 mt-0.5 truncate max-w-[180px]"
-                >
-                  <span>{startup.website}</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              ) : (
-                <span className="font-semibold text-slate-400 mt-0.5 block">—</span>
-              )}
-            </div>
-            <div>
-              <span className="text-slate-400 font-medium block">Active Logo</span>
+              <span className="text-xs text-slate-500 font-normal block">Active logo</span>
               {startup?.logo_url ? (
                 <div className="flex items-center gap-2 mt-1">
                   <img
                     src={startup.logo_url}
                     alt={displayName}
-                    className="w-7 h-7 rounded-lg object-contain bg-slate-50 border border-slate-200"
+                    className="w-8 h-8 rounded-lg object-contain bg-slate-50 border border-slate-200"
                   />
-                  <span className="font-semibold text-emerald-700 text-xs">Uploaded & Active</span>
+                  <span className="font-medium text-emerald-700 text-xs">Uploaded & active</span>
                 </div>
               ) : (
-                <span className="font-semibold text-slate-400 mt-0.5 block">—</span>
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
+              )}
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Startup name</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">{displayName}</span>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Industry sector</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.sector)}</span>
+            </div>
+
+            {/* Second Row: Elevator Tagline */}
+            <div className="col-span-1 sm:col-span-3">
+              <span className="text-xs text-slate-500 font-normal block">Elevator tagline</span>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 leading-relaxed">
+                {renderDash(startup?.tagline)}
+              </p>
+            </div>
+
+            {/* Third Row: Current Stage, Cohort & Track, Founded Date */}
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Current stage</span>
+              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs">
+                {startup?.stage || 'Idea'}
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Cohort &amp; program track</span>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-medium text-xs">
+                  {startup?.batch || 'Batch 2026'}
+                </span>
+                <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-xs">
+                  {startup?.track === 'both' ? 'DeepTech' : startup?.track || 'DeepTech'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Founded date</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">
+                {startup?.founded_date ? new Date(startup.founded_date).toLocaleDateString() : <span className="text-slate-400 font-normal">—</span>}
+              </span>
+            </div>
+
+            {/* Fourth Row: Official Website */}
+            <div className="col-span-1 sm:col-span-3">
+              <span className="text-xs text-slate-500 font-normal block">Official website</span>
+              {startup?.website ? (
+                <a
+                  href={startup.website.startsWith('http') ? startup.website : `https://${startup.website}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-blue-600 hover:underline inline-flex items-center gap-1 mt-0.5 max-w-[200px] truncate text-sm"
+                  title={startup.website}
+                >
+                  <span className="truncate">{startup.website.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').replace(/\/.*$/, '')}</span>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 text-blue-500" />
+                </a>
+              ) : (
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 2: Founder & Team */}
-      <div id="section-team" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-              <Users className="w-5 h-5" />
+          {/* Section: Founder & Team */}
+          <div id="section-team" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Team &amp; leadership</h3>
+                  <p className="text-xs text-slate-500 font-normal">Primary founder details, co-founders roster, and team members.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'team' && (
+                <button
+                  onClick={() => handleStartEdit('team')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">2. Founder & Team</h3>
-              <p className="text-xs text-slate-500">Primary founder details, co-founders roster, and team members.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'team' && (
-            <button
-              onClick={() => handleStartEdit('team')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
 
         {activeEditingSection === 'team' ? (
           <div className="space-y-5 pt-2">
@@ -494,7 +612,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             {/* Co-Founders sub-editor */}
             <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Co-Founders</span>
+                <span className="text-xs font-semibold text-slate-800">Co-founders</span>
                 <button
                   type="button"
                   onClick={handleAddCofounder}
@@ -628,36 +746,36 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-4 pt-1 text-xs">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <span className="text-slate-400 font-medium block">Primary Founder</span>
-                <span className="font-bold text-slate-900 mt-0.5 block">{startup?.founder_name || '—'}</span>
+                <span className="text-xs text-slate-500 font-normal block">Primary founder</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.founder_name)}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Founder Email</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block truncate">{startup?.founder_email || '—'}</span>
+                <span className="text-xs text-slate-500 font-normal block">Founder email</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block truncate">{renderDash(startup?.founder_email)}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Phone Number</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">{startup?.founder_phone || '—'}</span>
+                <span className="text-xs text-slate-500 font-normal block">Phone number</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.founder_phone)}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Total Team Size</span>
-                <span className="font-semibold text-slate-800 mt-0.5 block">{startup?.team_size || 1} people</span>
+                <span className="text-xs text-slate-500 font-normal block">Total team size</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block">{startup?.team_size || 1} people</span>
               </div>
             </div>
 
             {/* Co-founders display cards */}
             {Array.isArray(startup?.cofounders) && startup.cofounders.length > 0 && (
               <div className="pt-2 border-t border-slate-100">
-                <span className="text-slate-500 font-bold text-[11px] uppercase tracking-wider block mb-2">
-                  Co-Founders ({startup.cofounders.length})
+                <span className="text-slate-500 text-xs font-medium block mb-2">
+                  Co-founders ({startup.cofounders.length})
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {startup.cofounders.map((cf: any, i: number) => (
                     <div key={i} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                       <div className="font-bold text-slate-900">{cf.name || 'Co-Founder'}</div>
-                      <div className="text-slate-500 text-[11px]">{cf.role || 'Partner'} • {cf.email || 'No email'}</div>
+                      <div className="text-slate-500 text-[11px]">{cf.role || 'Partner'} • {cf.email || <span className="text-slate-400">No email</span>}</div>
                       {cf.linkedin && (
                         <a href={cf.linkedin} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[11px] inline-flex items-center gap-0.5 mt-1">
                           <span>LinkedIn</span>
@@ -673,27 +791,28 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         )}
       </div>
 
-      {/* Section 3: Startup Overview */}
-      <div id="section-overview" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <Target className="w-5 h-5" />
+          {/* Section: Startup Overview */}
+          <div id="section-overview" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Target className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Executive overview</h3>
+                  <p className="text-xs text-slate-500 font-normal">Problem statement, solution pitch, target audience, and summary.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'overview' && (
+                <button
+                  onClick={() => handleStartEdit('overview')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">3. Startup Overview</h3>
-              <p className="text-xs text-slate-500">Problem statement, solution pitch, target audience, and summary.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'overview' && (
-            <button
-              onClick={() => handleStartEdit('overview')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
 
         {activeEditingSection === 'overview' ? (
           <div className="space-y-4 pt-2">
@@ -757,50 +876,49 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-3 pt-1 text-xs">
+          <div className="space-y-4 pt-1 text-xs">
             <div>
-              <span className="text-slate-400 font-medium block">Tagline / Overview</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{startup?.description || '—'}</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-slate-500 font-bold block mb-1">Problem Statement</span>
-                <p className="text-slate-700 leading-relaxed">{startup?.problem_statement || 'No problem statement recorded.'}</p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                <span className="text-slate-500 font-bold block mb-1">Solution Description</span>
-                <p className="text-slate-700 leading-relaxed">{startup?.solution_description || 'No solution description recorded.'}</p>
-              </div>
+              <span className="text-xs text-slate-500 font-normal block">Elevator tagline / overview</span>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 leading-relaxed">{renderDash(startup?.description)}</p>
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">Target Market</span>
-              <p className="font-semibold text-slate-800 mt-0.5">{startup?.target_market || '—'}</p>
+              <span className="text-xs text-slate-500 font-normal block">Problem statement</span>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 leading-relaxed whitespace-pre-wrap">{startup?.problem_statement || <span className="text-slate-400 font-normal">—</span>}</p>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Solution description / unique value proposition</span>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 leading-relaxed whitespace-pre-wrap">{startup?.solution_description || <span className="text-slate-400 font-normal">—</span>}</p>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500 font-normal block">Target market &amp; customer profile</span>
+              <p className="text-sm font-medium text-slate-900 mt-0.5 leading-relaxed whitespace-pre-wrap">{renderDash(startup?.target_market)}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 4: Business Model */}
-      <div id="section-business" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <Briefcase className="w-5 h-5" />
+          {/* Section: Business Model */}
+          <div id="section-business" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Briefcase className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Business model</h3>
+                  <p className="text-xs text-slate-500 font-normal">Go-to-market mechanics, commercialization, and revenue architecture.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'business' && (
+                <button
+                  onClick={() => handleStartEdit('business')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">4. Business Model</h3>
-              <p className="text-xs text-slate-500">Go-to-market mechanics, commercialization, and revenue architecture.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'business' && (
-            <button
-              onClick={() => handleStartEdit('business')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
 
         {activeEditingSection === 'business' ? (
           <div className="space-y-4 pt-2">
@@ -858,40 +976,41 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 pt-1 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
             <div>
-              <span className="text-slate-400 font-medium block">Business Model</span>
-              <span className="font-bold text-slate-900 mt-0.5 block">{startup?.business_model || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">Business model</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.business_model)}</span>
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">Revenue Model</span>
-              <span className="font-bold text-slate-900 mt-0.5 block">{startup?.revenue_model || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">Revenue model</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.revenue_model)}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 5: Legal Details */}
-      <div id="section-legal" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <ShieldCheck className="w-5 h-5" />
+          {/* Section: Legal Details */}
+          <div id="section-legal" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Legal &amp; compliance</h3>
+                  <p className="text-xs text-slate-500 font-normal">Corporate entity structure, registration numbers, PAN, GST, and CIN.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'legal' && (
+                <button
+                  onClick={() => handleStartEdit('legal')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">5. Legal & Registration Details</h3>
-              <p className="text-xs text-slate-500">Corporate entity structure, registration numbers, PAN, GST, and CIN.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'legal' && (
-            <button
-              onClick={() => handleStartEdit('legal')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
 
         {activeEditingSection === 'legal' ? (
           <div className="space-y-4 pt-2">
@@ -975,216 +1094,274 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-1 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
             <div>
-              <span className="text-slate-400 font-medium block">Entity Type</span>
-              <span className="font-bold text-slate-900 mt-0.5 block">{startup?.registration_type || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">Entity type</span>
+              <span className="text-sm font-medium text-slate-900 mt-0.5 block">{renderDash(startup?.registration_type)}</span>
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">Reg. Number</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block font-mono">{startup?.registration_number || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">Registration number</span>
+              {startup?.registration_number ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-medium text-slate-900 font-mono">{startup.registration_number}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(startup.registration_number, 'reg')}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition cursor-pointer"
+                    title="Copy registration number"
+                  >
+                    {copiedKey === 'reg' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
+              )}
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">PAN Number</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block font-mono">{startup?.pan_number || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">Company PAN</span>
+              {startup?.pan_number ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-medium text-slate-900 font-mono">{startup.pan_number}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(startup.pan_number, 'pan')}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition cursor-pointer"
+                    title="Copy PAN number"
+                  >
+                    {copiedKey === 'pan' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
+              )}
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">GST Number</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block font-mono">{startup?.gst_number || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">GST number</span>
+              {startup?.gst_number ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-medium text-slate-900 font-mono">{startup.gst_number}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(startup.gst_number, 'gst')}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition cursor-pointer"
+                    title="Copy GST number"
+                  >
+                    {copiedKey === 'gst' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
+              )}
             </div>
             <div>
-              <span className="text-slate-400 font-medium block">CIN Number</span>
-              <span className="font-semibold text-slate-800 mt-0.5 block font-mono truncate">{startup?.cin_number || '—'}</span>
+              <span className="text-xs text-slate-500 font-normal block">CIN number</span>
+              {startup?.cin_number ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-sm font-medium text-slate-900 font-mono truncate">{startup.cin_number}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(startup.cin_number, 'cin')}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded hover:bg-slate-100 transition cursor-pointer shrink-0"
+                    title="Copy CIN number"
+                  >
+                    {copiedKey === 'cin' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <span className="text-slate-400 font-normal mt-0.5 block">—</span>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 6: Financials & Traction */}
-      <div id="section-financials" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">6. Financials & Traction</h3>
-              <p className="text-xs text-slate-500">Revenue figures, MRR, capital raised, and active customer base.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'financials' && (
-            <button
-              onClick={() => handleStartEdit('financials')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
-
-        {activeEditingSection === 'financials' ? (
-          <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Recurring Revenue ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.mrr !== undefined ? formData.mrr : 0}
-                  onChange={(e) => handleFieldChange('mrr', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          {/* Section: Financials & Traction */}
+          <div id="section-financials" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Funding &amp; financials</h3>
+                  <p className="text-xs text-slate-500 font-normal">Revenue figures, MRR, capital raised, and active customer base.</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Revenue ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.monthly_revenue !== undefined ? formData.monthly_revenue : 0}
-                  onChange={(e) => handleFieldChange('monthly_revenue', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Total Funding Raised ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.funding_raised !== undefined ? formData.funding_raised : 0}
-                  onChange={(e) => handleFieldChange('funding_raised', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Active Customer Count</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.customer_count !== undefined ? formData.customer_count : 0}
-                  onChange={(e) => handleFieldChange('customer_count', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              {!isReadOnly && activeEditingSection !== 'financials' && (
+                <button
+                  onClick={() => handleStartEdit('financials')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={handleCancelEdit}
-                disabled={isSaving}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSaveSection('financials')}
-                disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
-              >
-                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save Financials
-              </button>
-            </div>
+            {activeEditingSection === 'financials' ? (
+              <div className="space-y-4 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Monthly recurring revenue ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.mrr !== undefined ? formData.mrr : 0}
+                      onChange={(e) => handleFieldChange('mrr', e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Monthly revenue ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.monthly_revenue !== undefined ? formData.monthly_revenue : 0}
+                      onChange={(e) => handleFieldChange('monthly_revenue', e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Total funding raised ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.funding_raised !== undefined ? formData.funding_raised : 0}
+                      onChange={(e) => handleFieldChange('funding_raised', e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Active customer count</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.customer_count !== undefined ? formData.customer_count : 0}
+                      onChange={(e) => handleFieldChange('customer_count', e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSaveSection('financials')}
+                    disabled={isSaving}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+                  >
+                    {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Save Financials
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+                <div>
+                  <span className="text-xs text-slate-500 font-normal block">Monthly recurring (MRR)</span>
+                  <span className="text-sm font-medium text-slate-900 mt-0.5 block font-mono">
+                    ${Number(startup?.mrr || startup?.monthly_revenue || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-normal block">Annual run rate (ARR)</span>
+                  <span className="text-sm font-medium text-slate-900 mt-0.5 block font-mono">
+                    ${Number(startup?.annual_revenue || (startup?.mrr ? startup.mrr * 12 : 0)).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-normal block">Total funding raised</span>
+                  <span className="text-sm font-medium text-slate-900 mt-0.5 block font-mono">
+                    ${Number(startup?.funding_raised || 0).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 font-normal block">Active customers</span>
+                  <span className="text-sm font-medium text-slate-900 mt-0.5 block font-mono">
+                    {Number(startup?.customer_count || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1 text-xs">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-              <span className="text-slate-400 font-medium block">Monthly Recurring (MRR)</span>
-              <span className="font-extrabold text-slate-900 text-base mt-0.5 block">
-                ${Number(startup?.mrr || startup?.monthly_revenue || 0).toLocaleString()}
+
+          {/* Section: Incubation Details */}
+          <div id="section-incubation" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <Award className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Incubation details</h3>
+                  <p className="text-xs text-slate-500 font-normal">Host incubator affiliation, lifecycle milestone, and program tenure.</p>
+                </div>
+              </div>
+              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+                Managed by incubator
               </span>
             </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-              <span className="text-slate-400 font-medium block">Annual Run Rate (ARR)</span>
-              <span className="font-extrabold text-slate-900 text-base mt-0.5 block">
-                ${Number(startup?.annual_revenue || (startup?.mrr ? startup.mrr * 12 : 0)).toLocaleString()}
-              </span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-              <span className="text-slate-400 font-medium block">Total Funding Raised</span>
-              <span className="font-extrabold text-emerald-700 text-base mt-0.5 block">
-                ${Number(startup?.funding_raised || 0).toLocaleString()}
-              </span>
-            </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-              <span className="text-slate-400 font-medium block">Active Customers</span>
-              <span className="font-extrabold text-blue-700 text-base mt-0.5 block">
-                {Number(startup?.customer_count || 0).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Section 7: Incubation Details */}
-      <div id="section-incubation" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">7. Incubation Details</h3>
-              <p className="text-xs text-slate-500">Host incubator affiliation, lifecycle milestone, and program tenure.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 text-xs">
+              <div>
+                <span className="text-xs text-slate-500 font-normal block">Host incubator</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block truncate">
+                  {organization?.name || startup?.organization_name || 'Primary accelerator'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-normal block">Incubation status</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block capitalize">
+                  {startup?.status || 'Active'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-normal block">Lifecycle stage</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block capitalize">
+                  {renderDash(startup?.lifecycle_stage || 'Incubation')}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-slate-500 font-normal block">Incubation tenure</span>
+                <span className="text-sm font-medium text-slate-900 mt-0.5 block">
+                  {startup?.incubation_start_date ? new Date(startup.incubation_start_date).toLocaleDateString() : 'Active'}
+                  {startup?.incubation_end_date ? ` to ${new Date(startup.incubation_end_date).toLocaleDateString()}` : ''}
+                </span>
+              </div>
             </div>
           </div>
-          <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-md">
-            Managed by Incubator
-          </span>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1 text-xs">
-          <div>
-            <span className="text-slate-400 font-medium block">Host Incubator</span>
-            <span className="font-bold text-slate-900 mt-0.5 block truncate">
-              {organization?.name || startup?.organization_name || 'Primary Accelerator'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-medium block">Incubation Status</span>
-            <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-[11px] uppercase">
-              {startup?.status || 'active'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-medium block">Lifecycle Stage</span>
-            <span className="font-semibold text-slate-800 mt-0.5 block capitalize">
-              {startup?.lifecycle_stage || 'Incubation'}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-medium block">Incubation Tenure</span>
-            <span className="font-semibold text-slate-800 mt-0.5 block">
-              {startup?.incubation_start_date ? new Date(startup.incubation_start_date).toLocaleDateString() : 'Active'}
-              {startup?.incubation_end_date ? ` to ${new Date(startup.incubation_end_date).toLocaleDateString()}` : ''}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Section 8: Pitch Deck, Prototypes & Product Links */}
-      <div id="section-documents" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
-              <FileText className="w-5 h-5" />
+          {/* Section: Pitch, Prototypes & Product Links */}
+          <div id="section-documents" className="space-y-4 py-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Documents &amp; links</h3>
+                  <p className="text-xs text-slate-500 font-normal">Official pitch deck, business plan, GitHub repository, Figma designs, and product links.</p>
+                </div>
+              </div>
+              {!isReadOnly && activeEditingSection !== 'documents' && (
+                <button
+                  onClick={() => handleStartEdit('documents')}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition cursor-pointer shadow-2xs"
+                >
+                  <Edit2 className="w-3 h-3 text-slate-500" />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900">8. Pitch, Prototype &amp; Product Links</h3>
-              <p className="text-xs text-slate-500">Official investor pitch deck, business plan, GitHub repository, Figma designs, and live demos.</p>
-            </div>
-          </div>
-          {!isReadOnly && activeEditingSection !== 'documents' && (
-            <button
-              onClick={() => handleStartEdit('documents')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-blue-200 bg-blue-50/90 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-blue-600" /> Edit Section
-            </button>
-          )}
-        </div>
 
         {activeEditingSection === 'documents' ? (
           <div className="space-y-4 pt-2">
@@ -1294,167 +1471,157 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1 text-xs">
-            {/* 1. Pitch Deck */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
-                  <FileText className="w-5 h-5" />
+          <div className="space-y-4 pt-1">
+            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white overflow-hidden">
+              {/* 1. Pitch Deck */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Investor pitch deck</span>
+                    <span className="text-xs text-slate-500 font-normal">Presentation document</span>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">Pitch Deck</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.pitch_deck_url ? 'Linked' : 'Not linked'}
-                  </span>
-                </div>
+                {startup?.pitch_deck_url ? (
+                  <a
+                    href={startup.pitch_deck_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>View</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
               </div>
-              {startup?.pitch_deck_url && (
-                <a
-                  href={startup.pitch_deck_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Open</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
+
+              {/* 2. Business Plan */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Business plan / whitepaper</span>
+                    <span className="text-xs text-slate-500 font-normal">Business documentation</span>
+                  </div>
+                </div>
+                {startup?.business_plan_url ? (
+                  <a
+                    href={startup.business_plan_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>View</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 3. GitHub Repo */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <GitBranch className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">GitHub repository</span>
+                    <span className="text-xs text-slate-500 font-normal">Source code repository</span>
+                  </div>
+                </div>
+                {startup?.github_url ? (
+                  <a
+                    href={startup.github_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>View repository</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 4. Figma Design */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Figma prototype</span>
+                    <span className="text-xs text-slate-500 font-normal">Design system &amp; flows</span>
+                  </div>
+                </div>
+                {startup?.figma_url ? (
+                  <a
+                    href={startup.figma_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>Open Figma</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 5. Live Demo */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Play className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Live demo</span>
+                    <span className="text-xs text-slate-500 font-normal">Active deployment</span>
+                  </div>
+                </div>
+                {startup?.demo_url ? (
+                  <a
+                    href={startup.demo_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>Launch</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 6. Demo Video / Loom */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Video className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Video walkthrough</span>
+                    <span className="text-xs text-slate-500 font-normal">Recorded demonstration</span>
+                  </div>
+                </div>
+                {startup?.demo_video_url ? (
+                  <a
+                    href={startup.demo_video_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  >
+                    <span>Watch</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
             </div>
 
-            {/* 2. Business Plan */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">Business Plan</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.business_plan_url ? 'Linked' : 'Not linked'}
-                  </span>
-                </div>
-              </div>
-              {startup?.business_plan_url && (
-                <a
-                  href={startup.business_plan_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Open</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
-            </div>
-
-            {/* 3. GitHub Repo */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center font-bold shrink-0">
-                  <GitBranch className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">GitHub Repo</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.github_url ? 'Linked' : 'Not linked'}
-                  </span>
-                </div>
-              </div>
-              {startup?.github_url && (
-                <a
-                  href={startup.github_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Repo</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
-            </div>
-
-            {/* 4. Figma Design */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
-                  <Layers className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">Figma Prototype</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.figma_url ? 'Linked' : 'Not linked'}
-                  </span>
-                </div>
-              </div>
-              {startup?.figma_url && (
-                <a
-                  href={startup.figma_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Figma</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
-            </div>
-
-            {/* 5. Live Demo */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0">
-                  <Play className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">Live Demo</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.demo_url ? 'Active Demo' : 'Not linked'}
-                  </span>
-                </div>
-              </div>
-              {startup?.demo_url && (
-                <a
-                  href={startup.demo_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Launch</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
-            </div>
-
-            {/* 6. Demo Video / Loom */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold shrink-0">
-                  <Video className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-bold text-slate-900 block truncate">Video Walkthrough</span>
-                  <span className="text-[11px] text-slate-500">
-                    {startup?.demo_video_url ? 'Video linked' : 'Not linked'}
-                  </span>
-                </div>
-              </div>
-              {startup?.demo_video_url && (
-                <a
-                  href={startup.demo_video_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
-                >
-                  <span>Watch</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              )}
-            </div>
-
-            {/* 7. Core Technologies & Architecture Stack */}
-            <div className="sm:col-span-2 lg:col-span-3 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                Core Technologies &amp; Architecture Stack
+            {/* Core Technologies */}
+            <div className="pt-2">
+              <span className="text-xs text-slate-500 font-normal block mb-1.5">
+                Core technologies &amp; architecture
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0 ? (
@@ -1464,18 +1631,20 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   ).map((tech: string, i: number) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs"
+                      className="px-2.5 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium"
                     >
                       {tech}
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400 italic">No technologies listed yet. Add in Edit Section.</span>
+                  <span className="text-slate-400 font-normal text-xs">—</span>
                 )}
               </div>
             </div>
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );

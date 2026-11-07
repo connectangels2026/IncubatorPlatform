@@ -106,15 +106,15 @@ export const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = (
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xl font-black text-slate-900 tracking-tight">{percentage}%</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Score</span>
+            <span className="text-xl font-bold text-slate-900 tracking-tight">{percentage}%</span>
+            <span className="text-[10px] font-medium text-slate-400">Score</span>
           </div>
         </div>
 
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-slate-900 text-base">Startup Profile Completeness</h3>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${colorScheme.bg}`}>
+            <h3 className="font-semibold text-slate-900 text-sm">Startup profile completeness</h3>
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colorScheme.bg}`}>
               {colorScheme.label}
             </span>
           </div>
@@ -131,29 +131,32 @@ export const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = (
       {missingFields.length > 0 ? (
         <div className="flex-1 w-full md:w-auto md:border-l md:border-slate-100 md:pl-6 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              Missing Information ({missingFields.length})
+              Missing information ({missingFields.length})
             </span>
             <span className="text-[11px] text-slate-400">Click a chip to edit</span>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-            {missingFields.slice(0, 6).map((field) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {missingFields.slice(0, 3).map((field) => (
               <button
                 key={field.key}
                 onClick={() => onFocusSection?.(field.section)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-medium transition cursor-pointer"
+                className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-medium transition cursor-pointer"
                 title={`Click to fill ${field.label}`}
               >
                 <span>+ {field.label}</span>
-                <ArrowUpRight className="w-3 h-3 text-slate-400" />
               </button>
             ))}
-            {missingFields.length > 6 && (
-              <span className="inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold text-slate-400">
-                +{missingFields.length - 6} more
-              </span>
+            {missingFields.length > 3 && (
+              <button
+                type="button"
+                onClick={() => onFocusSection?.(missingFields[3].section)}
+                className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 hover:underline cursor-pointer"
+              >
+                +{missingFields.length - 3} more
+              </button>
             )}
           </div>
         </div>

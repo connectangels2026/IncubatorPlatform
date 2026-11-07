@@ -106,17 +106,16 @@ export default function StartupDetailPage() {
     Boolean(user?.id && startup.founder_id === user.id) ||
     Boolean(user?.email && startup.founder_email && startup.founder_email.toLowerCase() === user.email.toLowerCase()) ||
     Boolean(startupId === 'me') ||
-    Boolean(user?.role === 'startup');
+    Boolean(user?.role === 'startup' || user?.role === 'founder' || user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'super-admin' || user?.role === 'incubator' || user?.role === 'incubator_admin');
 
   const displayName = startup.startup_name || startup.name || 'Startup';
   const monogram = displayName.slice(0, 2).toUpperCase();
 
   const handleEditClick = () => {
+    window.dispatchEvent(new CustomEvent('edit-startup-section', { detail: 'basic' }));
     const target = document.getElementById('section-basic');
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const editBtn = target.querySelector('button') as HTMLButtonElement | null;
-      if (editBtn) editBtn.click();
     }
   };
 
