@@ -124,9 +124,14 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wider">
                   {startup.sector || 'Technology'}
                 </span>
+                {startup.batch && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {startup.batch}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                Complete Startup Profile & Database Records
+                {startup.tagline || 'Complete Startup Profile & Database Records'}
               </p>
             </div>
           </div>

@@ -26,6 +26,10 @@ import {
   DollarSign,
   Layers,
   Sparkles,
+  GitBranch,
+  Video,
+  Play,
+  Code,
 } from 'lucide-react';
 import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
@@ -88,6 +92,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
 
       if (section === 'basic') {
         payload.startup_name = formData.startup_name || formData.name;
+        payload.tagline = formData.tagline;
         payload.logo_url = formData.logo_url;
         payload.website = formData.website;
         payload.sector = formData.sector;
@@ -123,6 +128,10 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
       } else if (section === 'documents') {
         payload.pitch_deck_url = formData.pitch_deck_url;
         payload.business_plan_url = formData.business_plan_url;
+        payload.github_url = formData.github_url;
+        payload.figma_url = formData.figma_url;
+        payload.demo_url = formData.demo_url;
+        payload.demo_video_url = formData.demo_video_url;
       }
 
       const res = await apiClient.put('/startups/me', payload);
@@ -308,6 +317,16 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                 />
               </div>
               <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Elevator Tagline</label>
+                <input
+                  type="text"
+                  value={formData.tagline || ''}
+                  onChange={(e) => handleFieldChange('tagline', e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. Next-generation AI copilot for hardware lab engineering"
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <LogoImageUploader
                   value={formData.logo_url || ''}
                   onChange={(url) => handleFieldChange('logo_url', url)}
@@ -336,6 +355,12 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1 text-xs">
+            <div className="col-span-2 sm:col-span-3">
+              <span className="text-slate-400 font-medium block">Elevator Tagline</span>
+              <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
+                {startup?.tagline || '—'}
+              </span>
+            </div>
             <div>
               <span className="text-slate-400 font-medium block">Startup Name</span>
               <span className="font-bold text-slate-900 text-sm mt-0.5 block">{displayName}</span>
@@ -349,6 +374,17 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
               <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 font-bold text-[11px]">
                 {startup?.stage || 'Idea'}
               </span>
+            </div>
+            <div>
+              <span className="text-slate-400 font-medium block">Cohort &amp; Program Track</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="inline-block px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[11px]">
+                  {startup?.batch || 'Batch 2026'}
+                </span>
+                <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                  {startup?.track === 'both' ? 'DeepTech' : startup?.track || 'DeepTech'}
+                </span>
+              </div>
             </div>
             <div>
               <span className="text-slate-400 font-medium block">Founded Date</span>
@@ -1127,7 +1163,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         </div>
       </div>
 
-      {/* Section 8: Documents */}
+      {/* Section 8: Pitch Deck, Prototypes & Product Links */}
       <div id="section-documents" className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -1135,8 +1171,8 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">8. Pitch Deck & Business Plan</h3>
-              <p className="text-xs text-slate-500">Official investor pitch deck presentation and executive business plan.</p>
+              <h3 className="text-base font-bold text-slate-900">8. Pitch, Prototype &amp; Product Links</h3>
+              <p className="text-xs text-slate-500">Official investor pitch deck, business plan, GitHub repository, Figma designs, and live demos.</p>
             </div>
           </div>
           {!isReadOnly && activeEditingSection !== 'documents' && (
@@ -1172,6 +1208,46 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   placeholder="https://drive.google.com/..."
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">GitHub Repository URL</label>
+                <input
+                  type="url"
+                  value={formData.github_url || ''}
+                  onChange={(e) => handleFieldChange('github_url', e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://github.com/organization/repo"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Figma Design System URL</label>
+                <input
+                  type="url"
+                  value={formData.figma_url || ''}
+                  onChange={(e) => handleFieldChange('figma_url', e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://figma.com/file/..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Interactive Live Demo URL</label>
+                <input
+                  type="url"
+                  value={formData.demo_url || ''}
+                  onChange={(e) => handleFieldChange('demo_url', e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://demo.myplatform.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Product Demo / Loom Video URL</label>
+                <input
+                  type="url"
+                  value={formData.demo_video_url || ''}
+                  onChange={(e) => handleFieldChange('demo_video_url', e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://loom.com/share/... or YouTube link"
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
@@ -1188,21 +1264,22 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                 className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
               >
                 {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save Documents
+                Save Product Links
               </button>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1 text-xs">
+            {/* 1. Pitch Deck */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
-                <div>
-                  <span className="font-bold text-slate-900 block">Investor Pitch Deck</span>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">Pitch Deck</span>
                   <span className="text-[11px] text-slate-500">
-                    {startup?.pitch_deck_url ? 'Pitch presentation linked' : 'No pitch deck uploaded'}
+                    {startup?.pitch_deck_url ? 'Linked' : 'Not linked'}
                   </span>
                 </div>
               </div>
@@ -1211,23 +1288,24 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   href={startup.pitch_deck_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
                 >
-                  <span>Open Deck</span>
+                  <span>Open</span>
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               )}
             </div>
 
+            {/* 2. Business Plan */}
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
-                <div>
-                  <span className="font-bold text-slate-900 block">Executive Business Plan</span>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">Business Plan</span>
                   <span className="text-[11px] text-slate-500">
-                    {startup?.business_plan_url ? 'Business plan linked' : 'No document uploaded'}
+                    {startup?.business_plan_url ? 'Linked' : 'Not linked'}
                   </span>
                 </div>
               </div>
@@ -1236,9 +1314,113 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   href={startup.business_plan_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
                 >
-                  <span>Open Plan</span>
+                  <span>Open</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
+              )}
+            </div>
+
+            {/* 3. GitHub Repo */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center font-bold shrink-0">
+                  <GitBranch className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">GitHub Repo</span>
+                  <span className="text-[11px] text-slate-500">
+                    {startup?.github_url ? 'Linked' : 'Not linked'}
+                  </span>
+                </div>
+              </div>
+              {startup?.github_url && (
+                <a
+                  href={startup.github_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
+                >
+                  <span>Repo</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
+              )}
+            </div>
+
+            {/* 4. Figma Design */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">Figma Prototype</span>
+                  <span className="text-[11px] text-slate-500">
+                    {startup?.figma_url ? 'Linked' : 'Not linked'}
+                  </span>
+                </div>
+              </div>
+              {startup?.figma_url && (
+                <a
+                  href={startup.figma_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
+                >
+                  <span>Figma</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
+              )}
+            </div>
+
+            {/* 5. Live Demo */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0">
+                  <Play className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">Live Demo</span>
+                  <span className="text-[11px] text-slate-500">
+                    {startup?.demo_url ? 'Active Demo' : 'Not linked'}
+                  </span>
+                </div>
+              </div>
+              {startup?.demo_url && (
+                <a
+                  href={startup.demo_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
+                >
+                  <span>Launch</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </a>
+              )}
+            </div>
+
+            {/* 6. Demo Video / Loom */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold shrink-0">
+                  <Video className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-slate-900 block truncate">Video Walkthrough</span>
+                  <span className="text-[11px] text-slate-500">
+                    {startup?.demo_video_url ? 'Video linked' : 'Not linked'}
+                  </span>
+                </div>
+              </div>
+              {startup?.demo_video_url && (
+                <a
+                  href={startup.demo_video_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-semibold shadow-2xs hover:bg-slate-50 transition shrink-0 ml-2"
+                >
+                  <span>Watch</span>
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               )}

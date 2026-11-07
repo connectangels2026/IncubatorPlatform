@@ -207,24 +207,15 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
       {/* Profile Trigger Button */}
       <button
         onClick={() => setDropdownOpen((prev) => !prev)}
-        className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 cursor-pointer focus:outline-none"
+        className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 cursor-pointer focus:outline-none"
         aria-expanded={dropdownOpen}
         aria-haspopup="true"
+        title={user?.email || 'Account'}
       >
         <div className="relative">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1A2151] to-blue-600 flex items-center justify-center text-white text-xs font-black shadow-xs ring-2 ring-white">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1A2151] to-blue-600 flex items-center justify-center text-white text-xs font-semibold shadow-xs ring-2 ring-white">
             {userInitial}
           </div>
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
-        </div>
-
-        <div className="hidden lg:block text-left">
-          <p className="text-xs font-bold text-slate-800 leading-none truncate max-w-[130px]">
-            {profileForm.fullName || startupForm.name || 'Startup Founder'}
-          </p>
-          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[130px] mt-0.5">
-            {user?.email}
-          </p>
         </div>
       </button>
 

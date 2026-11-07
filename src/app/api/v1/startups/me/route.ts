@@ -206,9 +206,15 @@ export async function PUT(req: NextRequest) {
     if (body.funding_raised !== undefined) updatePayload.funding_raised = Number(body.funding_raised) || 0;
     if (body.customer_count !== undefined) updatePayload.customer_count = Number(body.customer_count) || 0;
 
-    // Documents
+    // Documents & Showcase Links
+    if (body.tagline !== undefined) updatePayload.tagline = body.tagline;
     if (body.pitch_deck_url !== undefined) updatePayload.pitch_deck_url = body.pitch_deck_url;
     if (body.business_plan_url !== undefined) updatePayload.business_plan_url = body.business_plan_url;
+    if (body.github_url !== undefined) updatePayload.github_url = body.github_url;
+    if (body.figma_url !== undefined) updatePayload.figma_url = body.figma_url;
+    if (body.demo_url !== undefined) updatePayload.demo_url = body.demo_url;
+    if (body.demo_video_url !== undefined) updatePayload.demo_video_url = body.demo_video_url;
+    if (body.tech_stack !== undefined) updatePayload.tech_stack = Array.isArray(body.tech_stack) ? body.tech_stack : [];
 
     // 3. Persist update in startups table
     const { data: updatedStartup, error: updateErr } = await supabaseAdmin
