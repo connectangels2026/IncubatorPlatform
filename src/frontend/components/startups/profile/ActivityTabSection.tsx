@@ -16,7 +16,7 @@ export function ActivityTabSection({ startup, onRequestChange }: ActivityTabSect
     <div className="space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div>
-          <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-indigo-600" />
             Activity & audit history ({logs.length})
           </h4>

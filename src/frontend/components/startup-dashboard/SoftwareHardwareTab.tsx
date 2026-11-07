@@ -120,11 +120,11 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }
               >
                 <div>
                   <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/70">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    <span className="text-xs font-medium text-slate-500">
                       {cat.category}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-400">
-                      {cat.items.length} ITEMS
+                    <span className="text-[10px] font-medium text-slate-400">
+                      {cat.items.length} {cat.items.length === 1 ? 'item' : 'items'}
                     </span>
                   </div>
 
@@ -176,7 +176,7 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  <span className="text-xs font-medium text-slate-500">
                     Key Components Checklist
                   </span>
                   <div className="space-y-1.5">

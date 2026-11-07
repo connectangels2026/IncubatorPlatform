@@ -232,7 +232,7 @@ export default function SuperAdminPricingPage() {
                           }`}
                         />
                         <span
-                          className={`absolute text-[9px] font-extrabold uppercase select-none ${
+                          className={`absolute text-[9px] font-bold select-none ${
                             tier.active
                               ? 'left-1 text-white top-0.5'
                               : 'right-1 text-slate-500 top-0.5'
@@ -271,7 +271,7 @@ export default function SuperAdminPricingPage() {
 
                     {/* Features List */}
                     <div className="mt-5 space-y-2.5 text-xs font-medium">
-                      <p className="font-bold text-slate-900 text-xs tracking-wider uppercase mb-2">
+                      <p className="font-medium text-slate-900 text-xs mb-2">
                         Features
                       </p>
                       {tier.features.map((feat, idx) => (

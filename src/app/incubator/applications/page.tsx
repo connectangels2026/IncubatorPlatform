@@ -1458,7 +1458,7 @@ export default function ApplicationsPage() {
                     <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/90 shadow-2xs space-y-1.5">
                       <div className="flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-amber-600" />
-                        <h4 className="font-extrabold text-amber-950 text-xs uppercase tracking-wider">
+                        <h4 className="font-semibold text-amber-950 text-xs">
                           Super Admin Directives & Forwarding Notes
                         </h4>
                       </div>
@@ -1488,7 +1488,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <h4 className="text-sm font-medium text-slate-900 mb-1.5 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-blue-600" /> Pitch Summary
                     </h4>
                     <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
@@ -1497,7 +1497,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <h4 className="text-sm font-medium text-slate-900 mb-1.5 flex items-center gap-1.5">
                       <Globe className="w-3.5 h-3.5 text-blue-600" /> Target Market
                     </h4>
                     <p className="text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
@@ -1506,7 +1506,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <h4 className="text-sm font-medium text-slate-900 mb-1.5 flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-blue-600" /> Contact Info
                     </h4>
                     <div className="text-slate-600 space-y-0.5">
@@ -1516,7 +1516,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div className="pt-3 border-t border-slate-200">
-                    <label className="block font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs text-slate-500 mb-2">
                       Incubator Decision & Access
                     </label>
                     <div className="flex flex-wrap gap-2.5">
@@ -1633,7 +1633,7 @@ export default function ApplicationsPage() {
             <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
               <div className="p-5 border-b border-slate-200 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Evaluation Rubric</span>
+                  <span className="text-xs font-medium text-blue-600">Evaluation Rubric</span>
                   <h3 className="text-lg font-bold text-slate-900">{scoreModalApp.startupName}</h3>
                 </div>
                 <button onClick={() => setScoreModalApp(null)} className="text-slate-400 hover:text-slate-600">
@@ -1775,7 +1775,7 @@ export default function ApplicationsPage() {
               ) : (
                 <div className="p-5 space-y-4 text-xs">
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-2">Final Outcome</label>
+                    <label className="block text-xs text-slate-500 mb-2">Final Outcome</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
@@ -1812,7 +1812,7 @@ export default function ApplicationsPage() {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs text-slate-500 mb-1.5">
                       Applicant Feedback Message
                     </label>
                     <textarea

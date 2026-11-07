@@ -32,7 +32,7 @@ export function CoIncubationSection({
       {/* Header and Add CTA */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-purple-600" />
             Co-Incubators
           </h4>

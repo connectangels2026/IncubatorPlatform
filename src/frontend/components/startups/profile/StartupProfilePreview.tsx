@@ -61,12 +61,12 @@ export function StartupProfilePreview({
   const milestonesList = isEditingMilestones
     ? (draftForm.milestones || [])
     : (startup.milestones && Array.isArray(startup.milestones) && startup.milestones.length > 0
-        ? startup.milestones
-        : [
-            { id: '1', title: 'Cohort admission & onboarding', status: 'Completed', date: '2026-01-15' },
-            { id: '2', title: 'Advisory council initial review', status: 'In Progress', date: '2026-03-30' },
-            { id: '3', title: 'Pilot deployment & commercial MOU', status: 'Pending', date: '2026-06-15' },
-          ]);
+      ? startup.milestones
+      : [
+        { id: '1', title: 'Cohort admission & onboarding', status: 'Completed', date: '2026-01-15' },
+        { id: '2', title: 'Advisory council initial review', status: 'In Progress', date: '2026-03-30' },
+        { id: '3', title: 'Pilot deployment & commercial MOU', status: 'Pending', date: '2026-06-15' },
+      ]);
 
   const handleAddMilestone = () => {
     const next = [
@@ -93,7 +93,7 @@ export function StartupProfilePreview({
       <div className="pb-6 border-b border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-indigo-600" />
               Basic information
             </h4>
@@ -177,7 +177,7 @@ export function StartupProfilePreview({
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-indigo-600" />
                 Incubation details
               </h4>
@@ -303,13 +303,13 @@ export function StartupProfilePreview({
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Start date</span>
-              <p className="text-sm font-medium text-slate-900 mt-0.5 font-mono text-xs">
+              <p className="text-sm font-medium text-slate-900 mt-0.5">
                 {startup.incubation_start_date ? startup.incubation_start_date.split('T')[0] : '2026-01-01'}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">End date</span>
-              <p className="text-sm font-medium text-slate-900 mt-0.5 font-mono text-xs">
+              <p className="text-sm font-medium text-slate-900 mt-0.5">
                 {startup.incubation_end_date ? startup.incubation_end_date.split('T')[0] : '2026-12-31'}
               </p>
             </div>
@@ -322,7 +322,7 @@ export function StartupProfilePreview({
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
                 Incubator milestones
               </h4>
@@ -402,26 +402,24 @@ export function StartupProfilePreview({
                 <div key={idx} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50/50">
                   <div className="flex items-center gap-2.5">
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        isDone ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-slate-300'
-                      }`}
+                      className={`w-2 h-2 rounded-full ${isDone ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-slate-300'
+                        }`}
                     />
                     <span className="font-medium text-slate-800">{milestone.title}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                        isDone
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : isInProgress
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${isDone
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : isInProgress
                           ? 'bg-amber-50 text-amber-700'
                           : 'bg-slate-100 text-slate-600'
-                      }`}
+                        }`}
                     >
                       {milestone.status}
                     </span>
                     {milestone.date && (
-                      <span className="text-[11px] text-slate-400 font-mono">{milestone.date}</span>
+                      <span className="text-[11px] text-slate-400">{milestone.date}</span>
                     )}
                   </div>
                 </div>
@@ -435,7 +433,7 @@ export function StartupProfilePreview({
       <div className="pb-6 border-b border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
               Legal & compliance
             </h4>
@@ -524,7 +522,7 @@ export function StartupProfilePreview({
       <div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <FileCheck className="w-3.5 h-3.5 text-indigo-600" />
               Documents & collateral
             </h4>

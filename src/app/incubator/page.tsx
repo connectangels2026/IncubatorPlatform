@@ -613,7 +613,7 @@ export default function DashboardPage() {
               placeholder="Filter startups by name, mentor, or sector..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0066ff] focus:bg-white transition"
+              className="w-full h-10 pl-10 pr-4 rounded-lg bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition"
             />
             {searchQuery && (
               <button
@@ -806,7 +806,7 @@ export default function DashboardPage() {
                               {item.stage}
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-mono font-medium">{item.fundingAsk}</td>
+                          <td className="py-3 px-4 tabular-nums font-medium">{item.fundingAsk}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-1.5">
                               <img src={item.mentorAvatar} className="w-4 h-4 rounded-full object-cover" alt="" />
@@ -814,7 +814,7 @@ export default function DashboardPage() {
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-mono font-bold text-emerald-600">{item.leadScore}</span>
+                            <span className="tabular-nums font-semibold text-emerald-600">{item.leadScore}</span>
                           </td>
                           <td className="py-3 px-4">
                             <div className="w-24">
@@ -915,7 +915,7 @@ export default function DashboardPage() {
 
               <div className="mt-4 pt-3 border-t border-slate-700/80 flex items-center justify-between text-xs relative z-10">
                 <span className="text-slate-400">Target Date:</span>
-                <span className="font-mono font-semibold text-slate-900">Nov 06, 2026</span>
+                <span className="font-medium text-slate-900">Nov 06, 2026</span>
               </div>
 
               <button
@@ -955,7 +955,7 @@ export default function DashboardPage() {
 
             {/* Quick Actions List */}
             <div className="p-3 space-y-1 text-xs">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Actions</div>
+              <div className="px-3 py-1.5 text-[11px] font-medium text-slate-400">Quick actions</div>
               <button
                 onClick={() => {
                   setIsCmdKOpen(false);

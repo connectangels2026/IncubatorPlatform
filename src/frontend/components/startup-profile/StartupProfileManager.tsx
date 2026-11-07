@@ -674,7 +674,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             {/* Team Members sub-editor */}
             <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">Key Team Members</span>
+                <span className="text-xs font-medium text-slate-700">Key team members</span>
                 <button
                   type="button"
                   onClick={handleAddTeamMember}

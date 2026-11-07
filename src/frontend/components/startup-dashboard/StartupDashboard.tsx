@@ -48,11 +48,11 @@ export default function StartupDashboard() {
     setProfile((prev) =>
       prev
         ? {
-            ...prev,
-            name: updated.name || prev.name,
-            tagline: updated.description || updated.solution_description || prev.tagline,
-            stage: updated.stage || prev.stage,
-          }
+          ...prev,
+          name: updated.name || prev.name,
+          tagline: updated.description || updated.solution_description || prev.tagline,
+          stage: updated.stage || prev.stage,
+        }
         : null
     );
   };
@@ -228,11 +228,10 @@ export default function StartupDashboard() {
             <button
               type="button"
               onClick={handleShare}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-medium text-sm transition shadow-xs cursor-pointer ${
-                activeTab === 'activity'
-                  ? 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-medium text-sm transition shadow-xs cursor-pointer ${activeTab === 'activity'
+                ? 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               title="Share dashboard"
             >
               <Share2 className="w-4 h-4" />
@@ -267,7 +266,7 @@ export default function StartupDashboard() {
 
                   {applications.length > 0 && (
                     <div className="border-t border-slate-100 mt-1 pt-1">
-                      <div className="px-3.5 py-1.5 flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div className="px-3.5 py-1.5 flex items-center justify-between text-xs font-medium text-slate-500">
                         <span>Applied Incubators</span>
                         <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
                           {applications.length}
@@ -300,13 +299,12 @@ export default function StartupDashboard() {
                                 </p>
                               </div>
                               <span
-                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${
-                                  isAccepted
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : isRejected
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${isAccepted
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : isRejected
                                     ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                     : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}
+                                  }`}
                               >
                                 {status}
                               </span>
@@ -343,20 +341,18 @@ export default function StartupDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'overview'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
+            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'overview'
+              ? 'border-blue-600 text-blue-600 font-semibold'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
           >
             <TrendingUp className="w-4 h-4" />
             <span>Overview &amp; KPIs</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${
-                activeTab === 'overview'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'bg-slate-100 text-slate-500'
-              }`}
+              className={`px-1.5 py-0.5 rounded-full text-xs font-semibold ${activeTab === 'overview'
+                ? 'bg-blue-50 text-blue-700'
+                : 'bg-slate-100 text-slate-500'
+                }`}
             >
               7/10
             </span>
@@ -365,11 +361,10 @@ export default function StartupDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('pitch')}
-            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'pitch'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
+            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'pitch'
+              ? 'border-blue-600 text-blue-600 font-semibold'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
           >
             <FileText className="w-4 h-4" />
             <span>Pitch &amp; Prototype</span>
@@ -378,11 +373,10 @@ export default function StartupDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('tech')}
-            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'tech'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
+            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'tech'
+              ? 'border-blue-600 text-blue-600 font-semibold'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
           >
             <Cpu className="w-4 h-4" />
             <span>Software &amp; Hardware</span>
@@ -391,11 +385,10 @@ export default function StartupDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('activity')}
-            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${
-              activeTab === 'activity'
-                ? 'border-blue-600 text-blue-600 font-semibold'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-            }`}
+            className={`h-full inline-flex items-center gap-2 text-sm font-medium border-b-2 transition-colors cursor-pointer shrink-0 ${activeTab === 'activity'
+              ? 'border-blue-600 text-blue-600 font-semibold'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
           >
             <MessageSquare className="w-4 h-4" />
             <span>Activity Log</span>

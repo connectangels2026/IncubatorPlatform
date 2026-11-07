@@ -270,7 +270,7 @@ export default function EventsPage() {
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-700 flex flex-col items-center justify-center flex-shrink-0 border border-slate-200/80">
-                    <span className="text-[10px] uppercase text-slate-500 font-medium">
+                    <span className="text-[10px] text-slate-500 font-medium">
                       {new Date(ev.event_date).toLocaleString('default', { month: 'short' })}
                     </span>
                     <span className="text-base font-semibold leading-none mt-0.5">

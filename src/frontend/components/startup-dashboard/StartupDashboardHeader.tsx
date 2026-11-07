@@ -77,7 +77,7 @@ export function StartupDashboardHeader({
                 <Rocket className="w-3 h-3 text-indigo-500" />
                 <span>{profile.batch}</span>
               </span>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
+              <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
                 {profile.track === 'both' ? 'DeepTech (HW+SW)' : `${profile.track} Track`}
               </span>
             </div>
@@ -121,7 +121,7 @@ export function StartupDashboardHeader({
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                      <p className="text-xs font-medium text-slate-500">
                         Application Statuses
                       </p>
                       <p className="text-xs text-slate-500 font-medium">
@@ -157,7 +157,7 @@ export function StartupDashboardHeader({
 
                             <div className="flex items-center gap-2 shrink-0">
                               <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${
                                   isAccepted
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : isRejected

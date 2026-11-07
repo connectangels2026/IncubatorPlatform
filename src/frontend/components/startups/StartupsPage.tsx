@@ -1227,7 +1227,7 @@ export const StartupsPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
-                <h3 className="font-semibold text-slate-800 text-base">Onboard New Startup</h3>
+                <h3 className="font-semibold text-slate-900 text-base">Onboard new startup</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Register a startup into the incubator cohort</p>
               </div>
               <button
@@ -1241,22 +1241,22 @@ export const StartupsPage: React.FC = () => {
             <form onSubmit={handleOnboardSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Startup Name *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Startup name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. HealthSync AI"
                     value={onboardForm.name}
                     onChange={(e) => setOnboardForm({ ...onboardForm, name: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Industry Sector</label>
+                  <label className="block text-xs text-slate-500 mb-1">Industry sector</label>
                   <select
                     value={onboardForm.industry}
                     onChange={(e) => setOnboardForm({ ...onboardForm, industry: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Tech">Technology / AI</option>
                     <option value="FinTech">FinTech</option>
@@ -1270,46 +1270,46 @@ export const StartupsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Full Name *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Founder full name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Priya Sharma"
                     value={onboardForm.founder}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founder: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Email *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Founder email *</label>
                   <input
                     type="email"
                     required
                     placeholder="founder@startup.com"
                     value={onboardForm.founderEmail}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founderEmail: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Contact / Phone</label>
+                  <label className="block text-xs text-slate-500 mb-1">Contact / phone</label>
                   <input
                     type="tel"
                     placeholder="+1 (555) 000-0000"
                     value={onboardForm.founderPhone}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founderPhone: e.target.value })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Stage</label>
+                  <label className="block text-xs text-slate-500 mb-1">Stage</label>
                   <select
                     value={onboardForm.stage}
                     onChange={(e) => setOnboardForm({ ...onboardForm, stage: e.target.value })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Idea">Idea</option>
                     <option value="MVP">MVP</option>
@@ -1320,11 +1320,11 @@ export const StartupsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-700 mb-1">Status *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Status *</label>
                   <select
                     value={onboardForm.status}
                     onChange={(e) => setOnboardForm({ ...onboardForm, status: e.target.value as 'Active' | 'Inactive' | 'Exited' })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border-2 border-indigo-400 bg-indigo-50/50 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Active">Active</option>
                     <option value="Pending">Pending (Queue)</option>
@@ -1335,7 +1335,7 @@ export const StartupsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Elevator Pitch / Tagline</label>
+                <label className="block text-xs text-slate-500 mb-1">Elevator pitch / tagline</label>
                 <textarea
                   rows={2}
                   value={onboardForm.pitch}
@@ -1357,7 +1357,7 @@ export const StartupsPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
-                  Add Startup
+                  Add startup
                 </button>
               </div>
             </form>

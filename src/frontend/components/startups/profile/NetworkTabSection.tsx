@@ -170,7 +170,7 @@ export function NetworkTabSection({
       {(filter === 'all' || filter === 'mentors') && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-indigo-600" />
               Allocated mentors ({mentors.length})
             </h4>
@@ -236,7 +236,7 @@ export function NetworkTabSection({
       {(filter === 'all' || filter === 'investors') && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
               Connected investors ({investors.length})
             </h4>
@@ -309,7 +309,7 @@ export function NetworkTabSection({
       {(filter === 'all' || filter === 'co-incubators') && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
               <Handshake className="w-3.5 h-3.5 text-indigo-600" />
               Co-incubations ({coIncubators.length})
             </h4>

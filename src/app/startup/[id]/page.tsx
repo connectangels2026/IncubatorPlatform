@@ -234,28 +234,28 @@ export default function StartupDetailPage() {
         {/* High-Level Traction Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Funding Raised</span>
+            <span className="text-xs text-slate-500 block">Funding Raised</span>
             <span className="text-lg font-black text-emerald-700 mt-0.5 block">
               ${Number(startup.funding_raised || 0).toLocaleString()}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Monthly Recurring (MRR)</span>
+            <span className="text-xs text-slate-500 block">Monthly Recurring (MRR)</span>
             <span className="text-lg font-black text-slate-900 mt-0.5 block">
               ${Number(startup.mrr || startup.monthly_revenue || 0).toLocaleString()}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Customers</span>
+            <span className="text-xs text-slate-500 block">Active Customers</span>
             <span className="text-lg font-black text-blue-700 mt-0.5 block">
               {Number(startup.customer_count || 0).toLocaleString()}
             </span>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Team Size</span>
+            <span className="text-xs text-slate-500 block">Team Size</span>
             <span className="text-lg font-black text-slate-800 mt-0.5 block">
               {startup.team_size || 1} Members
             </span>

@@ -963,7 +963,7 @@ export default function MentorsHubPage() {
             <form onSubmit={handleAddSubmit} className="p-6 space-y-4 text-xs">
               {/* 1. Platform Account Search */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   1. Select Platform User Account
                 </label>
                 <div className="relative">
@@ -982,7 +982,7 @@ export default function MentorsHubPage() {
               {/* 2. Title & Company */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Professional Title
                   </label>
                   <input
@@ -995,7 +995,7 @@ export default function MentorsHubPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Company Affiliation
                   </label>
                   <input
@@ -1011,7 +1011,7 @@ export default function MentorsHubPage() {
 
               {/* 2. Mentor Type Radio Buttons */}
               <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-medium text-slate-700 mb-2">
                   2. Mentor Classification *
                 </label>
                 <div className="flex items-center gap-6">
@@ -1042,7 +1042,7 @@ export default function MentorsHubPage() {
               {addForm.mentorType === 'General' ? (
                 /* General Mentor: Expertise Areas Checkboxes */
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     3. Expertise Areas (Checkboxes)
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1085,7 +1085,7 @@ export default function MentorsHubPage() {
                 /* SME Mentor: Primary Expertise Dropdown & Specialization Details */
                 <div className="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-3">
                   <div>
-                    <label className="block text-xs font-bold text-emerald-900 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-medium text-emerald-900 mb-1">
                       Primary Expertise (Single Select) *
                     </label>
                     <select
@@ -1110,7 +1110,7 @@ export default function MentorsHubPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-emerald-900 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-medium text-emerald-900 mb-1">
                       Specialization Details *
                     </label>
                     <textarea
@@ -1128,7 +1128,7 @@ export default function MentorsHubPage() {
               {/* 4. Max Monthly Hours Slider */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="text-xs font-medium text-slate-700">
                     4. Max Monthly Mentorship Hours
                   </label>
                   <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
@@ -1147,7 +1147,7 @@ export default function MentorsHubPage() {
 
               {/* 5. Bio & LinkedIn URL */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   5. LinkedIn Profile URL
                 </label>
                 <input
@@ -1201,7 +1201,7 @@ export default function MentorsHubPage() {
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4 text-xs">
               {/* Mentor Type Switcher (General <-> SME) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   Mentor Classification
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1232,7 +1232,7 @@ export default function MentorsHubPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Mentor Name
                   </label>
                   <input
@@ -1244,7 +1244,7 @@ export default function MentorsHubPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Email Address
                   </label>
                   <input
@@ -1259,7 +1259,7 @@ export default function MentorsHubPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Role / Title
                   </label>
                   <input
@@ -1271,7 +1271,7 @@ export default function MentorsHubPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1.5">
                     Company Affiliation
                   </label>
                   <input
@@ -1288,7 +1288,7 @@ export default function MentorsHubPage() {
               {editForm.mentorType === 'SME' && (
                 <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200/80 space-y-3">
                   <div>
-                    <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-medium text-purple-900 mb-1">
                       Primary SME Expertise *
                     </label>
                     <input
@@ -1301,7 +1301,7 @@ export default function MentorsHubPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-purple-900 uppercase tracking-wider mb-1">
+                    <label className="block text-xs font-medium text-purple-900 mb-1">
                       Specialization Details &amp; Niche
                     </label>
                     <textarea
@@ -1316,7 +1316,7 @@ export default function MentorsHubPage() {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5">
                   {editForm.mentorType === 'SME' ? 'Secondary / Domain Tags' : 'Expertise Areas'}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -1349,7 +1349,7 @@ export default function MentorsHubPage() {
 
               <div>
                 <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="text-xs font-medium text-slate-700">
                     Max Monthly Mentorship Hours
                   </label>
                   <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
@@ -1416,7 +1416,7 @@ export default function MentorsHubPage() {
               </div>
 
               <div>
-                <span className="block font-bold text-slate-700 uppercase tracking-wider mb-2">
+                <span className="block text-xs font-medium text-slate-500 mb-2">
                   Active Recurring Time Slots
                 </span>
                 <div className="space-y-2">

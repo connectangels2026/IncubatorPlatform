@@ -219,7 +219,7 @@ export const LogoImageUploader: React.FC<LogoImageUploaderProps> = ({
       {/* Gallery of Uploaded / Preview Images */}
       {images.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <p className="text-[11px] font-medium text-slate-500">
             Select Active Logo
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -237,9 +237,9 @@ export const LogoImageUploader: React.FC<LogoImageUploaderProps> = ({
                 >
                   {/* Badge */}
                   {isActive && (
-                    <span className="absolute top-2 left-2 inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black bg-blue-600 text-white uppercase tracking-wider shadow-2xs">
+                    <span className="absolute top-2 left-2 inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-600 text-white shadow-2xs">
                       <CheckCircle2 className="w-2.5 h-2.5" />
-                      Active Logo
+                      Active logo
                     </span>
                   )}
 

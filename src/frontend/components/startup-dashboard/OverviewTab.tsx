@@ -201,11 +201,10 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                 ${Number(startup?.mrr || startup?.monthly_revenue || 0).toLocaleString()}
               </h3>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  customerCount > 0
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-slate-100 text-slate-600 border border-slate-200'
-                }`}
+                className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${customerCount > 0
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-slate-100 text-slate-600 border border-slate-200'
+                  }`}
               >
                 {customerCount} {customerCount === 1 ? 'Customer' : 'Customers'}
               </span>
@@ -322,28 +321,25 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
               <div
                 key={item.id}
                 onClick={() => toggleMilestone(item.id)}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                  item.completed
-                    ? 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'
-                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-xs'
-                }`}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${item.completed
+                  ? 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'
+                  : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-xs'
+                  }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 ${
-                      item.completed
-                        ? 'bg-indigo-600 text-white'
-                        : 'border-2 border-slate-300 hover:border-indigo-500'
-                    }`}
+                    className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 ${item.completed
+                      ? 'bg-indigo-600 text-white'
+                      : 'border-2 border-slate-300 hover:border-indigo-500'
+                      }`}
                   >
                     {item.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
                   </div>
 
                   <div className="min-w-0">
                     <p
-                      className={`text-xs font-bold truncate ${
-                        item.completed ? 'text-slate-500 line-through' : 'text-slate-800'
-                      }`}
+                      className={`text-xs font-bold truncate ${item.completed ? 'text-slate-500 line-through' : 'text-slate-800'
+                        }`}
                     >
                       {item.title}
                     </p>
@@ -398,13 +394,12 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
                 >
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                        ev.type === 'Workshop'
-                          ? 'bg-purple-100 text-purple-800'
-                          : ev.type === '1-on-1 Session'
+                      className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${ev.type === 'Workshop'
+                        ? 'bg-purple-100 text-purple-800'
+                        : ev.type === '1-on-1 Session'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-emerald-100 text-emerald-800'
-                      }`}
+                        }`}
                     >
                       {ev.type}
                     </span>

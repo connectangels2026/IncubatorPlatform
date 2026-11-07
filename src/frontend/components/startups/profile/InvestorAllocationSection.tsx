@@ -34,7 +34,7 @@ export function InvestorAllocationSection({
       {/* Header and Allocate CTA */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
             Allocated Investors
           </h4>
