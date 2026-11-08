@@ -189,14 +189,29 @@ export async function POST(req: Request) {
       // Startup or applicant: verify active record in startups table
       const { data: startupRow } = await supabaseAdmin
         .from('startups')
-        .select('id, organization_id')
+        .select('id, organization_id, track')
         .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
 
       if (startupRow) {
-        redirectTo = '/startup/dashboard';
+        let hasTrack = Boolean(startupRow.track);
+        if (!hasTrack) {
+          const { data: appRow } = await supabaseAdmin
+            .from('applications')
+            .select('form_data')
+            .ilike('applicant_email', cleanEmail)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (appRow?.form_data?.startup_track) {
+            hasTrack = true;
+          }
+        }
+
+        redirectTo = hasTrack ? '/startup/dashboard' : '/choose-role';
         acceptedOrgId = startupRow.organization_id || null;
       } else {
         redirectTo = '/programs/preincubator/status';

@@ -113,7 +113,13 @@ export default function StartupDashboard({
         stage: rawStartup.stage || 'Validation Phase',
         stageProgress:
           typeof rawStartup.stage_progress === 'number' ? rawStartup.stage_progress : 70,
-        track: (rawStartup.track || 'both') as any,
+        track: (
+          rawStartup.track ||
+          rawStartup?.application?.form_data?.startup_track ||
+          (user as any)?.user_metadata?.startup_track ||
+          (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null) ||
+          'both'
+        ) as any,
         incubatorName: rawStartup.organization?.name || 'Incubator Hub',
         logo_url: rawStartup.logo_url || null,
         logo_color: rawStartup.logo_color || null,
@@ -229,6 +235,11 @@ export default function StartupDashboard({
       </div>
     );
   }
+
+  const milestonesList = Array.isArray(rawStartup?.milestones) ? rawStartup.milestones : [];
+  const completedMilestones = milestonesList.filter((m: any) => m.completed).length;
+  const totalMilestones = milestonesList.length || 10;
+  const milestoneBadgeText = `${completedMilestones}/${totalMilestones}`;
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#F8FAFC]">
@@ -455,7 +466,7 @@ export default function StartupDashboard({
                 : 'bg-slate-100 text-slate-500'
                 }`}
             >
-              7/10
+              {milestoneBadgeText}
             </span>
           </button>
 
@@ -480,7 +491,13 @@ export default function StartupDashboard({
               }`}
           >
             <Cpu className="w-4 h-4" />
-            <span>Software &amp; Hardware</span>
+            <span>
+              {profile?.track === 'software'
+                ? 'Software Architecture'
+                : profile?.track === 'hardware'
+                ? 'Hardware & Lab'
+                : 'Software & Hardware'}
+            </span>
           </button>
 
           <button
@@ -505,6 +522,7 @@ export default function StartupDashboard({
               startup={rawStartup}
               onNavigateTab={setActiveTab}
               onOpenProfile={(section) => handleOpenProfileSection(section || 'basic')}
+              onStartupUpdate={handleStartupUpdate}
               readOnly={readOnly}
             />
           )}

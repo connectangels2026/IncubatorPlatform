@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Award,
   Users,
@@ -17,117 +17,21 @@ import {
   Upload,
   Building2,
   Globe,
+  Loader2,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 
-const INITIAL_MILESTONES: MilestoneItem[] = [
-  {
-    id: 'm1',
-    title: 'Conduct 50 Customer Discovery Interviews',
-    category: 'Customer Discovery',
-    dueDate: 'Nov 12, 2026',
-    completed: true,
-    assignedMentor: { name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm2',
-    title: 'Draft 5-Year Financial & Unit Economics Model',
-    category: 'Financial Model',
-    dueDate: 'Nov 18, 2026',
-    completed: true,
-    assignedMentor: { name: 'Sarah Chen', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm3',
-    title: 'Architect Vector Search & Gemini 1.5 Integration',
-    category: 'Tech Architecture',
-    dueDate: 'Nov 22, 2026',
-    completed: true,
-    assignedMentor: { name: 'David Park', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm4',
-    title: 'File Provisional Patent for Context Engine',
-    category: 'Legal & IP',
-    dueDate: 'Dec 01, 2026',
-    completed: true,
-    assignedMentor: { name: 'Elena Rostova', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm5',
-    title: 'Validate $100k Pipeline with 5 B2B Pilot Design Partners',
-    category: 'Customer Discovery',
-    dueDate: 'Dec 10, 2026',
-    completed: true,
-    assignedMentor: { name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm6',
-    title: 'Complete SOC2 Type I Security Compliance Audit',
-    category: 'Legal & IP',
-    dueDate: 'Dec 18, 2026',
-    completed: true,
-    assignedMentor: { name: 'David Park', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm7',
-    title: 'Prototype PCB & SMT Assembly Fabrication in Lab',
-    category: 'Hardware BOM',
-    dueDate: 'Jan 05, 2027',
-    completed: true,
-    assignedMentor: { name: 'Elena Rostova', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm8',
-    title: 'Beta User Closed Cohort Rollout (First 50 Users)',
-    category: 'Traction',
-    dueDate: 'Jan 15, 2027',
-    completed: false,
-    assignedMentor: { name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm9',
-    title: 'Lead VC Term Sheet Practice & Gate 2 Rehearsal',
-    category: 'Pitch Review',
-    dueDate: 'Jan 25, 2027',
-    completed: false,
-    assignedMentor: { name: 'Sarah Chen', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80' },
-  },
-  {
-    id: 'm10',
-    title: 'Graduation Demo Day Main Stage Presentation',
-    category: 'Graduation',
-    dueDate: 'Feb 10, 2027',
-    completed: false,
-    assignedMentor: { name: 'Dr. Tariq', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80' },
-  },
-];
-
-const SCHEDULE_EVENTS: ScheduleEventItem[] = [
-  {
-    id: 'e1',
-    type: 'Workshop',
-    title: 'Term Sheet Negotiation & Lead VC Dynamics',
-    speaker: 'Marcus Vance (General Partner, Apex Ventures)',
-    timing: 'Tomorrow, 2:00 PM EST',
-    link: '#',
-  },
-  {
-    id: 'e2',
-    type: '1-on-1 Session',
-    title: '1-on-1 Growth Strategy Review',
-    speaker: 'Dr. Aris Thorne (Ex-VP Product, Stripe)',
-    timing: 'Nov 04, 10:30 AM EST',
-    link: '#',
-  },
-  {
-    id: 'e3',
-    type: 'Lab Office Hours',
-    title: 'Hardware DFM & Supply Chain Strategy',
-    speaker: 'Elena Rostova (Hardware Lab Lead)',
-    timing: 'Nov 08, 4:00 PM EST',
-    link: '#',
-  },
+const DEFAULT_INCUBATOR_MILESTONES: MilestoneItem[] = [
+  { id: 'm1', title: 'Conduct 50 Customer Discovery Interviews', category: 'Customer Discovery', dueDate: 'Month 1', completed: false },
+  { id: 'm2', title: 'Draft 5-Year Financial & Unit Economics Model', category: 'Financial Model', dueDate: 'Month 1', completed: false },
+  { id: 'm3', title: 'Architect Vector Search & Core Tech Integration', category: 'Tech Architecture', dueDate: 'Month 2', completed: false },
+  { id: 'm4', title: 'File Provisional Patent & Legal Incorporation', category: 'Legal & IP', dueDate: 'Month 2', completed: false },
+  { id: 'm5', title: 'Validate Pipeline with 5 B2B Pilot Partners', category: 'Customer Discovery', dueDate: 'Month 3', completed: false },
+  { id: 'm6', title: 'Complete Security & Compliance Audit', category: 'Legal & IP', dueDate: 'Month 3', completed: false },
+  { id: 'm7', title: 'Prototype & Fabrication Testing in Lab', category: 'Hardware BOM', dueDate: 'Month 4', completed: false },
+  { id: 'm8', title: 'Beta User Closed Cohort Rollout', category: 'Traction', dueDate: 'Month 4', completed: false },
+  { id: 'm9', title: 'Lead VC Term Sheet Practice & Gate 2 Rehearsal', category: 'Pitch Review', dueDate: 'Month 5', completed: false },
+  { id: 'm10', title: 'Graduation Demo Day Main Stage Presentation', category: 'Graduation', dueDate: 'Month 6', completed: false },
 ];
 
 const STAGE_PROGRESS_MAP: Record<string, number> = {
@@ -161,22 +65,71 @@ interface OverviewTabProps {
   startup?: any;
   onNavigateTab?: (tab: any) => void;
   onOpenProfile?: (section?: string) => void;
+  onStartupUpdate?: (updated: any) => void;
   readOnly?: boolean;
 }
 
-export function OverviewTab({ startup, onNavigateTab, onOpenProfile, readOnly = false }: OverviewTabProps) {
-  const [milestones, setMilestones] = useState<MilestoneItem[]>(INITIAL_MILESTONES);
+export function OverviewTab({
+  startup,
+  onNavigateTab,
+  onOpenProfile,
+  onStartupUpdate,
+  readOnly = false,
+}: OverviewTabProps) {
+  const [milestones, setMilestones] = useState<MilestoneItem[]>(() => {
+    if (Array.isArray(startup?.milestones) && startup.milestones.length > 0) {
+      return startup.milestones;
+    }
+    return DEFAULT_INCUBATOR_MILESTONES;
+  });
+  const [scheduleEvents, setScheduleEvents] = useState<ScheduleEventItem[]>([]);
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const hasSeededRef = useRef(false);
+
+  // Sync with prop updates & seed if empty
+  useEffect(() => {
+    if (Array.isArray(startup?.milestones) && startup.milestones.length > 0) {
+      setMilestones(startup.milestones);
+    } else if (!readOnly && onStartupUpdate && !hasSeededRef.current && startup?.id) {
+      hasSeededRef.current = true;
+      onStartupUpdate({ milestones: DEFAULT_INCUBATOR_MILESTONES });
+    }
+  }, [startup?.milestones, startup?.id, readOnly, onStartupUpdate]);
+
+  // Fetch upcoming schedule (events + mentor sessions merged by date)
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSchedule() {
+      if (!startup?.id) return;
+      try {
+        const res = await fetch(`/api/v1/startups/${startup.id}/schedule`);
+        const json = await res.json();
+        if (isMounted && json.success && Array.isArray(json.schedule)) {
+          setScheduleEvents(json.schedule);
+        }
+      } catch (err) {
+        console.warn('Failed to load schedule events:', err);
+      } finally {
+        if (isMounted) setIsLoadingSchedule(false);
+      }
+    }
+    loadSchedule();
+    return () => {
+      isMounted = false;
+    };
+  }, [startup?.id, startup?.organization_id]);
 
   const completedCount = milestones.filter((m) => m.completed).length;
   const totalCount = milestones.length;
-  const progressPercent = Math.round((completedCount / totalCount) * 100);
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   const toggleMilestone = (id: string) => {
-    setMilestones((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m))
-    );
+    if (readOnly) return;
+    const updated = milestones.map((m) => (m.id === id ? { ...m, completed: !m.completed } : m));
+    setMilestones(updated);
+    onStartupUpdate?.({ milestones: updated });
     setToastMessage('Milestone progress updated.');
     setTimeout(() => setToastMessage(null), 2500);
   };
@@ -579,18 +532,20 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile, readOnly = 
                     >
                       {item.title}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {item.assignedMentor.avatar && (
-                        <img
-                          src={item.assignedMentor.avatar}
-                          alt={item.assignedMentor.name}
-                          className="w-4 h-4 rounded-full"
-                        />
-                      )}
-                      <span className="text-[11px] text-slate-500 font-medium">
-                        {item.assignedMentor.name}
-                      </span>
-                    </div>
+                    {item.assignedMentor && (
+                      <div className="flex items-center gap-2 mt-1">
+                        {item.assignedMentor.avatar && (
+                          <img
+                            src={item.assignedMentor.avatar}
+                            alt={item.assignedMentor.name}
+                            className="w-4 h-4 rounded-full"
+                          />
+                        )}
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          {item.assignedMentor.name}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -617,47 +572,70 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile, readOnly = 
                 <h2 className="text-base font-medium text-slate-900">Upcoming schedule</h2>
               </div>
               <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 shrink-0 whitespace-nowrap">
-                {SCHEDULE_EVENTS.length} events
+                {scheduleEvents.length} events
               </span>
             </div>
 
             {/* Events List */}
             <div className="space-y-3.5 pt-4">
-              {SCHEDULE_EVENTS.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition-all space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${ev.type === 'Workshop'
-                        ? 'bg-purple-100 text-purple-800'
-                        : ev.type === '1-on-1 Session'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-emerald-100 text-emerald-800'
-                        }`}
-                    >
-                      {ev.type}
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-semibold">{ev.timing}</span>
-                  </div>
-
-                  <h4 className="text-xs font-bold text-[#1A2151] leading-snug">{ev.title}</h4>
-
-                  <div className="flex items-center justify-between pt-1 text-[11px]">
-                    <span className="text-slate-500 font-medium truncate max-w-[180px]">
-                      {ev.speaker}
-                    </span>
-                    <a
-                      href={ev.link}
-                      className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
-                    >
-                      <span>Join</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
+              {isLoadingSchedule ? (
+                <div className="py-8 text-center text-slate-400 space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                  <p className="text-xs">Loading schedule...</p>
                 </div>
-              ))}
+              ) : scheduleEvents.length === 0 ? (
+                <div className="py-8 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No upcoming events</p>
+                  <p className="text-[11px] text-slate-400 max-w-[200px] mx-auto">
+                    Cohort events and mentor sessions will appear here once scheduled.
+                  </p>
+                </div>
+              ) : (
+                scheduleEvents.map((ev) => (
+                  <div
+                    key={ev.id}
+                    className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition-all space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${ev.type === 'Workshop'
+                          ? 'bg-purple-100 text-purple-800'
+                          : ev.type === '1-on-1 Session'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                          }`}
+                      >
+                        {ev.type}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-semibold">{ev.timing}</span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-[#1A2151] leading-snug">{ev.title}</h4>
+
+                    <div className="flex items-center justify-between pt-1 text-[11px]">
+                      <span className="text-slate-500 font-medium truncate max-w-[180px]">
+                        {ev.speaker || 'Host Incubator'}
+                      </span>
+                      {ev.link && ev.link !== '#' ? (
+                        <a
+                          href={ev.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
+                        >
+                          <span>Join</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 font-medium text-[11px]">Online</span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

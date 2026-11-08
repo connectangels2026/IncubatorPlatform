@@ -20,7 +20,7 @@ export interface MilestoneItem {
   category: string;
   dueDate: string;
   completed: boolean;
-  assignedMentor: {
+  assignedMentor?: {
     name: string;
     avatar?: string;
   };
@@ -29,7 +29,7 @@ export interface MilestoneItem {
 export interface ScheduleEventItem {
   id: string;
   title: string;
-  type: 'Workshop' | '1-on-1 Session' | 'Lab Office Hours';
+  type: string;
   speaker: string;
   timing: string;
   link?: string;

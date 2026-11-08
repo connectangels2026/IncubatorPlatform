@@ -141,6 +141,19 @@ function LoginForm() {
           if (typeof window !== 'undefined' && data.startup.organization_id) {
             localStorage.setItem('org_id', data.startup.organization_id);
           }
+
+          // Check if startup track (software, hardware, or both) has been selected
+          const existingTrack =
+            data.startup.track ||
+            data.application?.form_data?.startup_track ||
+            (session?.user as any)?.user_metadata?.startup_track ||
+            (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null);
+
+          if (!existingTrack) {
+            router.push('/choose-role');
+            return;
+          }
+
           router.push('/startup/dashboard');
           return;
         }

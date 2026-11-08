@@ -29,6 +29,9 @@ export const FOUNDER_MUTABLE_FIELDS = [
   'location',
   'founded_date',
   'social_links',
+  'milestones',
+  'hardware_bom',
+  'fabrication_pipeline',
 ] as const;
 
 export const INCUBATOR_MUTABLE_FIELDS = [
@@ -43,6 +46,7 @@ export const INCUBATOR_MUTABLE_FIELDS = [
   'incubation_end_date',
   'is_active',
   'milestones',
+  'lab_equipment',
 ] as const;
 
 export class StartupService {
@@ -108,6 +112,9 @@ export class StartupService {
       cofounders: Array.isArray(startup.cofounders) ? startup.cofounders : [],
       tech_stack: Array.isArray(startup.tech_stack) ? startup.tech_stack : [],
       milestones: Array.isArray(startup.milestones) ? startup.milestones : [],
+      hardware_bom: Array.isArray(startup.hardware_bom) ? startup.hardware_bom : [],
+      lab_equipment: Array.isArray(startup.lab_equipment) ? startup.lab_equipment : [],
+      fabrication_pipeline: Array.isArray(startup.fabrication_pipeline) ? startup.fabrication_pipeline : [],
       deck_revisions: Array.isArray(startup.deck_revisions) ? startup.deck_revisions : [],
       batch: startup.batch || startup.cohort || null,
       track: startup.track || 'both',

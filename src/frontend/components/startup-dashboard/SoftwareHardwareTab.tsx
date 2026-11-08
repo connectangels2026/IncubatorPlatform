@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Cpu,
   Layers,
@@ -10,7 +10,9 @@ import {
   Wrench,
   Activity,
   Check,
-  Calendar,
+  Trash2,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
 
@@ -38,6 +40,31 @@ const DEFAULT_STACK: TechItem[] = [
   },
 ];
 
+export interface HardwareBomItem {
+  id: string;
+  name: string;
+  qty: number;
+  unit_cost: number;
+  status: 'In Stock' | 'In Transit' | 'Ordered' | 'Pending';
+  lead_time_days?: number;
+}
+
+export interface LabEquipmentItem {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  allocated_at?: string;
+}
+
+export interface FabricationStep {
+  id: string;
+  step_number: number;
+  title: string;
+  subtitle?: string;
+  status: 'completed' | 'in_progress' | 'pending';
+}
+
 interface Props {
   track?: 'hardware' | 'software' | 'both';
   startup?: any;
@@ -46,6 +73,7 @@ interface Props {
 }
 
 export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, readOnly = false }: Props) {
+  // 1. Software Tech Stack
   const [techStack, setTechStack] = useState<TechItem[]>(() => {
     if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
       if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
@@ -58,6 +86,30 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
   const [newTag, setNewTag] = useState('');
   const [targetCategory, setTargetCategory] = useState<string>('FRONTEND');
 
+  // 2. Hardware BOM (read & write from startups.hardware_bom)
+  const [hardwareBom, setHardwareBom] = useState<HardwareBomItem[]>(() => {
+    return Array.isArray(startup?.hardware_bom) ? startup.hardware_bom : [];
+  });
+  const [showAddBomModal, setShowAddBomModal] = useState(false);
+  const [newBomName, setNewBomName] = useState('');
+  const [newBomQty, setNewBomQty] = useState(1);
+  const [newBomCost, setNewBomCost] = useState(0);
+  const [newBomStatus, setNewBomStatus] = useState<'In Stock' | 'In Transit' | 'Ordered' | 'Pending'>('In Stock');
+
+  // 3. Lab Equipment (view-only for startup, assigned by incubator)
+  const labEquipment: LabEquipmentItem[] = useMemo(() => {
+    return Array.isArray(startup?.lab_equipment) ? startup.lab_equipment : [];
+  }, [startup?.lab_equipment]);
+
+  // 4. Fabrication Pipeline (read & write from startups.fabrication_pipeline)
+  const [fabricationPipeline, setFabricationPipeline] = useState<FabricationStep[]>(() => {
+    return Array.isArray(startup?.fabrication_pipeline) ? startup.fabrication_pipeline : [];
+  });
+  const [showAddStepModal, setShowAddStepModal] = useState(false);
+  const [newStepTitle, setNewStepTitle] = useState('');
+  const [newStepSubtitle, setNewStepSubtitle] = useState('');
+
+  // Sync state from prop updates
   useEffect(() => {
     if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
       if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
@@ -66,6 +118,33 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
     }
   }, [startup?.tech_stack]);
 
+  useEffect(() => {
+    if (Array.isArray(startup?.hardware_bom)) {
+      setHardwareBom(startup.hardware_bom);
+    }
+  }, [startup?.hardware_bom]);
+
+  useEffect(() => {
+    if (Array.isArray(startup?.fabrication_pipeline)) {
+      setFabricationPipeline(startup.fabrication_pipeline);
+    }
+  }, [startup?.fabrication_pipeline]);
+
+  // Persist helper
+  const persistField = async (fieldKey: string, value: any) => {
+    try {
+      if (onStartupUpdate) {
+        onStartupUpdate({ [fieldKey]: value });
+      } else {
+        const endpoint = startup?.id ? `/startups/${startup.id}` : '/startups/me';
+        await apiClient.put(endpoint, { [fieldKey]: value });
+      }
+    } catch (err) {
+      console.warn(`Failed to save ${fieldKey}:`, err);
+    }
+  };
+
+  // Tech stack tag handler
   const handleAddTag = async () => {
     if (!newTag.trim()) return;
     const updated = techStack.map((cat) =>
@@ -74,17 +153,77 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
     setTechStack(updated);
     setNewTag('');
     setShowAddTagModal(false);
+    await persistField('tech_stack', updated);
+  };
 
-    try {
-      if (onStartupUpdate) {
-        onStartupUpdate({ tech_stack: updated });
-      } else {
-        const endpoint = startup?.id ? `/startups/${startup.id}` : '/startups/me';
-        await apiClient.put(endpoint, { tech_stack: updated });
-      }
-    } catch (err) {
-      console.warn('Failed to save tech stack:', err);
-    }
+  // Hardware BOM handlers
+  // COGS = sum(qty x unit_cost), strictly computed, never typed
+  const computedCogs = useMemo(() => {
+    return hardwareBom.reduce((sum, item) => sum + (Number(item.qty || 1) * Number(item.unit_cost || 0)), 0);
+  }, [hardwareBom]);
+
+  const inStockCount = useMemo(() => {
+    return hardwareBom.filter((item) => item.status === 'In Stock').length;
+  }, [hardwareBom]);
+
+  const handleAddBomItem = async () => {
+    if (!newBomName.trim()) return;
+    const newItem: HardwareBomItem = {
+      id: `bom-${Date.now()}`,
+      name: newBomName.trim(),
+      qty: Math.max(1, Number(newBomQty) || 1),
+      unit_cost: Math.max(0, Number(newBomCost) || 0),
+      status: newBomStatus,
+    };
+    const updated = [...hardwareBom, newItem];
+    setHardwareBom(updated);
+    setNewBomName('');
+    setNewBomQty(1);
+    setNewBomCost(0);
+    setShowAddBomModal(false);
+    await persistField('hardware_bom', updated);
+  };
+
+  const handleDeleteBomItem = async (id: string) => {
+    if (readOnly) return;
+    const updated = hardwareBom.filter((item) => item.id !== id);
+    setHardwareBom(updated);
+    await persistField('hardware_bom', updated);
+  };
+
+  // Fabrication Pipeline handlers
+  const handleAddPipelineStep = async () => {
+    if (!newStepTitle.trim()) return;
+    const nextStepNum = fabricationPipeline.length + 1;
+    const newStep: FabricationStep = {
+      id: `step-${Date.now()}`,
+      step_number: nextStepNum,
+      title: newStepTitle.trim(),
+      subtitle: newStepSubtitle.trim() || undefined,
+      status: nextStepNum === 1 ? 'in_progress' : 'pending',
+    };
+    const updated = [...fabricationPipeline, newStep];
+    setFabricationPipeline(updated);
+    setNewStepTitle('');
+    setNewStepSubtitle('');
+    setShowAddStepModal(false);
+    await persistField('fabrication_pipeline', updated);
+  };
+
+  const handleToggleStepStatus = async (stepId: string) => {
+    if (readOnly) return;
+    const updated = fabricationPipeline.map((step) => {
+      if (step.id !== stepId) return step;
+      const nextStatus: 'completed' | 'in_progress' | 'pending' =
+        step.status === 'completed'
+          ? 'pending'
+          : step.status === 'in_progress'
+          ? 'completed'
+          : 'in_progress';
+      return { ...step, status: nextStatus };
+    });
+    setFabricationPipeline(updated);
+    await persistField('fabrication_pipeline', updated);
   };
 
   return (
@@ -161,57 +300,110 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
                   <Cpu className="w-5 h-5 text-indigo-600" />
                   <h3 className="text-base font-black text-[#1A2151]">Hardware BOM Status</h3>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-50 text-cyan-700 border border-cyan-200">
-                  v1.8 Sourced
-                </span>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddBomModal(true)}
+                    className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition cursor-pointer"
+                    title="Add BOM Component"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-3 pt-4 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Estimated Unit Cost (COGS)</span>
-                  <span className="font-mono font-black text-slate-900">$142.50 / unit</span>
+              {hardwareBom.length === 0 ? (
+                <div className="py-8 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                    <Cpu className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No BOM components added</p>
+                  <p className="text-[11px] text-slate-400 max-w-[200px] mx-auto">
+                    Add components to calculate COGS automatically and track sourcing.
+                  </p>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddBomModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 rounded-lg cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add component</span>
+                    </button>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Component Sourcing Lead Time</span>
-                  <span className="font-extrabold text-amber-600">12 Days</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Sourced Components</span>
-                  <span className="font-bold text-slate-800">18 / 20 components</span>
-                </div>
+              ) : (
+                <div className="space-y-3 pt-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Estimated Unit Cost (COGS)</span>
+                    <span className="font-mono font-black text-slate-900">
+                      ${computedCogs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / unit
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Total Components</span>
+                    <span className="font-extrabold text-slate-700">{hardwareBom.length} items</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-medium">Sourced Components</span>
+                    <span className="font-bold text-slate-800">
+                      {inStockCount} / {hardwareBom.length} in stock
+                    </span>
+                  </div>
 
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <span className="text-xs font-medium text-slate-500">
-                    Key Components Checklist
-                  </span>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" /> NPU Edge AI Accelerator
-                        Chip
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-600">In Stock</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" /> Custom Molded Thermal
-                        Casing
-                      </span>
-                      <span className="text-[10px] font-bold text-emerald-600">In Stock</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1.5 font-bold text-slate-700">
-                        <Clock className="w-3.5 h-3.5 text-amber-500" /> WiFi 6E Sub-board
-                      </span>
-                      <span className="text-[10px] font-bold text-amber-600">In Transit</span>
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <span className="text-xs font-medium text-slate-500">
+                      Component Checklist
+                    </span>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                      {hardwareBom.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between text-[11px] p-1.5 rounded-lg hover:bg-slate-50 transition"
+                        >
+                          <div className="flex items-center gap-1.5 font-bold text-slate-700 truncate max-w-[150px]">
+                            {item.status === 'In Stock' ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            ) : (
+                              <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            )}
+                            <span className="truncate">{item.name}</span>
+                            <span className="text-[10px] text-slate-400 font-normal">x{item.qty}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-mono text-slate-600">
+                              ${(item.qty * item.unit_cost).toFixed(2)}
+                            </span>
+                            <span
+                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                item.status === 'In Stock'
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                            {!readOnly && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBomItem(item.id)}
+                                className="text-slate-300 hover:text-rose-600 transition"
+                                title="Delete component"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Card B: Incubator Lab Equipment */}
+          {/* Card B: Incubator Lab Equipment (View-Only for Startup) */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -220,58 +412,42 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
                   <h3 className="text-base font-black text-[#1A2151]">Incubator Lab Equipment</h3>
                 </div>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600">
-                  3 Allocated
+                  {labEquipment.length} Allocated
                 </span>
               </div>
 
-              <div className="space-y-3 pt-4">
-                {/* Equipment 1 */}
-                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-[#1A2151]">Formlabs Form 3+ (SLA)</h4>
-                    <p className="text-[11px] text-slate-500">3D Resin Printer</p>
+              {labEquipment.length === 0 ? (
+                <div className="py-8 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                    <Wrench className="w-5 h-5" />
                   </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    Reserved Today
-                  </span>
+                  <p className="text-xs font-semibold text-slate-700">No lab equipment allocated</p>
+                  <p className="text-[11px] text-slate-400 max-w-[200px] mx-auto">
+                    Your incubator allocates equipment access (view-only for startups).
+                  </p>
                 </div>
-
-                {/* Equipment 2 */}
-                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-[#1A2151]">Rigol DS1054Z Oscilloscope</h4>
-                    <p className="text-[11px] text-slate-500">Benchtop Test station</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                    In Use
-                  </span>
+              ) : (
+                <div className="space-y-3 pt-4">
+                  {labEquipment.map((eq) => (
+                    <div
+                      key={eq.id}
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between"
+                    >
+                      <div>
+                        <h4 className="text-xs font-bold text-[#1A2151]">{eq.name}</h4>
+                        <p className="text-[11px] text-slate-500">{eq.type}</p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        {eq.status || 'Allocated'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Equipment 3 */}
-                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-[#1A2151]">Voltera V-One PCB Printer</h4>
-                    <p className="text-[11px] text-slate-500">Prototyping Circuit Bench</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-600">
-                    Available
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 mt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => alert('Booking calendar opens...')}
-                className="w-full py-2.5 px-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer text-center"
-              >
-                Book New Equipment Time
-              </button>
+              )}
             </div>
           </div>
 
-          {/* Card C: Fabrication Pipeline */}
+          {/* Card C: Fabrication Pipeline (Startup can edit) */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -279,73 +455,98 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
                   <Activity className="w-5 h-5 text-indigo-600" />
                   <h3 className="text-base font-black text-[#1A2151]">Fabrication Pipeline</h3>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-700">
-                  Step 3 of 5
-                </span>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddStepModal(true)}
+                    className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition cursor-pointer"
+                    title="Add Pipeline Stage"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-2.5 pt-4">
-                {/* Step 1 */}
-                <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs shrink-0 font-bold">
-                    <Check className="w-3.5 h-3.5" />
+              {fabricationPipeline.length === 0 ? (
+                <div className="py-8 text-center space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                    <Activity className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-800">Schematic & Design</h5>
-                    <p className="text-[10px] text-slate-500">Gerber files approved</p>
-                  </div>
+                  <p className="text-xs font-semibold text-slate-700">No pipeline stages configured</p>
+                  <p className="text-[11px] text-slate-400 max-w-[200px] mx-auto">
+                    Add prototyping and fabrication phases to track stage progress.
+                  </p>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAddStepModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 rounded-lg cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add stage</span>
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <div className="space-y-2.5 pt-4">
+                  {fabricationPipeline.map((step, index) => {
+                    const isDone = step.status === 'completed';
+                    const isInProgress = step.status === 'in_progress';
 
-                {/* Step 2 */}
-                <div className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50/40 flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs shrink-0 font-bold">
-                    <Check className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-800">PCB Milling & Print</h5>
-                    <p className="text-[10px] text-slate-500">Printed in Lab B</p>
-                  </div>
+                    return (
+                      <div
+                        key={step.id}
+                        onClick={() => handleToggleStepStatus(step.id)}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between transition cursor-pointer ${
+                          isDone
+                            ? 'border-emerald-200 bg-emerald-50/40'
+                            : isInProgress
+                            ? 'border-2 border-indigo-500 bg-indigo-50/40 shadow-2xs'
+                            : 'border-slate-200/80 bg-slate-50/50 opacity-70'
+                        }`}
+                        title="Click to toggle status"
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          <div
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0 font-bold ${
+                              isDone
+                                ? 'bg-emerald-500 text-white'
+                                : isInProgress
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {isDone ? <Check className="w-3.5 h-3.5" /> : index + 1}
+                          </div>
+                          <div className="truncate">
+                            <h5 className="text-xs font-bold text-slate-800 truncate">{step.title}</h5>
+                            {step.subtitle && (
+                              <p className="text-[10px] text-slate-500 truncate">{step.subtitle}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 ml-2 ${
+                            isDone
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : isInProgress
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {isDone ? 'Completed' : isInProgress ? 'In Progress' : 'Pending'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                {/* Step 3 (Active) */}
-                <div className="p-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-50/40 flex items-center gap-2.5 shadow-2xs">
-                  <div className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px] shrink-0 font-bold">
-                    3
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-black text-[#1A2151]">SMT Component Assembly</h5>
-                    <p className="text-[10px] text-indigo-700 font-bold">In Progress now</p>
-                  </div>
-                </div>
-
-                {/* Step 4 */}
-                <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center gap-2.5 opacity-70">
-                  <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[11px] shrink-0 font-bold">
-                    4
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-medium text-slate-700">Enclosure Fitment</h5>
-                    <p className="text-[10px] text-slate-400">Resin casing print pending</p>
-                  </div>
-                </div>
-
-                {/* Step 5 */}
-                <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/50 flex items-center gap-2.5 opacity-70">
-                  <div className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[11px] shrink-0 font-bold">
-                    5
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-medium text-slate-700">Thermal & Stress Testing</h5>
-                    <p className="text-[10px] text-slate-400">Final QA gate</p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal to add custom tech tag */}
+      {/* Modal: Add Tech Tag */}
       {showAddTagModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#101638]/50 backdrop-blur-xs">
           <div className="bg-white max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
@@ -381,16 +582,167 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
               <button
                 type="button"
                 onClick={() => setShowAddTagModal(false)}
-                className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200"
+                className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleAddTag}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 shadow-md"
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 cursor-pointer shadow-md"
               >
-                Add Item
+                Add Tag
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Hardware BOM Item */}
+      {showAddBomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#101638]/50 backdrop-blur-xs">
+          <div className="bg-white max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-black text-[#1A2151]">Add Hardware BOM Component</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddBomModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Component Name *</label>
+                <input
+                  type="text"
+                  value={newBomName}
+                  onChange={(e) => setNewBomName(e.target.value)}
+                  placeholder="e.g. NPU Edge AI Accelerator Chip"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newBomQty}
+                    onChange={(e) => setNewBomQty(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Unit Cost ($) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={newBomCost}
+                    onChange={(e) => setNewBomCost(Number(e.target.value))}
+                    placeholder="0.00"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Sourcing Status</label>
+                <select
+                  value={newBomStatus}
+                  onChange={(e) => setNewBomStatus(e.target.value as any)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                >
+                  <option value="In Stock">In Stock</option>
+                  <option value="In Transit">In Transit</option>
+                  <option value="Ordered">Ordered</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-blue-50/60 border border-blue-200/60 text-[11px] text-blue-900">
+                <span>Calculated Line Item Cost: </span>
+                <span className="font-bold font-mono">${(newBomQty * newBomCost).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddBomModal(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddBomItem}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 cursor-pointer shadow-md"
+              >
+                Add Component
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Fabrication Pipeline Step */}
+      {showAddStepModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#101638]/50 backdrop-blur-xs">
+          <div className="bg-white max-w-sm w-full rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-black text-[#1A2151]">Add Prototyping Stage</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddStepModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Stage Title *</label>
+                <input
+                  type="text"
+                  value={newStepTitle}
+                  onChange={(e) => setNewStepTitle(e.target.value)}
+                  placeholder="e.g. SMT Component Assembly"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">Subtitle / Note</label>
+                <input
+                  type="text"
+                  value={newStepSubtitle}
+                  onChange={(e) => setNewStepSubtitle(e.target.value)}
+                  placeholder="e.g. PCB fabricated in Lab B"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddStepModal(false)}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs hover:bg-slate-200 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddPipelineStep}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 cursor-pointer shadow-md"
+              >
+                Add Stage
               </button>
             </div>
           </div>
@@ -399,4 +751,3 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
     </div>
   );
 }
-
