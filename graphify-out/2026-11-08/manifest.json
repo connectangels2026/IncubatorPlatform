@@ -2244,9 +2244,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/StartupProfilePreview.tsx": {
-    "mtime": 1794129116.6688144,
-    "seen": 1794130578.087636,
-    "ast_hash": "7ee7242c1577737f9eccc50773a5ab6f",
+    "mtime": 1794139032.5635805,
+    "seen": 1794139132.1472373,
+    "ast_hash": "09fbb918ea0698caf2b73a97087c16c4",
     "semantic_hash": ""
   },
   "src/app/incubator/applications/page.tsx": {
@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/[id]/video-request/route.ts": {
-    "mtime": 1794127034.911241,
-    "seen": 1794129098.9014409,
-    "ast_hash": "32d1fae2ec9910fb64a399aed0617ad0",
+    "mtime": 1794139007.2804265,
+    "seen": 1794139132.0120428,
+    "ast_hash": "d17d06ed61bbc8fc8af725f9104ea774",
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/documents/upload/route.ts": {
@@ -2412,15 +2412,15 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-profile/DocumentsSectionEdit.tsx": {
-    "mtime": 1794136927.1356344,
-    "seen": 1794138127.9951224,
-    "ast_hash": "021cb16223ee47e46b625e0fb73a73c4",
+    "mtime": 1794139043.3863578,
+    "seen": 1794139132.1220243,
+    "ast_hash": "e30c5195224e4fdffbaf858db3ce5d5c",
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/[id]/video-submission/route.ts": {
-    "mtime": 1794137971.9308114,
-    "seen": 1794138127.872722,
-    "ast_hash": "28259f7ad41f987cf222aa6c25591e48",
+    "mtime": 1794138994.5368047,
+    "seen": 1794139132.0120428,
+    "ast_hash": "0f281fbeaf2075bb9776131fded30b6e",
     "semantic_hash": ""
   },
   "src/backend/services/startupService.ts": {
