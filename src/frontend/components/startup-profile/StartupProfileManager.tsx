@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
+import { DocumentsSectionEdit, formatIncubationTenure } from './DocumentsSectionEdit';
 import { apiClient } from '@/services/apiClient';
 import StartupLogo, { LOGO_SWATCH_COLORS, getDerivedColor, getDerivedInitials } from '@/frontend/components/ui/StartupLogo';
 
@@ -57,6 +58,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
   const [formData, setFormData] = useState<any>(initialStartup || {});
   const [isSaving, setIsSaving] = useState(false);
   const [logoMode, setLogoMode] = useState<'upload' | 'generate'>('upload');
+  const [saveSuccessSection, setSaveSuccessSection] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
@@ -151,8 +153,14 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         setStartup(res.data.startup);
         setFormData(res.data.startup);
         onStartupUpdate?.(res.data.startup);
+        setSaveSuccessSection(section);
+        setTimeout(() => setSaveSuccessSection(null), 2500);
         showToast('Section updated and saved successfully!', 'success');
-        setActiveEditingSection(null);
+        if (section !== 'documents') {
+          setActiveEditingSection(null);
+        } else {
+          setTimeout(() => setActiveEditingSection(null), 1200);
+        }
       } else {
         throw new Error(res.data?.error || 'Failed to update startup section');
       }
@@ -1443,8 +1451,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
               <div>
                 <span className="text-xs text-slate-500 font-normal block">Incubation tenure</span>
                 <span className="text-sm font-medium text-slate-900 mt-0.5 block">
-                  {startup?.incubation_start_date ? new Date(startup.incubation_start_date).toLocaleDateString() : 'Active'}
-                  {startup?.incubation_end_date ? ` to ${new Date(startup.incubation_end_date).toLocaleDateString()}` : ''}
+                  {formatIncubationTenure(startup?.incubation_start_date, startup?.incubation_end_date)}
                 </span>
               </div>
             </div>
@@ -1474,112 +1481,23 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             </div>
 
         {activeEditingSection === 'documents' ? (
-          <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Pitch Deck URL</label>
-                <input
-                  type="url"
-                  value={formData.pitch_deck_url || ''}
-                  onChange={(e) => handleFieldChange('pitch_deck_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://drive.google.com/... or https://docsend.com/..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Plan / Whitepaper URL</label>
-                <input
-                  type="url"
-                  value={formData.business_plan_url || ''}
-                  onChange={(e) => handleFieldChange('business_plan_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://drive.google.com/..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GitHub Repository URL</label>
-                <input
-                  type="url"
-                  value={formData.github_url || ''}
-                  onChange={(e) => handleFieldChange('github_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://github.com/organization/repo"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Figma Design System URL</label>
-                <input
-                  type="url"
-                  value={formData.figma_url || ''}
-                  onChange={(e) => handleFieldChange('figma_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://figma.com/file/..."
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Interactive Live Demo URL</label>
-                <input
-                  type="url"
-                  value={formData.demo_url || ''}
-                  onChange={(e) => handleFieldChange('demo_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://demo.myplatform.com"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Product Demo / Loom Video URL</label>
-                <input
-                  type="url"
-                  value={formData.demo_video_url || ''}
-                  onChange={(e) => handleFieldChange('demo_video_url', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://loom.com/share/... or YouTube link"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Core Technologies &amp; Architecture Stack (Comma separated)
-                </label>
-                <input
-                  type="text"
-                  value={
-                    Array.isArray(formData.tech_stack)
-                      ? typeof formData.tech_stack[0] === 'string'
-                        ? formData.tech_stack.join(', ')
-                        : formData.tech_stack.flatMap((c: any) => c.items || []).join(', ')
-                      : typeof formData.tech_stack === 'string'
-                      ? formData.tech_stack
-                      : ''
-                  }
-                  onChange={(e) => {
-                    const items = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
-                    handleFieldChange('tech_stack', items);
-                  }}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. Next.js 16, Python, PyTorch, Supabase, AWS, Docker"
-                />
-                <p className="text-[10px] text-slate-400 mt-1">Separate technologies with commas to build your dynamic stack architecture.</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={handleCancelEdit}
-                disabled={isSaving}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSaveSection('documents')}
-                disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
-              >
-                {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                Save Product Links
-              </button>
-            </div>
-          </div>
+          <DocumentsSectionEdit
+            formData={formData}
+            onFieldChange={handleFieldChange}
+            onSave={() => handleSaveSection('documents')}
+            onCancel={handleCancelEdit}
+            isSaving={isSaving}
+            hasChanges={
+              (formData.pitch_deck_url || '') !== (startup?.pitch_deck_url || '') ||
+              (formData.business_plan_url || '') !== (startup?.business_plan_url || '') ||
+              (formData.github_url || '') !== (startup?.github_url || '') ||
+              (formData.figma_url || '') !== (startup?.figma_url || '') ||
+              (formData.demo_url || '') !== (startup?.demo_url || '') ||
+              (formData.demo_video_url || '') !== (startup?.demo_video_url || '') ||
+              JSON.stringify(formData.tech_stack || []) !== JSON.stringify(startup?.tech_stack || [])
+            }
+            saveSuccess={saveSuccessSection === 'documents'}
+          />
         ) : (
           <div className="space-y-4 pt-1">
             <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white overflow-hidden">

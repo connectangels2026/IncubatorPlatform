@@ -215,7 +215,8 @@ export async function PUT(req: NextRequest) {
     if (body.github_url !== undefined) updatePayload.github_url = body.github_url;
     if (body.figma_url !== undefined) updatePayload.figma_url = body.figma_url;
     if (body.demo_url !== undefined) updatePayload.demo_url = body.demo_url;
-    if (body.demo_video_url !== undefined) updatePayload.demo_video_url = body.demo_video_url;
+    // demo_video_url is gated and can only be set when incubator approves an MP4 video submission
+    // if (body.demo_video_url !== undefined) updatePayload.demo_video_url = body.demo_video_url;
     if (body.tech_stack !== undefined) updatePayload.tech_stack = Array.isArray(body.tech_stack) ? body.tech_stack : [];
 
     // 3. Persist update in startups table
