@@ -42,9 +42,10 @@ interface Props {
   track?: 'hardware' | 'software' | 'both';
   startup?: any;
   onStartupUpdate?: (updated: any) => void;
+  readOnly?: boolean;
 }
 
-export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }: Props) {
+export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, readOnly = false }: Props) {
   const [techStack, setTechStack] = useState<TechItem[]>(() => {
     if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
       if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
@@ -101,14 +102,16 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate }
                 Categorized technology pills and infrastructure modules
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAddTagModal(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Tech Tag</span>
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowAddTagModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Tech Tag</span>
+              </button>
+            )}
           </div>
 
           {/* 4 Categorized Columns */}

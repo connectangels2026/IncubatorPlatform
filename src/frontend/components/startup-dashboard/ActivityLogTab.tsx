@@ -59,7 +59,11 @@ const INITIAL_LOGS: ActivityLogItem[] = [
   },
 ];
 
-export function ActivityLogTab() {
+interface ActivityLogTabProps {
+  readOnly?: boolean;
+}
+
+export function ActivityLogTab({ readOnly = false }: ActivityLogTabProps = {}) {
   const [logs, setLogs] = useState<ActivityLogItem[]>(INITIAL_LOGS);
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [replyInput, setReplyInput] = useState<{ [id: string]: string }>({});
@@ -148,17 +152,19 @@ export function ActivityLogTab() {
           </div>
         </div>
 
-        {/* Right: Log New Activity (same blue as other buttons, no glow, smaller) */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowNewLogModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Log New Activity</span>
-          </button>
-        </div>
+        {/* Right: Log New Activity (hidden in readOnly mode) */}
+        {!readOnly && (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowNewLogModal(true)}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Log New Activity</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Activity Timeline Feed with Vertical Connecting Line */}
@@ -236,7 +242,7 @@ export function ActivityLogTab() {
                   </div>
                   <p className="text-slate-600 leading-relaxed">{item.reply.message}</p>
                 </div>
-              ) : (
+              ) : !readOnly ? (
                 /* Inline Reply Input */
                 <div className="pl-11 pt-1 flex items-center gap-2">
                   <input
@@ -258,7 +264,7 @@ export function ActivityLogTab() {
                     <span>Reply</span>
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         ))}

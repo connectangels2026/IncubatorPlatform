@@ -37,9 +37,10 @@ function FigmaIcon({ className = 'w-4 h-4' }: { className?: string }) {
 interface PitchPrototypeTabProps {
   startup?: any;
   onOpenProfile?: (section?: string) => void;
+  readOnly?: boolean;
 }
 
-export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabProps) {
+export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: PitchPrototypeTabProps) {
   // Safe parsing of deck revisions from startup data
   const revisions: DeckRevision[] = useMemo(() => {
     let list = startup?.deck_revisions;
@@ -56,13 +57,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
   const renderEmptyField = (section: string, addLabel: string = 'Add') => (
     <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
       <span>Not added yet</span>
-      <button
-        type="button"
-        onClick={() => onOpenProfile?.(section)}
-        className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
-      >
-        + {addLabel}
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() => onOpenProfile?.(section)}
+          className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+        >
+          + {addLabel}
+        </button>
+      )}
     </span>
   );
 
@@ -86,13 +89,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <h3 className="text-base font-medium text-slate-900">Pitch summary</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenProfile?.('overview')}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-          >
-            Edit
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.('overview')}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+            >
+              Edit
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -165,13 +170,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
             <FileText className="w-4 h-4 text-indigo-600" />
             <h3 className="text-base font-medium text-slate-900">Documents</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenProfile?.('documents')}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-          >
-            Manage
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => onOpenProfile?.('documents')}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+            >
+              Manage
+            </button>
+          )}
         </div>
 
         {/* Pitch Deck & Business Plan Row */}
@@ -220,7 +227,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                     <span>Download</span>
                   </a>
                 </>
-              ) : (
+              ) : !readOnly ? (
                 <button
                   type="button"
                   onClick={() => onOpenProfile?.('documents')}
@@ -229,7 +236,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                   <Upload className="w-3.5 h-3.5 text-slate-500" />
                   <span>Upload</span>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -277,7 +284,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                     <span>Download</span>
                   </a>
                 </>
-              ) : (
+              ) : !readOnly ? (
                 <button
                   type="button"
                   onClick={() => onOpenProfile?.('documents')}
@@ -286,7 +293,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                   <Upload className="w-3.5 h-3.5 text-slate-500" />
                   <span>Upload</span>
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -390,13 +397,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                     <p className="text-[11px] text-slate-400">Not linked</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile?.('documents')}
-                  className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
-                >
-                  Link
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile?.('documents')}
+                    className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
+                  >
+                    Link
+                  </button>
+                )}
               </div>
             )}
 
@@ -430,13 +439,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                     <p className="text-[11px] text-slate-400">Not linked</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile?.('documents')}
-                  className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
-                >
-                  Link
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile?.('documents')}
+                    className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
+                  >
+                    Link
+                  </button>
+                )}
               </div>
             )}
 
@@ -474,13 +485,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                     <p className="text-[11px] text-slate-400">Not added</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenProfile?.('documents')}
-                  className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
-                >
-                  Add
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProfile?.('documents')}
+                    className="text-xs text-blue-600 hover:underline font-medium cursor-pointer"
+                  >
+                    Add
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -511,9 +524,10 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onOpenProfile?.('documents')}
-                    className="w-14 h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform cursor-pointer"
-                    title="Upload or link video demo"
+                    onClick={readOnly ? undefined : () => onOpenProfile?.('documents')}
+                    disabled={readOnly}
+                    className={`w-14 h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-2xl transition-transform ${readOnly ? 'cursor-default opacity-80' : 'cursor-pointer group-hover:scale-110'}`}
+                    title={readOnly ? 'No demo video linked' : 'Upload or link video demo'}
                   >
                     <Play className="w-6 h-6 ml-1 fill-slate-900 text-slate-900" />
                   </button>
@@ -525,7 +539,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile }: PitchPrototypeTabP
                   Interactive product demo
                 </h4>
                 <p className="text-[10px] text-slate-400 mt-0.5">
-                  {startup?.demo_video_url ? 'Click to watch recorded walkthrough' : 'Add video walkthrough link in startup details'}
+                  {startup?.demo_video_url ? 'Click to watch recorded walkthrough' : readOnly ? 'No video walkthrough provided' : 'Add video walkthrough link in startup details'}
                 </p>
               </div>
             </div>

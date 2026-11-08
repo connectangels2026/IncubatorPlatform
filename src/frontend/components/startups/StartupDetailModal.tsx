@@ -14,7 +14,9 @@ import {
   Briefcase,
   Clock,
   Sparkles,
+  Eye,
 } from 'lucide-react';
+import Link from 'next/link';
 import { StartupItem, AllocatedMentor, AllocatedInvestor, CoIncubatorItem } from './types';
 import { StartupProfilePreview } from './profile/StartupProfilePreview';
 import { TeamContactSection } from './profile/TeamContactSection';
@@ -622,13 +624,22 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
               {copiedId ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
             </button>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/incubator/startups/${activeStartup.id}/preview`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors cursor-pointer shadow-2xs"
+              >
+                <Eye className="w-3.5 h-3.5 text-slate-500" />
+                <span>Preview</span>
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
 

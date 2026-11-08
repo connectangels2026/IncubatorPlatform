@@ -161,9 +161,10 @@ interface OverviewTabProps {
   startup?: any;
   onNavigateTab?: (tab: any) => void;
   onOpenProfile?: (section?: string) => void;
+  readOnly?: boolean;
 }
 
-export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewTabProps) {
+export function OverviewTab({ startup, onNavigateTab, onOpenProfile, readOnly = false }: OverviewTabProps) {
   const [milestones, setMilestones] = useState<MilestoneItem[]>(INITIAL_MILESTONES);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -246,13 +247,15 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
   const renderEmptyField = (section: string, addLabel: string = 'Add') => (
     <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
       <span>Not added yet</span>
-      <button
-        type="button"
-        onClick={() => onOpenProfile?.(section)}
-        className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
-      >
-        + {addLabel}
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() => onOpenProfile?.(section)}
+          className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer"
+        >
+          + {addLabel}
+        </button>
+      )}
     </span>
   );
 
@@ -386,14 +389,18 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
               </p>
             </div>
             <div className="pt-3 mt-3 border-t border-amber-200/70 flex items-center justify-between text-xs font-medium text-amber-900">
-              <button
-                type="button"
-                onClick={() => onOpenProfile?.('documents')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload</span>
-              </button>
+              {!readOnly ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.('documents')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload</span>
+                </button>
+              ) : (
+                <span className="text-amber-800 italic">Upload pending</span>
+              )}
               <span className="font-normal text-slate-600">{teamCount} {teamCount === 1 ? 'member' : 'members'}</span>
             </div>
           </div>
@@ -409,13 +416,15 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
               <Building2 className="w-4 h-4 text-indigo-600" />
               <h3 className="text-base font-medium text-slate-900">Company snapshot</h3>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenProfile?.('overview')}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-            >
-              Edit
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.('overview')}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+              >
+                Edit
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -475,13 +484,15 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 shrink-0 whitespace-nowrap">
                 {mergedTeam.length} {mergedTeam.length === 1 ? 'member' : 'members'}
               </span>
-              <button
-                type="button"
-                onClick={() => onOpenProfile?.('team')}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
-              >
-                Edit
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.('team')}
+                  className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline cursor-pointer"
+                >
+                  Edit
+                </button>
+              )}
             </div>
           </div>
 
@@ -651,16 +662,18 @@ export function OverviewTab({ startup, onNavigateTab, onOpenProfile }: OverviewT
           </div>
 
           {/* Request 1-on-1 Button */}
-          <div className="pt-4 mt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={() => setIsRequestModalOpen(true)}
-              className="w-full py-3 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <Plus className="w-4 h-4 text-blue-600" />
-              <span>Request Mentor 1-on-1 Session</span>
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="pt-4 mt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsRequestModalOpen(true)}
+                className="w-full py-3 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Plus className="w-4 h-4 text-blue-600" />
+                <span>Request Mentor 1-on-1 Session</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
