@@ -404,7 +404,7 @@
       "file_type": "code",
       "norm_label": "applicationdata",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L35"
+      "source_location": "L34"
     },
     {
       "id": "src_app_super_admin_applications_page_applicationrecord",
@@ -4767,7 +4767,7 @@
       "file_type": "code",
       "norm_label": "preincubatorstatuspage()",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L1204"
+      "source_location": "L1185"
     },
     {
       "id": "src_app_programs_preincubator_status_page_statuscontent",
@@ -4779,7 +4779,7 @@
       "file_type": "code",
       "norm_label": "statuscontent()",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L52"
+      "source_location": "L51"
     },
     {
       "id": "src_app_signup_page_signuppage",
@@ -11955,7 +11955,7 @@
       "file_type": "code",
       "norm_label": "handlekeydown()",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L215"
+      "source_location": "L217"
     },
     {
       "id": "src_frontend_components_startup_dashboard_startupdashboard_startupdashboard_loadstartupdata",
@@ -53016,7 +53016,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L1207",
+      "source_location": "L1188",
       "weight": 1.0
     },
     {
@@ -53028,7 +53028,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L1141",
+      "source_location": "L1122",
       "weight": 1.0
     },
     {
@@ -53040,7 +53040,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L539",
+      "source_location": "L528",
       "weight": 1.0
     },
     {
@@ -53052,7 +53052,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L56",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -53628,7 +53628,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L332",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -53640,7 +53640,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L340",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -53652,7 +53652,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L465",
+      "source_location": "L467",
       "weight": 1.0
     },
     {
@@ -53676,7 +53676,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L552",
+      "source_location": "L554",
       "weight": 1.0
     },
     {
@@ -53688,7 +53688,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L560",
+      "source_location": "L562",
       "weight": 1.0
     },
     {
@@ -53700,7 +53700,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L567",
+      "source_location": "L569",
       "weight": 1.0
     },
     {
@@ -53712,7 +53712,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L574",
+      "source_location": "L576",
       "weight": 1.0
     },
     {
@@ -53724,7 +53724,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L580",
+      "source_location": "L582",
       "weight": 1.0
     },
     {
@@ -62173,7 +62173,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -62185,7 +62185,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -62197,7 +62197,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L31",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -62209,7 +62209,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L32",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -62221,7 +62221,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L33",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -72098,6 +72098,18 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_programs_preincubator_status_page",
+      "target": "src_backend_lib_supabase",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/programs/preincubator/status/page.tsx",
       "source_location": "L29",
       "weight": 1.0
     },
@@ -72115,7 +72127,7 @@
     },
     {
       "source": "src_app_programs_preincubator_status_page",
-      "target": "src_backend_lib_supabase",
+      "target": "src_services_apiclient",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -72127,7 +72139,7 @@
     },
     {
       "source": "src_app_programs_preincubator_status_page",
-      "target": "src_services_apiclient",
+      "target": "src_frontend_components_ui_logo",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -72139,18 +72151,6 @@
     },
     {
       "source": "src_app_programs_preincubator_status_page",
-      "target": "src_frontend_components_ui_logo",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L32",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_programs_preincubator_status_page",
       "target": "src_frontend_components_applications_myapplicationsmodal",
       "relation": "imports_from",
       "_origin": "ast",
@@ -72158,7 +72158,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L33",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -100142,7 +100142,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L1204",
+      "source_location": "L1185",
       "weight": 1.0
     },
     {
@@ -100153,7 +100153,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L35",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -100164,7 +100164,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/programs/preincubator/status/page.tsx",
-      "source_location": "L52",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -109346,7 +109346,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L221",
+      "source_location": "L223",
       "weight": 1.0
     },
     {
@@ -109358,7 +109358,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L222",
+      "source_location": "L224",
       "weight": 1.0
     },
     {
@@ -109696,5 +109696,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "60b0a156dbe0e0ec2f22f9fee8b38afe3b92a028"
+  "built_at_commit": "e8d54afca609b81dc2cbe95354addbc6486e2f3c"
 }

@@ -227,13 +227,13 @@ export async function PUT(req: NextRequest) {
       .single();
 
     // If update failed because logo_color or initials columns do not exist in schema cache
-    if (updateErr && (updateErr.message?.includes('initials') || updateErr.message?.includes('logo_color'))) {
+    if (updateErr && (updateErr.message?.includes('initials') || updateErr.message?.includes('logo_color') || updateErr.message?.includes('schema cache'))) {
       const fallbackPayload = { ...updatePayload };
       delete fallbackPayload.logo_color;
       delete fallbackPayload.initials;
 
       // Automatically store generated logo as an SVG into existing logo_url
-      if (!fallbackPayload.logo_url && (body.logo_color || body.initials)) {
+      if (!body.logo_url && (body.logo_color || body.initials)) {
         const bg = body.logo_color || '#4F46E5';
         const init = (body.initials || 'ST').slice(0, 2).toUpperCase();
         fallbackPayload.logo_url = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="${encodeURIComponent(bg)}"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="%23ffffff" font-family="sans-serif" font-weight="700" font-size="24">${encodeURIComponent(init)}</text></svg>`;

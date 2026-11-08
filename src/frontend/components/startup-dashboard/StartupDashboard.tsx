@@ -207,8 +207,10 @@ export default function StartupDashboard({
     if (!activeDropdown) return;
 
     function handleClickOutside(event: MouseEvent) {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setActiveDropdown(null);
+      if (activeDropdown === 'more') {
+        if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+          setActiveDropdown(null);
+        }
       }
     }
 

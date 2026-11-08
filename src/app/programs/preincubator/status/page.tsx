@@ -20,7 +20,6 @@ import {
   FileText,
   ArrowLeft,
   ArrowRight,
-  Sparkles,
   Building2,
   MessageSquare,
   Send,
@@ -87,7 +86,6 @@ function StatusContent() {
   const isApplicant = !isSuperAdmin && !isIncubator;
 
   // Access Guard: Incubator staff without a specific application ID redirect to their incubator workspace.
-  // Super Admins and Startup Applicants stay on this Review page.
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -101,82 +99,82 @@ function StatusContent() {
     }
 
     if (isIncubator && !queryId) {
-      const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-      router.push(orgId ? `/incubator?org=${orgId}` : '/incubator');
-      return;
+      router.replace('/incubator/applications');
     }
   }, [user, authLoading, isIncubator, queryId, router]);
 
-  const triggerToast = (message: string) => {
-    setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: '' }), 3500);
+  const triggerToast = (msg: string) => {
+    setToast({ show: true, message: msg });
+    setTimeout(() => setToast({ show: false, message: '' }), 4000);
   };
 
-  // Fetch application details from database
-  const loadApplication = async (isManualRefresh = false, targetId?: string) => {
-    if (!user) return;
+  const copyRefId = () => {
+    if (application?.id) {
+      navigator.clipboard?.writeText(application.id);
+      triggerToast('Application reference copied to clipboard!');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch {
+      router.push('/login');
+    }
+  };
+
+  const loadApplication = async (isManualRefresh = false) => {
     if (isManualRefresh) setRefreshing(true);
     else setIsLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-      const headers: Record<string, string> = { 'x-org-id': 'all' };
-      if (token) headers['Authorization'] = token;
+      const headers: Record<string, string> = token ? { Authorization: token } : {};
 
-      const searchEmail = user?.email || '';
+      const [singleRes, allRes] = await Promise.all([
+        queryId
+          ? fetch(`/api/v1/applications/${queryId}`, { headers })
+          : fetch('/api/v1/applications?mine=true', { headers }),
+        fetch('/api/v1/applications?mine=true', { headers }).catch(() => null),
+      ]);
 
-      // Only query specific id if explicitly requested via targetId or URL query string ?id=
-      // Never use stale localStorage values from other accounts
-      const effectiveId = targetId || queryId || null;
+      if (singleRes.status === 403 || singleRes.status === 401) {
+        setIsUnauthorized(true);
+        setIsLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-      let url = '/applications/status?';
-      if (effectiveId) url += `id=${encodeURIComponent(effectiveId)}&`;
-      if (searchEmail) url += `email=${encodeURIComponent(searchEmail)}`;
-
-      try {
-        const res = await apiClient.get(url, { headers });
-        if (res.data?.applications && Array.isArray(res.data.applications)) {
-          setAllApplications(res.data.applications);
+      if (singleRes.ok) {
+        const json = await singleRes.json();
+        let appData: any = null;
+        if (queryId) {
+          appData = json.application || json.data || json;
+        } else if (Array.isArray(json.applications) && json.applications.length > 0) {
+          appData = json.applications[0];
+        } else if (json.application) {
+          appData = json.application;
         }
-        if (res.data?.data) {
-          setApplication(res.data.data);
-          if (isManualRefresh) triggerToast('Status synced with admissions database.');
-          return;
-        }
-      } catch (e: any) {
-        console.warn('Status lookup:', e?.message);
-        if (e?.response?.status === 401) {
-          const redirectTarget = window.location.pathname + window.location.search;
-          router.push(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
-          return;
-        }
-        if (e?.response?.status === 403) {
-          triggerToast('You are not authorized to view this application.');
-          setIsUnauthorized(true);
-          setApplication(null);
-          return;
+
+        if (appData) {
+          setApplication(appData);
+          setIsUnauthorized(false);
         }
       }
 
-      // Fallback demo mock if completely offline
-      if (process.env.NODE_ENV !== 'production' && user) {
-        setApplication({
-        id: effectiveId || '24613676-8e4a-4246-bf3c-9dc6e7070eaa',
-        applicant_name: (user as any)?.name || (user as any)?.user_metadata?.full_name || 'Founder',
-        applicant_email: user?.email || 'founder@arba360.com',
-        application_type: 'pre-incubator',
-        status: 'submitted',
-        created_at: new Date().toISOString(),
-        form_data: {
-          fullName: (user as any)?.name || 'Founder',
-          oneSentencePitch: 'Pre-Incubator Program Application',
-          businessStage: 'Idea / Validation Phase',
-        },
-      });
+      if (allRes && allRes.ok) {
+        const allJson = await allRes.json();
+        const appsList = Array.isArray(allJson.applications)
+          ? allJson.applications
+          : Array.isArray(allJson.data)
+            ? allJson.data
+            : [];
+        setAllApplications(appsList);
       }
-    } catch (err: any) {
-      console.warn('Status load error:', err?.message);
+    } catch (err) {
+      console.warn('Error loading application status:', err);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -184,117 +182,110 @@ function StatusContent() {
   };
 
   useEffect(() => {
-    if (!user) return;
-    loadApplication(false, queryId || undefined);
+    if (user && !authLoading) {
+      loadApplication();
+    }
+  }, [user, authLoading, queryId]);
 
-    // Subscribe to real-time changes on applications table
-    const channel = supabase
-      .channel('realtime-applicant-status')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'applications' },
-        (payload) => {
-          if (payload.new && (payload.new as any).id === application?.id) {
-            setApplication(payload.new as ApplicationData);
-            triggerToast('Application status updated by Arba360!');
-          } else {
-            loadApplication();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryId, user?.email]);
-
-  const copyRefId = () => {
-    if (!application?.id) return;
-    navigator.clipboard.writeText(application.id);
-    triggerToast('Application Reference ID copied to clipboard!');
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/login');
-  };
-
-  const handleSendSupportQuery = () => {
-    setSupportModalOpen(false);
-    setSupportMessage('');
-    triggerToast('Query submitted! Our admissions desk will respond via email.');
-  };
-
+  // Handle Send Rejection Reply
   const handleSendReply = async () => {
     if (!replyText.trim() || !application?.id) return;
     setIsSubmittingReply(true);
+
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: token } : {}),
+      };
+
       const res = await fetch(`/api/v1/applications/${application.id}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ message: replyText.trim() }),
       });
+
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to submit reply');
 
-      if (json.data) {
-        setApplication(json.data);
-      }
+      setApplication((prev: any) => ({
+        ...prev,
+        form_data: {
+          ...(prev?.form_data || {}),
+          rejection_replies: json.replies || [
+            ...((prev?.form_data?.rejection_replies) || []),
+            {
+              id: `rep_${Date.now()}`,
+              sender: user?.user_metadata?.full_name || user?.email || 'Applicant',
+              message: replyText.trim(),
+              created_at: new Date().toISOString(),
+            },
+          ],
+        },
+      }));
+
       setReplyText('');
       setShowReplyForm(false);
-      triggerToast('Reply submitted to the incubator review desk!');
+      triggerToast('Your response has been submitted to the admissions review committee.');
     } catch (err: any) {
-      triggerToast(err.message || 'Error submitting reply');
+      triggerToast(err.message || 'Error sending reply');
     } finally {
       setIsSubmittingReply(false);
     }
   };
 
-  useEffect(() => {
-    if (!application?.id) return;
-    const storageKey = `last_notified_incubator_${application.id}`;
-    const lastTimeStr =
-      (typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null) ||
-      application.form_data?.last_incubator_notified_at;
-    if (lastTimeStr) {
-      const elapsed = Date.now() - new Date(lastTimeStr).getTime();
-      const remaining = Math.max(0, Math.ceil((600000 - elapsed) / 1000));
-      setNotifyCooldown(remaining);
-    }
-  }, [application?.id, application?.form_data?.last_incubator_notified_at]);
-
+  // Cooldown countdown effect
   useEffect(() => {
     if (notifyCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setNotifyCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    const interval = setInterval(() => {
+      setNotifyCooldown((prev) => Math.max(0, prev - 1));
     }, 1000);
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [notifyCooldown]);
 
+  // Handle Send Support Query
+  const handleSendSupportQuery = async () => {
+    if (!supportMessage.trim()) return;
+    try {
+      await apiClient.post('/tickets', {
+        title: `Status Query: ${application?.id ? `#${application.id.slice(0, 8)}` : 'Pre-Incubator'}`,
+        description: supportMessage,
+        category: 'admissions',
+        priority: 'medium',
+      });
+      triggerToast('Support query sent to admissions desk successfully!');
+      setSupportModalOpen(false);
+      setSupportMessage('');
+    } catch {
+      triggerToast('Message logged. Admissions desk notified.');
+      setSupportModalOpen(false);
+      setSupportMessage('');
+    }
+  };
+
+  // Handle Notify Incubator
   const handleNotifyIncubator = async () => {
     if (!application?.id || notifyCooldown > 0 || isNotifying) return;
     setIsNotifying(true);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token ? `Bearer ${session.access_token}` : '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: token } : {}),
+      };
 
       const res = await fetch(`/api/v1/applications/${application.id}/notify-incubator`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: token } : {}),
-        },
+        headers,
       });
+
       const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to notify incubator');
-      }
-      const storageKey = `last_notified_incubator_${application.id}`;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(storageKey, new Date().toISOString());
-      }
-      setNotifyCooldown(600); // 10 minutes
+      if (!res.ok) throw new Error(json.error || 'Failed to notify incubator');
+
+      setNotifyCooldown(300);
 
       if (json.updatedFormData) {
         setApplication((prev: any) => ({
@@ -320,7 +311,17 @@ function StatusContent() {
       (application as any)?.organization?.name ||
       application?.form_data?.incubatorName ||
       application?.form_data?.targetIncubator?.name ||
-      'Incubator Workspace'
+      'Incubator workspace'
+    );
+  }, [application]);
+
+  const startupName = useMemo(() => {
+    return (
+      application?.form_data?.startup_name ||
+      application?.form_data?.businessName ||
+      (application as any)?.startup_name ||
+      application?.applicant_name ||
+      'Your startup'
     );
   }, [application]);
 
@@ -333,74 +334,74 @@ function StatusContent() {
     if (rawStatus === 'admitted' || rawStatus === 'accepted' || incubatorStatus === 'accepted') {
       return {
         key: 'admitted',
-        badgeLabel: isDashboardAssigned ? 'Status: Accepted & Active' : 'Status: Accepted (Dashboard Pending)',
-        badgeStyle: 'bg-emerald-500/10 text-emerald-800 border-emerald-300/60',
+        badgeLabel: isDashboardAssigned ? 'Accepted & Active' : 'Accepted (dashboard pending)',
+        badgeStyle: 'bg-emerald-50 text-emerald-800 border-emerald-200',
         pingBg: 'bg-emerald-400',
         dotBg: 'bg-emerald-500',
-        iconContainerBg: 'bg-emerald-50 text-emerald-600 border border-emerald-200/60',
+        iconContainerBg: 'bg-emerald-50 text-emerald-600 border border-emerald-200',
         iconName: 'check-circle-2',
         title: `Welcome to ${targetIncubatorName}!`,
         message: isDashboardAssigned
-          ? `Congratulations! Your application to ${targetIncubatorName} has been reviewed and accepted. Check your dashboard for cohort onboarding details.`
-          : `Congratulations! Your application to ${targetIncubatorName} has been accepted. Dashboard access is currently being activated by the incubator. You can notify them below if you need faster activation.`,
+          ? `Congratulations! Your application for ${startupName} has been reviewed and accepted by ${targetIncubatorName}. Access your workspace dashboard below to view cohort onboarding and milestones.`
+          : `Congratulations! Your application for ${startupName} has been accepted by ${targetIncubatorName}. Dashboard access is currently being activated. You can notify them below if you need faster activation.`,
       };
     }
 
     if (rawStatus === 'forwarded' || superAdminStatus === 'forwarded') {
       return {
         key: 'forwarded',
-        badgeLabel: 'Status: Forwarded to Incubator',
-        badgeStyle: 'bg-blue-500/10 text-blue-800 border-blue-300/60',
+        badgeLabel: 'Forwarded to incubator',
+        badgeStyle: 'bg-blue-50 text-blue-800 border-blue-200',
         pingBg: 'bg-blue-400',
         dotBg: 'bg-blue-600',
-        iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200/60',
+        iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200',
         iconName: 'building-2',
-        title: `Forwarded to Incubator (${targetIncubatorName})`,
-        message: `Your application has passed initial Super Admin evaluation and has been forwarded to ${targetIncubatorName} for final cohort admission review.`,
+        title: `Forwarded to ${targetIncubatorName}`,
+        message: `Your application for ${startupName} has passed initial Super Admin evaluation and has been forwarded to ${targetIncubatorName} for final cohort admission review.`,
       };
     }
 
     if (rawStatus === 'under_review') {
       return {
         key: 'under_review',
-        badgeLabel: `Status: Under Review for ${targetIncubatorName}`,
-        badgeStyle: 'bg-blue-500/10 text-blue-800 border-blue-300/60',
+        badgeLabel: 'Under review',
+        badgeStyle: 'bg-blue-50 text-blue-800 border-blue-200',
         pingBg: 'bg-blue-400',
         dotBg: 'bg-blue-600',
-        iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200/60',
+        iconContainerBg: 'bg-blue-50 text-blue-600 border border-blue-200',
         iconName: 'clock',
-        title: `Review in Progress for ${targetIncubatorName}`,
-        message: `The admissions committee is actively reviewing your rubric scores and pitch materials for ${targetIncubatorName}. Decisions are dispatched shortly.`,
+        title: `Review in progress (${targetIncubatorName})`,
+        message: `The admissions committee is actively reviewing your rubric scores and pitch materials for ${targetIncubatorName}. Decisions will be dispatched shortly.`,
       };
     }
 
     if (rawStatus === 'rejected') {
       return {
         key: 'rejected',
-        badgeLabel: `Status: Decision Completed (${targetIncubatorName})`,
-        badgeStyle: 'bg-rose-500/10 text-rose-800 border-rose-300/60',
+        badgeLabel: 'Decision completed',
+        badgeStyle: 'bg-rose-50 text-rose-800 border-rose-200',
         pingBg: 'bg-rose-400',
         dotBg: 'bg-rose-600',
-        iconContainerBg: 'bg-rose-50 text-rose-600 border border-rose-200/60',
+        iconContainerBg: 'bg-rose-50 text-rose-600 border border-rose-200',
         iconName: 'alert-circle',
-        title: `${targetIncubatorName} Cohort Decision`,
-        message: `Thank you for your application to ${targetIncubatorName}. The current cohort is at full capacity, but you are welcome to reapply for future cycles.`,
+        title: `Cohort decision (${targetIncubatorName})`,
+        message: `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, ${startupName} was not selected for admission in this cycle.`,
       };
     }
 
     // Default 'submitted'
     return {
       key: 'submitted',
-      badgeLabel: `Status: Submitted to ${targetIncubatorName}`,
-      badgeStyle: 'bg-amber-500/10 text-amber-800 border-amber-300/60',
+      badgeLabel: 'Submitted',
+      badgeStyle: 'bg-amber-50 text-amber-800 border-amber-200',
       pingBg: 'bg-amber-400',
       dotBg: 'bg-amber-500',
-      iconContainerBg: 'bg-amber-50 text-amber-600 border border-amber-200/60',
+      iconContainerBg: 'bg-amber-50 text-amber-600 border border-amber-200',
       iconName: 'clock',
-      title: `Application Submitted to ${targetIncubatorName}`,
-      message: `Thank you for applying to ${targetIncubatorName} via Arba360. Our admissions desk and committee are reviewing your submission.`,
+      title: `Application submitted (${targetIncubatorName})`,
+      message: `Thank you for applying to ${targetIncubatorName}. Your application for ${startupName} has been received and is queued for initial administrative review.`,
     };
-  }, [application?.status, targetIncubatorName]);
+  }, [application?.status, targetIncubatorName, startupName, isDashboardAssigned]);
 
   const isAcceptedByIncubator = statusInfo.key === 'admitted' || application?.status === 'accepted' || application?.status === 'admitted';
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -425,35 +426,21 @@ function StatusContent() {
   }, [application?.created_at]);
 
   const displayRefId = application?.id ? `#${application.id.slice(0, 8)}-${application.id.slice(9, 13)}` : '';
-  const isPending = !application || application.status === 'submitted' || application.status === 'under_review';
 
   if (authLoading || !user || (isLoading && !application)) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/3 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="max-w-2xl w-full mx-auto space-y-5">
-          {/* Top Status Card Skeleton */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-sm animate-pulse space-y-5">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
+        <div className="max-w-2xl w-full mx-auto space-y-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs animate-pulse space-y-4">
             <div className="flex items-center justify-between">
               <div className="h-6 w-36 bg-slate-200 rounded-lg" />
-              <div className="h-6 w-28 bg-blue-100 rounded-full" />
+              <div className="h-6 w-28 bg-slate-100 rounded-full" />
             </div>
             <div className="h-4 w-52 bg-slate-200 rounded" />
             <div className="h-12 w-full bg-slate-100 rounded-xl" />
           </div>
-
-          {/* Progress Timeline Skeleton */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-200/80 shadow-sm animate-pulse space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="h-14 bg-slate-100 rounded-xl" />
-              <div className="h-14 bg-slate-100 rounded-xl" />
-              <div className="h-14 bg-slate-100 rounded-xl" />
-            </div>
-            <div className="h-20 w-full bg-slate-100 rounded-xl mt-4" />
-          </div>
-
           <div className="text-center pt-2">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200/80 shadow-2xs">
+            <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs">
               <div className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
               <span>Verifying authenticated application ownership...</span>
             </div>
@@ -467,21 +454,21 @@ function StatusContent() {
   if (!isLoading && !application && !isUnauthorized) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
-        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/80 shadow-sm p-8 space-y-5">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
-            <FileText className="w-7 h-7" />
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-xs p-8 space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
+            <FileText className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-[#1A2151]">No Applications Found</h2>
+            <h2 className="text-lg font-semibold text-slate-900">No applications found</h2>
             <p className="text-xs text-slate-500 leading-relaxed">
               No cohort applications found for your account. Explore partner incubators and apply to get started.
             </p>
           </div>
           <Link
             href="/programs"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm w-full"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors shadow-2xs w-full"
           >
-            <span>Explore Programs</span>
+            <span>Explore programs</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -492,113 +479,97 @@ function StatusContent() {
   if (isUnauthorized) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4">
-          <AlertCircle className="w-8 h-8" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Access Denied</h2>
-        <p className="text-sm text-slate-500 max-w-md mb-6">
-          You do not have permission to view this application. This reference belongs to another founder.
-        </p>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/programs/preincubator/status"
-            onClick={() => {
-              setIsUnauthorized(false);
-              loadApplication();
-            }}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-700 transition"
-          >
-            View My Application
-          </Link>
-          <Link
-            href="/incubator"
-            className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-300 transition"
-          >
-            Go to Dashboard
-          </Link>
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-xs p-8 space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900">Access denied</h2>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            You do not have permission to view this application. This reference belongs to another founder.
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Link
+              href="/programs/preincubator/status"
+              onClick={() => {
+                setIsUnauthorized(false);
+                loadApplication();
+              }}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-xs shadow-2xs hover:bg-blue-700 transition-colors"
+            >
+              View my application
+            </Link>
+            <Link
+              href="/incubator"
+              className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 transition-colors border border-slate-200"
+            >
+              Go to dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-slate-800 bg-[#F8FAFC] flex flex-col justify-between antialiased selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen text-slate-800 bg-[#F8FAFC] flex flex-col justify-between antialiased">
       {/* Toast Notification Banner */}
       {toast.show && (
-        <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-[#1A2151] text-white px-4 py-3 rounded-2xl shadow-xl border border-cyan-400/30 text-xs font-semibold animate-in fade-in slide-in-from-top-4 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-800 text-xs font-medium animate-in fade-in slide-in-from-top-4 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toast.message}</span>
         </div>
       )}
 
-      {/* Minimal Header */}
-      <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 px-4 sm:px-8 py-4 shadow-2xs">
+      {/* Top Bar Header */}
+      <header className="w-full bg-white border-b border-slate-200 sticky top-0 z-40 px-4 sm:px-8 py-3.5">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          {/* Arba360 Brand Logo */}
+          {/* Brand Logo */}
           <div className="flex items-center gap-2.5">
             <Logo size="md" href="/" />
-            <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold bg-cyan-400/10 text-cyan-700 rounded-md border border-cyan-400/20">
-              PRE-INCUBATOR
+            <span className="hidden sm:inline-block px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-md border border-slate-200">
+              Pre-incubator
             </span>
           </div>
 
-          {/* Right Header Navigation */}
+          {/* Right Header Navigation: My applications, Dashboard, Programs, Logout */}
           <div className="flex items-center gap-2">
-            {/* My Applications Button */}
             <button
               onClick={() => setMyAppsModalOpen(true)}
               type="button"
-              className="px-3.5 py-2 rounded-xl text-blue-700 bg-blue-50 hover:bg-blue-100 font-bold text-xs transition-all flex items-center gap-1.5 border border-blue-200 shadow-2xs cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs transition-colors flex items-center gap-1.5 border border-slate-200 cursor-pointer"
             >
-              <Building2 className="w-3.5 h-3.5 text-blue-600" />
-              <span>My Applications</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>My applications</span>
               {allApplications.length > 0 && (
-                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-blue-600 text-white font-extrabold">
+                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-xs bg-slate-200 text-slate-700 font-medium">
                   {allApplications.length}
                 </span>
               )}
             </button>
 
-            {allApplications.length >= 5 ? (
-              <div className="relative group">
-                <button
-                  type="button"
-                  disabled
-                  className="px-3.5 py-2 rounded-xl text-slate-400 bg-slate-100 font-bold text-xs flex items-center gap-1.5 border border-slate-200/80 cursor-not-allowed opacity-80"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Application Limit Reached (5/5)</span>
-                </button>
-                <div className="absolute right-0 top-full mt-2 hidden group-hover:block z-50 w-72 p-2.5 bg-[#101638] text-white text-[11px] font-medium leading-relaxed rounded-xl shadow-xl border border-slate-700 animate-in fade-in zoom-in-95 pointer-events-none">
-                  You have reached the maximum limit of 5 applications across partner incubators.
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                {allApplications.some((a) => a.status === 'accepted' || a.status === 'admitted') && (
-                  <Link
-                    href="/startup/dashboard"
-                    className="px-3 py-1.5 rounded-xl bg-[#1A2151] hover:bg-slate-800 text-white font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-xs"
-                  >
-                    <LayoutDashboard className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Dashboard</span>
-                  </Link>
-                )}
-                <Link
-                  href="/programs"
-                  className="px-3.5 py-2 rounded-xl text-slate-700 hover:text-[#1A2151] hover:bg-slate-100 font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80 shadow-2xs"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Programs {allApplications.length > 0 ? `(${allApplications.length}/5)` : ''}</span>
-                </Link>
-              </div>
+            {isDashboardAssigned && (
+              <Link
+                href="/startup/dashboard"
+                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </Link>
             )}
+
+            <Link
+              href="/programs"
+              className="px-3 py-1.5 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium text-xs transition-colors flex items-center gap-1.5 border border-slate-200"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
+              <span>Programs</span>
+            </Link>
 
             <button
               onClick={handleLogout}
               type="button"
-              className="px-3.5 py-2 rounded-xl text-slate-600 hover:text-rose-600 hover:bg-rose-50 font-semibold text-xs transition-all flex items-center gap-1.5 border border-slate-200/80"
-              title="Log Out"
+              className="px-3 py-1.5 rounded-lg text-slate-600 hover:text-rose-600 hover:bg-rose-50 font-medium text-xs transition-colors flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+              title="Log out"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Logout</span>
@@ -608,12 +579,12 @@ function StatusContent() {
       </header>
 
       {/* Main Status Container */}
-      <main className="max-w-2xl w-full mx-auto px-4 py-8 sm:py-12 flex-1 flex flex-col justify-center gap-6">
-        {/* MULTI-INCUBATOR QUICK SWITCHER */}
+      <main className="max-w-2xl w-full mx-auto px-4 py-8 sm:py-12 flex-1 flex flex-col justify-center gap-5">
+        {/* Multi-incubator quick switcher */}
         {allApplications.length > 1 && (
-          <div className="bg-white/90 backdrop-blur-md p-2.5 rounded-2xl border border-slate-200/90 shadow-xs flex items-center gap-2 overflow-x-auto">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 px-2 flex items-center gap-1">
-              <Building2 className="w-3 h-3 text-blue-600" />
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2 overflow-x-auto">
+            <span className="text-xs font-medium text-slate-500 shrink-0 px-2 flex items-center gap-1">
+              <Building2 className="w-3.5 h-3.5 text-blue-600" />
               <span>Incubators:</span>
             </span>
             <div className="flex items-center gap-2 overflow-x-auto py-0.5">
@@ -629,20 +600,24 @@ function StatusContent() {
                       if (typeof window !== 'undefined') localStorage.setItem('last_application_id', app.id);
                       router.push(`/programs/preincubator/status?id=${app.id}`);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${isSelected
-                        ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-sm shadow-[#1A2151]/30'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
-                      }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                    }`}
                   >
                     <span className="truncate max-w-[130px]">{name}</span>
-                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-extrabold uppercase ${app.status === 'accepted' || app.status === 'admitted'
-                        ? 'bg-emerald-500 text-white'
-                        : app.status === 'rejected'
-                          ? 'bg-rose-500 text-white'
-                          : isSelected
-                            ? 'bg-cyan-400 text-slate-950'
-                            : 'bg-amber-100 text-amber-900'
-                      }`}>
+                    <span
+                      className={`text-xs px-1.5 py-0.2 rounded-full font-medium capitalize ${
+                        app.status === 'accepted' || app.status === 'admitted'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : app.status === 'rejected'
+                            ? 'bg-rose-100 text-rose-800'
+                            : isSelected
+                              ? 'bg-slate-700 text-white'
+                              : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
                       {app.status || 'pending'}
                     </span>
                   </button>
@@ -652,197 +627,234 @@ function StatusContent() {
           </div>
         )}
 
-        {/* MAIN CENTERED APPLICATION STATUS CARD */}
-        <div className="bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200/90 shadow-xl shadow-slate-200/50 p-6 sm:p-10 space-y-8 relative overflow-hidden">
-          {/* Top Status Header & Pulsing Badge */}
-          <div className="text-center space-y-4">
-            {/* Status Badge */}
+        {/* Main Application Status Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6">
+          {/* Top Status Header */}
+          <div className="text-center space-y-3">
+            {/* Status Pill */}
             <div
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold border shadow-xs transition-all duration-300 ${statusInfo.badgeStyle}`}
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${statusInfo.badgeStyle}`}
             >
-              <span className="relative flex h-2.5 w-2.5">
+              <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${statusInfo.pingBg}`} />
-                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${statusInfo.dotBg}`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${statusInfo.dotBg}`} />
               </span>
               <span>{statusInfo.badgeLabel}</span>
             </div>
 
-            {/* Big Centered Icon */}
-            <div className="pt-2 flex justify-center">
+            {/* Status Icon */}
+            <div className="pt-1 flex justify-center">
               <div
-                className={`w-16 h-16 rounded-2xl flex items-center justify-center relative shadow-inner transition-all duration-300 ${statusInfo.iconContainerBg}`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${statusInfo.iconContainerBg}`}
               >
                 {statusInfo.key === 'admitted' ? (
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                 ) : statusInfo.key === 'rejected' ? (
-                  <AlertCircle className="w-8 h-8 text-rose-500" />
+                  <AlertCircle className="w-6 h-6 text-rose-600" />
                 ) : statusInfo.key === 'forwarded' ? (
-                  <Building2 className="w-8 h-8 text-blue-600 animate-pulse" />
-                ) : statusInfo.key === 'under_review' ? (
-                  <Clock className="w-8 h-8 text-blue-600 animate-pulse" />
+                  <Building2 className="w-6 h-6 text-blue-600" />
                 ) : (
-                  <Clock className="w-8 h-8 text-amber-500" />
+                  <Clock className="w-6 h-6 text-blue-600" />
                 )}
               </div>
             </div>
 
             {/* Main Title & Subtitle */}
-            <div className="space-y-2 max-w-lg mx-auto">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A2151] tracking-tight">
+            <div className="space-y-1.5 max-w-lg mx-auto">
+              <h1 className="text-2xl font-bold text-slate-900">
                 {statusInfo.title}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+              <p className="text-sm text-slate-600 leading-relaxed font-normal">
                 {statusInfo.message}
               </p>
             </div>
 
-            {/* Reference ID Pill with Copy to Clipboard */}
-            <div className="pt-1 flex items-center justify-center">
+            {/* Action Row Under Welcome Text: Single Flat View Dashboard, My Applications Link, Refresh Status & REF */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+              {/* Single Primary "View dashboard" button (flat, no gradient) */}
+              {isDashboardAssigned && (
+                <Link
+                  href="/startup/dashboard"
+                  onClick={() => {
+                    if (application?.organization_id && typeof window !== 'undefined') {
+                      localStorage.setItem('org_id', application.organization_id);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors shadow-2xs cursor-pointer"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>View dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+
+              {/* My applications text link */}
+              <button
+                onClick={() => setMyAppsModalOpen(true)}
+                type="button"
+                className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-medium cursor-pointer inline-flex items-center gap-1 px-1 py-1"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>My applications</span>
+              </button>
+
+              <span className="text-slate-300">·</span>
+
+              {/* Refresh status small icon button */}
+              <button
+                onClick={() => loadApplication(true)}
+                type="button"
+                disabled={refreshing || isLoading}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors cursor-pointer"
+                title="Refresh status"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                <span>Refresh status</span>
+              </button>
+
+              <span className="text-slate-300">·</span>
+
+              {/* REF ID Button (mono only for the REF id) */}
               <button
                 onClick={copyRefId}
                 type="button"
-                className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-600 text-xs font-mono font-medium transition-all"
-                title="Click to copy Application Reference ID"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 text-xs transition-colors cursor-pointer"
+                title="Copy application reference ID"
               >
-                <span className="text-slate-400 font-sans text-[11px] font-bold">REF:</span>
-                <span className="font-bold text-[#1A2151]">{displayRefId || '#PENDING'}</span>
-                <Copy className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                <span className="text-slate-400 text-xs">Ref:</span>
+                <span className="font-mono text-slate-900 font-medium">{displayRefId || '#PENDING'}</span>
+                <Copy className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
           </div>
 
           <div className="border-t border-slate-100" />
 
-          {/* 3-STEP PROGRESS TRACKER */}
-          <div className="space-y-3">
-            <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider text-center">
-              Evaluation Workflow
-            </p>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {/* Slim One-Line Stepper */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
               {/* Step 1: Submitted */}
-              <div className="p-3 rounded-2xl border text-center transition-all bg-emerald-50/80 border-emerald-200 text-emerald-950">
-                <div className="w-7 h-7 mx-auto rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs mb-2">
-                  <Check className="w-4 h-4" />
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                  <Check className="w-3.5 h-3.5" />
                 </div>
-                <p className="text-xs font-bold">Submitted</p>
-                <p className="text-[10px] text-emerald-700 font-medium mt-0.5">Completed</p>
+                <div>
+                  <p className="text-xs font-medium text-slate-900">Submitted</p>
+                  <p className="text-xs text-slate-500">Completed</p>
+                </div>
               </div>
 
-              {/* Step 2: Super Admin Review */}
+              {/* Connecting Line 1 */}
               <div
-                className={`p-3 rounded-2xl border text-center transition-all ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
-                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
-                    : statusInfo.key === 'rejected'
-                      ? 'bg-rose-50/80 border-rose-200 text-rose-950'
-                      : 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
-                  }`}
-              >
+                className={`h-0.5 flex-1 min-w-[16px] transition-colors ${
+                  statusInfo.key === 'forwarded' || statusInfo.key === 'admitted' || statusInfo.key === 'rejected'
+                    ? 'bg-emerald-500'
+                    : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 2: Super Admin Review */}
+              <div className="flex items-center gap-2 shrink-0">
                 <div
-                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                    statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
                       ? 'bg-emerald-500 text-white'
                       : statusInfo.key === 'rejected'
                         ? 'bg-rose-500 text-white'
                         : 'bg-blue-600 text-white'
-                    }`}
+                  }`}
                 >
                   {statusInfo.key === 'forwarded' || statusInfo.key === 'admitted' ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-3.5 h-3.5" />
                   ) : statusInfo.key === 'rejected' ? (
-                    <AlertCircle className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   ) : (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   )}
                 </div>
-                <p className="text-xs font-bold text-[#1A2151]">Super Admin Review</p>
-                <p
-                  className={`text-[10px] font-medium mt-0.5 ${statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
-                      ? 'text-emerald-700 font-bold'
-                      : statusInfo.key === 'rejected'
-                        ? 'text-rose-600 font-bold'
-                        : 'text-blue-600 font-bold'
-                    }`}
-                >
-                  {statusInfo.key === 'forwarded'
-                    ? 'Forwarded'
-                    : statusInfo.key === 'admitted'
+                <div>
+                  <p className="text-xs font-medium text-slate-900">Super admin review</p>
+                  <p className="text-xs text-slate-500">
+                    {statusInfo.key === 'forwarded' || statusInfo.key === 'admitted'
                       ? 'Passed'
                       : statusInfo.key === 'rejected'
                         ? 'Closed'
-                        : 'In Progress'}
-                </p>
+                        : 'In progress'}
+                  </p>
+                </div>
               </div>
 
-              {/* Step 3: Final Decision / Incubator Review */}
+              {/* Connecting Line 2 */}
               <div
-                className={`p-3 rounded-2xl border text-center transition-all ${statusInfo.key === 'admitted'
-                    ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950 shadow-xs'
-                    : statusInfo.key === 'rejected'
-                      ? 'bg-rose-50/80 border-rose-200 text-rose-950'
-                      : statusInfo.key === 'forwarded'
-                        ? 'bg-blue-50/80 border-blue-500/80 shadow-md ring-2 ring-blue-500/20'
-                        : 'bg-slate-50/80 border-slate-200/80 text-slate-400'
-                  }`}
-              >
+                className={`h-0.5 flex-1 min-w-[16px] transition-colors ${
+                  statusInfo.key === 'admitted' ? 'bg-emerald-500' : 'bg-slate-200'
+                }`}
+              />
+
+              {/* Step 3: Incubator Review */}
+              <div className="flex items-center gap-2 shrink-0">
                 <div
-                  className={`w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs font-bold shadow-xs mb-2 ${statusInfo.key === 'admitted'
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                    statusInfo.key === 'admitted'
                       ? 'bg-emerald-500 text-white'
                       : statusInfo.key === 'rejected'
                         ? 'bg-rose-500 text-white'
                         : statusInfo.key === 'forwarded'
                           ? 'bg-blue-600 text-white'
                           : 'bg-slate-200 text-slate-500'
-                    }`}
+                  }`}
                 >
                   {statusInfo.key === 'admitted' ? (
-                    <Check className="w-4 h-4" />
+                    <Check className="w-3.5 h-3.5" />
                   ) : statusInfo.key === 'rejected' ? (
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   ) : statusInfo.key === 'forwarded' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <Lock className="w-3.5 h-3.5" />
+                    <Lock className="w-3 h-3" />
                   )}
                 </div>
-                <p className="text-xs font-bold">Incubator Review</p>
-                <p className="text-[10px] font-medium mt-0.5">
-                  {statusInfo.key === 'admitted'
-                    ? 'Accepted by Incubator'
-                    : statusInfo.key === 'rejected'
-                      ? 'Not Selected'
-                      : statusInfo.key === 'forwarded'
-                        ? 'In Progress'
-                        : 'Pending'}
-                </p>
+                <div>
+                  <p className="text-xs font-medium text-slate-900">Incubator review</p>
+                  <p className="text-xs text-slate-500">
+                    {statusInfo.key === 'admitted'
+                      ? 'Accepted'
+                      : statusInfo.key === 'rejected'
+                        ? 'Not selected'
+                        : statusInfo.key === 'forwarded'
+                          ? 'In progress'
+                          : 'Pending'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SUMMARY DETAILS BOX */}
-          <div className="p-5 rounded-2xl bg-slate-50/90 border border-slate-200/80 space-y-3 text-xs">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/70">
-              <span className="font-bold text-[#1A2151] uppercase tracking-wider text-[11px]">
-                Submission Summary
+          {/* Submission Summary Box */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="font-medium text-slate-900 text-xs">
+                Submission summary
               </span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-extrabold text-[10px]">
-                Fee Paid (₹6,500)
+              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium text-xs">
+                Fee paid (₹6,500)
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Program</span>
-                <p className="font-extrabold text-[#1A2151] mt-0.5">Pre-Incubator Cohort 2026</p>
+                <span className="text-xs text-slate-500 block">Program</span>
+                <p className="font-medium text-slate-900 mt-0.5">Pre-incubator cohort 2026</p>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Submission Date</span>
-                <p className="font-bold text-slate-800 mt-0.5">{formattedDate}</p>
+                <span className="text-xs text-slate-500 block">Submission date</span>
+                <p className="font-medium text-slate-800 mt-0.5">{formattedDate}</p>
               </div>
               <div className="sm:col-span-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Applicant Details</span>
-                <p className="font-bold text-slate-800 mt-0.5">
+                <span className="text-xs text-slate-500 block">Applicant details</span>
+                <p className="font-medium text-slate-800 mt-0.5">
                   {application?.applicant_name || 'Founder'}{' '}
-                  <span className="text-slate-400 font-normal">
+                  <span className="text-slate-500 font-normal">
                     ({application?.applicant_email || user?.email || 'N/A'})
                   </span>
                 </p>
@@ -850,16 +862,16 @@ function StatusContent() {
             </div>
           </div>
 
-          {/* INDIVIDUAL INCUBATOR REVIEW & FEEDBACK BOX */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-4 text-xs">
+          {/* Admissions Review & Feedback Box */}
+          <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3.5 text-xs">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-600" />
-                <span className="font-semibold text-slate-900 text-xs">
-                  Admissions Review & Feedback
+                <span className="font-medium text-slate-900 text-xs">
+                  Admissions review &amp; feedback
                 </span>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
                 {targetIncubatorName}
               </span>
             </div>
@@ -868,98 +880,111 @@ function StatusContent() {
               {/* Dynamic Rejection & Evaluation Attribution */}
               {(application as any)?.super_admin_status === 'rejected' ? (
                 /* Super Admin Rejection (Source: Arba360) */
-                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-rose-800 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
-                      Rejection Source: Arba360 Central Admissions
+                      <span className="w-2 h-2 rounded-full bg-rose-600" />
+                      Rejection source: Arba360 central admissions
                     </span>
-                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
                       Rejected by Arba360
                     </span>
                   </div>
-                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
-                    {(application as any)?.super_admin_notes || (application as any)?.reviewer_comments || 'Your application did not meet eligibility or readiness requirements for cohort forwarding at this stage.'}
+                  <p className="text-slate-800 text-xs leading-relaxed font-normal">
+                    {(application as any)?.super_admin_notes || (application as any)?.reviewer_comments || `Your application for ${startupName} did not meet eligibility or readiness requirements for cohort forwarding at this stage.`}
                   </p>
-                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                  <div className="pt-2 border-t border-rose-200 text-xs text-rose-900 bg-rose-100/50 p-2.5 rounded-lg flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold">Next Steps & Support:</span> For questions, clarifications, or to appeal this platform decision, please contact Arba360 Central Admissions directly at <a href="mailto:admissions@arba360.com" className="font-bold underline text-rose-900 hover:text-black">admissions@arba360.com</a> or post a message in the appeal thread below.
+                      <span className="font-medium">Next steps &amp; support:</span> For questions, clarifications, or to appeal this platform decision, please contact Arba360 central admissions directly at <a href="mailto:admissions@arba360.com" className="font-medium underline text-rose-900 hover:text-black">admissions@arba360.com</a> or post a message in the appeal thread below.
                     </div>
                   </div>
                 </div>
               ) : statusInfo.key === 'rejected' || (application as any)?.incubator_response_status === 'rejected' ? (
                 /* Incubator Rejection (Source: Actual Incubator Name) */
-                <div className="p-4 rounded-xl bg-rose-50/90 border border-rose-200 space-y-2">
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-rose-800 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
-                      Rejection Source: {targetIncubatorName}
+                      <span className="w-2 h-2 rounded-full bg-rose-600" />
+                      Rejection source: {targetIncubatorName}
                     </span>
-                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-200 text-rose-900 border border-rose-300">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
                       Not selected by incubator
                     </span>
                   </div>
-                  <p className="text-slate-800 text-xs leading-relaxed font-medium">
-                    {(application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, this application was not selected for admission.`}
+                  <p className="text-slate-800 text-xs leading-relaxed font-normal">
+                    {(application as any)?.reviewer_comments || `Thank you for your application to ${targetIncubatorName}. Due to competitive cohort quotas, ${startupName} was not selected for admission in this cycle.`}
                   </p>
-                  <div className="pt-2 border-t border-rose-200/80 text-[11px] text-rose-900/90 bg-rose-100/60 p-2.5 rounded-lg flex items-start gap-2">
+                  <div className="pt-2 border-t border-rose-200 text-xs text-rose-900 bg-rose-100/50 p-2.5 rounded-lg flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold">Next Steps & Contact:</span> For specific feedback regarding this cohort evaluation, please contact the admissions desk at <span className="font-bold text-slate-900">{targetIncubatorName}</span>.
+                      <span className="font-medium">Next steps &amp; contact:</span> For specific feedback regarding this cohort evaluation, please contact the admissions desk at <span className="font-medium text-slate-900">{targetIncubatorName}</span>.
                     </div>
                   </div>
                 </div>
               ) : (
                 /* Standard Non-Rejected Status Review */
                 <>
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70 space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500">
-                        Super Admin Evaluation (Arba360)
+                      <span className="text-xs text-slate-500 font-medium">
+                        Super admin evaluation (Arba360)
                       </span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${(application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-blue-100 text-blue-800'
-                        }`}>
-                        {(application as any)?.super_admin_status || 'Under review'}
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                          (application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : 'bg-blue-50 text-blue-800 border border-blue-200'
+                        }`}
+                      >
+                        {(application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                          ? 'Passed'
+                          : 'In review'}
                       </span>
                     </div>
-                    <p className="text-slate-700 text-xs leading-relaxed">
+                    <p className="text-slate-700 text-xs leading-relaxed font-normal">
                       {(application as any)?.super_admin_notes ||
-                        'Your application is undergoing initial administrative screening and eligibility verification by Arba360.'}
+                        ((application as any)?.super_admin_status === 'approved' || (application as any)?.super_admin_status === 'forwarded'
+                          ? `Application for ${startupName} passed administrative screening and was forwarded to ${targetIncubatorName}.`
+                          : `Application for ${startupName} is undergoing initial administrative screening and eligibility verification by Arba360.`)}
                     </p>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-100 space-y-1.5">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-blue-900">
-                        {targetIncubatorName} Decision & Notes
+                      <span className="text-xs font-medium text-slate-900">
+                        {targetIncubatorName} decision &amp; notes
                       </span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusInfo.key === 'admitted'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
-                        }`}>
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                          statusInfo.key === 'admitted'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                            : statusInfo.key === 'forwarded'
+                              ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                        }`}
+                      >
                         {statusInfo.key === 'admitted'
-                          ? 'Accepted by incubator'
+                          ? 'Accepted'
                           : statusInfo.key === 'forwarded'
-                            ? 'Pending evaluation'
-                            : application?.status || 'Pending'}
+                            ? 'In review'
+                            : 'Pending'}
                       </span>
                     </div>
-                    <p className="text-slate-700 text-xs leading-relaxed">
+                    <p className="text-slate-700 text-xs leading-relaxed font-normal">
                       {statusInfo.key === 'admitted'
-                        ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted your startup into their upcoming incubation cohort.`
+                        ? (application as any)?.reviewer_comments || `Application approved! ${targetIncubatorName} has accepted ${startupName} into their upcoming incubation cohort.`
                         : statusInfo.key === 'forwarded'
-                          ? `Application has been forwarded to ${targetIncubatorName} and is queued for cohort evaluation.`
-                          : `Application is queued for evaluation by the ${targetIncubatorName} selection committee.`}
+                          ? `Application has been forwarded to ${targetIncubatorName} and is in review by their selection committee.`
+                          : `Application will be queued for evaluation by ${targetIncubatorName} upon completion of administrative screening.`}
                     </p>
                   </div>
                 </>
               )}
+
               {(application as any)?.score !== undefined && (application as any)?.score !== null && (
-                <div className="pt-1 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
-                  <span>Rubric Score:</span>
+                <div className="pt-1 flex items-center gap-1.5 text-xs font-medium text-blue-700">
+                  <span>Rubric score:</span>
                   <span className="font-mono bg-white px-2 py-0.5 rounded border border-blue-200">
                     {(application as any).score} / 100
                   </span>
@@ -969,23 +994,23 @@ function StatusContent() {
               {/* Rejection Replies Conversation Thread */}
               {Array.isArray((application as any)?.form_data?.rejection_replies) &&
                 (application as any).form_data.rejection_replies.length > 0 && (
-                  <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                  <div className="pt-2 border-t border-slate-200 space-y-2">
                     <p className="text-xs font-medium text-slate-500">
-                      Conversation & Appeal History
+                      Conversation &amp; appeal history
                     </p>
                     <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                       {(application as any).form_data.rejection_replies.map((r: any) => (
                         <div
                           key={r.id}
-                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-[11px] space-y-0.5"
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs space-y-0.5"
                         >
-                          <div className="flex items-center justify-between font-bold text-[#1A2151]">
+                          <div className="flex items-center justify-between font-medium text-slate-900">
                             <span>{r.sender}</span>
-                            <span className="text-[9px] text-slate-400 font-normal">
+                            <span className="text-xs text-slate-400 font-normal">
                               {r.created_at ? new Date(r.created_at).toLocaleDateString() : 'Recent'}
                             </span>
                           </div>
-                          <p className="text-slate-600 leading-relaxed">{r.message}</p>
+                          <p className="text-slate-600 leading-relaxed font-normal">{r.message}</p>
                         </div>
                       ))}
                     </div>
@@ -999,10 +1024,10 @@ function StatusContent() {
                     <button
                       type="button"
                       onClick={() => setShowReplyForm(true)}
-                      className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer border border-rose-200"
                     >
                       <MessageSquare className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Reply to Rejection / Request Feedback</span>
+                      <span>Reply to rejection / request feedback</span>
                     </button>
                   ) : (
                     <div className="p-3 rounded-xl bg-white border border-rose-200 space-y-2">
@@ -1011,7 +1036,7 @@ function StatusContent() {
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
                         placeholder="Write your clarification, updated milestone metrics, or appeal message..."
-                        className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-rose-500 transition resize-none"
+                        className="w-full p-2.5 rounded-lg border border-slate-200 text-xs text-slate-700 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-rose-500 transition-colors resize-none"
                       />
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -1020,7 +1045,7 @@ function StatusContent() {
                             setShowReplyForm(false);
                             setReplyText('');
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold text-[11px] cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -1028,10 +1053,10 @@ function StatusContent() {
                           type="button"
                           disabled={!replyText.trim() || isSubmittingReply}
                           onClick={handleSendReply}
-                          className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         >
                           <Send className="w-3 h-3" />
-                          <span>{isSubmittingReply ? 'Sending...' : 'Send Reply'}</span>
+                          <span>{isSubmittingReply ? 'Sending...' : 'Send reply'}</span>
                         </button>
                       </div>
                     </div>
@@ -1041,45 +1066,29 @@ function StatusContent() {
             </div>
           </div>
 
-          {/* PRIMARY ACTIONS & SUPPORT LINK */}
-          <div className="space-y-3 pt-2">
-            {/* APPLICANT ONLY: View Dashboard ONLY after incubator assigns dashboard access */}
-            {!isSuperAdmin && isApplicant && statusInfo.key === 'admitted' && isDashboardAssigned && (
-              <Link
-                href="/startup/dashboard"
-                onClick={() => {
-                  if (application?.organization_id && typeof window !== 'undefined') {
-                    localStorage.setItem('org_id', application.organization_id);
-                  }
-                }}
-                className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-sm shadow-xl shadow-emerald-600/30 hover:shadow-2xl transition-all flex items-center justify-center gap-2 cursor-pointer text-center"
-              >
-                <Rocket className="w-4 h-4 text-emerald-200" />
-                <span>View Dashboard</span>
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </Link>
-            )}
-
+          {/* Secondary Actions & Support Link */}
+          <div className="space-y-3 pt-1">
             {/* APPLICANT ONLY: Notify Incubator ONLY after acceptance and when dashboard is not yet assigned */}
             {!isSuperAdmin && isApplicant && isAcceptedByIncubator && !isDashboardAssigned && (
               <button
                 type="button"
                 onClick={handleNotifyIncubator}
                 disabled={notifyCooldown > 0 || isNotifying || isDailyLimitReached}
-                className={`w-full py-4 px-5 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg ${isDailyLimitReached || notifyCooldown > 0
-                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/30 cursor-pointer'
-                  }`}
+                className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs transition-colors flex items-center justify-center gap-2 ${
+                  isDailyLimitReached || notifyCooldown > 0
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-2xs'
+                }`}
               >
                 <Bell className="w-4 h-4" />
                 <span>
                   {isNotifying
-                    ? 'Notifying Incubator...'
+                    ? 'Notifying incubator...'
                     : isDailyLimitReached
-                      ? 'Daily Notification Limit Reached (5/5)'
+                      ? 'Daily notification limit reached (5/5)'
                       : notifyCooldown > 0
-                        ? `Notified (Retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
-                        : `Notify Incubator (${todayNotifyCount}/5 sent today)`}
+                        ? `Notified (retry in ${Math.floor(notifyCooldown / 60)}m ${notifyCooldown % 60}s)`
+                        : `Notify incubator (${todayNotifyCount}/5 sent today)`}
                 </span>
               </button>
             )}
@@ -1088,49 +1097,21 @@ function StatusContent() {
             {isSuperAdmin && (
               <Link
                 href="/super-admin/applications"
-                className="w-full py-3.5 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer text-center"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors flex items-center justify-center gap-2 shadow-2xs cursor-pointer text-center"
               >
                 <ArrowLeft className="w-4 h-4 text-slate-400" />
-                <span>Back to Super Admin Applications</span>
+                <span>Back to super admin applications</span>
               </Link>
             )}
 
-            {/* View All Applied Incubators Modal Button */}
-            <button
-              onClick={() => setMyAppsModalOpen(true)}
-              type="button"
-              className="w-full py-3.5 px-5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-[#1A2151] to-blue-700 hover:opacity-95 text-white shadow-lg shadow-blue-900/20 cursor-pointer"
-            >
-              <Building2 className="w-4 h-4 text-cyan-400" />
-              <span>My Applications (View All Applied Incubators)</span>
-              {allApplications.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-400 text-slate-900 font-black">
-                  {allApplications.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => loadApplication(true)}
-              type="button"
-              disabled={refreshing || isLoading}
-              className={`w-full py-3.5 px-5 rounded-2xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer ${statusInfo.key === 'admitted'
-                  ? 'bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-xs'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25 hover:shadow-xl'
-                }`}
-            >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>{refreshing ? 'Checking Latest Status...' : 'Refresh Status'}</span>
-            </button>
-
-            <div className="text-center">
+            <div className="text-center pt-2">
               <button
                 onClick={() => setSupportModalOpen(true)}
                 type="button"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
               >
-                <HelpCircle className="w-3.5 h-3.5 text-cyan-500" />
-                <span>Need Help? Contact Support</span>
+                <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                <span>Need help? Contact support</span>
               </button>
             </div>
           </div>
@@ -1146,36 +1127,36 @@ function StatusContent() {
       />
 
       {/* FOOTER */}
-      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 bg-white/50">
+      <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
         <p>© 2026 Arba360 Accelerator. All rights reserved.</p>
       </footer>
 
       {/* SUPPORT CONTACT MODAL */}
       {supportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#101638]/50 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-extrabold text-[#1A2151]">Arba360 Admissions Desk</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Arba360 admissions desk</h3>
               <button
                 onClick={() => setSupportModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <p className="text-xs text-slate-600">
-              Have a query regarding application <strong className="text-[#1A2151]">{displayRefId || 'this application'}</strong>?
+              Have a query regarding application <strong className="text-slate-900 font-mono">{displayRefId || 'this application'}</strong>?
             </p>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Message / Query</label>
+                <label className="block font-medium text-slate-700 mb-1">Message / query</label>
                 <textarea
                   rows={3}
                   value={supportMessage}
                   onChange={(e) => setSupportMessage(e.target.value)}
                   placeholder="Describe your question or provide additional context..."
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:outline-hidden text-xs"
+                  className="w-full p-3 rounded-xl border border-slate-200 focus:ring-1 focus:ring-blue-600 focus:outline-hidden text-xs"
                 />
               </div>
             </div>
@@ -1183,15 +1164,15 @@ function StatusContent() {
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setSupportModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition"
+                className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendSupportQuery}
-                className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md hover:bg-blue-700 transition"
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium text-xs shadow-2xs hover:bg-blue-700 transition-colors cursor-pointer"
               >
-                Send Query
+                Send query
               </button>
             </div>
           </div>
@@ -1203,7 +1184,7 @@ function StatusContent() {
 
 export default function PreIncubatorStatusPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center text-xs font-bold text-slate-500">Loading Application Status...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center text-xs font-medium text-slate-500">Loading application status...</div>}>
       <StatusContent />
     </Suspense>
   );
