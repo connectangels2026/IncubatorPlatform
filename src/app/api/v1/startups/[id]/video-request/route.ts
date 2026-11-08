@@ -6,27 +6,26 @@ export const dynamic = 'force-dynamic';
 
 // Helper: resolve startup ID if id is 'me'
 async function resolveStartupId(id: string, user: any): Promise<any> {
-  if (id !== 'me') {
+  if (id && id !== 'me') {
     const { data: st } = await supabaseAdmin
       .from('startups')
-      .select('id, organization_id, startup_name, name')
+      .select('id, organization_id, startup_name')
       .eq('id', id)
       .maybeSingle();
-    return st;
+    return st ? { ...st, name: st.startup_name } : null;
   }
 
   if (!user?.email) return null;
   const emailLower = user.email.trim().toLowerCase();
   const { data: st } = await supabaseAdmin
     .from('startups')
-    .select('id, organization_id, startup_name, name')
-    .or(`founder_email.ilike.${emailLower},founder_id.eq.${user.id}`)
-    .eq('is_active', true)
+    .select('id, organization_id, startup_name')
+    .ilike('founder_email', emailLower)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return st;
+  return st ? { ...st, name: st.startup_name } : null;
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

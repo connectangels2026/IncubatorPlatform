@@ -115,7 +115,11 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
   const fetchVideoSubmission = async () => {
     setLoadingVideoSubmission(true);
     try {
-      const res = await apiClient.get('/startups/me/video-submission');
+      const orgId = formData?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+      const endpoint = formData?.id ? `/startups/${formData.id}/video-submission` : '/startups/me/video-submission';
+      const res = await apiClient.get(endpoint, {
+        params: orgId ? { org_id: orgId } : undefined,
+      });
       if (res.data?.success) {
         setVideoSubmission(res.data.submission || null);
         if (res.data.video_url) {
@@ -131,14 +135,15 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
 
   useEffect(() => {
     fetchVideoSubmission();
-  }, []);
+  }, [formData?.id]);
 
   // Cancel Video Review Submission
   const handleCancelVideoSubmission = async () => {
     setCancellingVideo(true);
     setUploadError(null);
     try {
-      await apiClient.post('/startups/me/video-submission', { action: 'cancel' });
+      const endpoint = formData?.id ? `/startups/${formData.id}/video-submission` : '/startups/me/video-submission';
+      await apiClient.post(endpoint, { action: 'cancel' });
       setVideoSubmission(null);
       setVideoUrl(null);
     } catch (err: any) {
@@ -167,6 +172,9 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
     const data = new FormData();
     data.append('file', file);
     data.append('type', 'demo_video');
+    if (formData?.id) {
+      data.append('startup_id', formData.id);
+    }
 
     try {
       const res = await apiClient.post('/startups/documents/upload', data, {

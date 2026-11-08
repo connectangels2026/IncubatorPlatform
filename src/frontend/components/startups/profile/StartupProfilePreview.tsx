@@ -53,8 +53,14 @@ export function StartupProfilePreview({
   useEffect(() => {
     let isMounted = true;
     if (startup?.id) {
+      const orgId =
+        startup.organization_id ||
+        (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
       apiClient
-        .get(`/startups/${startup.id}/video-submission`)
+        .get(`/startups/${startup.id}/video-submission`, {
+          params: orgId ? { org_id: orgId } : undefined,
+        })
         .then((res) => {
           if (isMounted && res.data?.success) {
             setVideoSubmission(res.data.submission || null);
@@ -62,12 +68,14 @@ export function StartupProfilePreview({
             if (res.data.startup_name) setStartupName(res.data.startup_name);
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.warn('Failed to load startup video submission:', err);
+        });
     }
     return () => {
       isMounted = false;
     };
-  }, [startup?.id]);
+  }, [startup?.id, startup?.organization_id]);
 
   const handleDecideVideo = async (status: 'approved' | 'rejected') => {
     if (!startup?.id) return;
@@ -78,11 +86,21 @@ export function StartupProfilePreview({
 
     setIsDecidingVideo(true);
     try {
-      const res = await apiClient.post(`/startups/${startup.id}/video-submission`, {
-        action: 'decide',
-        status,
-        reason: status === 'rejected' ? rejectReason.trim() : undefined,
-      });
+      const orgId =
+        startup.organization_id ||
+        (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+      const res = await apiClient.post(
+        `/startups/${startup.id}/video-submission`,
+        {
+          action: 'decide',
+          status,
+          reason: status === 'rejected' ? rejectReason.trim() : undefined,
+        },
+        {
+          params: orgId ? { org_id: orgId } : undefined,
+        }
+      );
       if (res.data?.success) {
         setVideoSubmission(res.data.submission);
         if (res.data.published_url) {

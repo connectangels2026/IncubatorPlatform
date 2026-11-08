@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    middlewareClientMaxBodySize: '200mb',
+    serverActions: {
+      bodySizeLimit: '200mb',
+    },
+  },
   async redirects() {
     return [
       {

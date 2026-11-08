@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
+import { StartupService } from '@/backend/services/startupService';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120; // Allow sufficient time for 200MB uploads
 
 const PUBLIC_BUCKET = 'documents';
 const PRIVATE_VIDEO_BUCKET = 'startup-videos-review';
@@ -33,25 +35,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: User email required' }, { status: 401 });
     }
 
-    const emailLower = user.email.trim().toLowerCase();
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    const docType = (formData.get('type') as string) || 'pitch_deck'; // 'pitch_deck' | 'business_plan' | 'demo_video'
+    const requestedStartupId = (formData.get('startup_id') as string) || req.nextUrl.searchParams.get('startup_id') || 'me';
 
-    // 1. Fetch startup
-    const { data: startup } = await supabaseAdmin
-      .from('startups')
-      .select('id, organization_id, startup_name, name, founder_id, founder_email')
-      .or(`founder_email.ilike.${emailLower},founder_id.eq.${user.id}`)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // 1. Fetch startup using unified service
+    let startup = await StartupService.getStartup(requestedStartupId, user);
+
+    if (!startup && requestedStartupId !== 'me') {
+      startup = await StartupService.getStartup('me', user);
+    }
+
+    if (!startup) {
+      // Fallback: check by founder email directly
+      const emailLower = (user.email || '').trim().toLowerCase();
+      const { data: st } = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .ilike('founder_email', emailLower)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      startup = st;
+    }
 
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
     }
-
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
-    const docType = (formData.get('type') as string) || 'pitch_deck'; // 'pitch_deck' | 'business_plan' | 'demo_video'
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });

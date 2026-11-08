@@ -13,27 +13,54 @@ const isValidUUID = (s?: string | null) =>
 
 // Resolve startup by UUID or 'me'
 async function resolveStartup(id: string, user: any) {
-  if (id !== 'me') {
-    const { data: st } = await supabaseAdmin
+  if (id && id !== 'me' && isValidUUID(id)) {
+    const { data: st, error } = await supabaseAdmin
       .from('startups')
-      .select('id, organization_id, startup_name, name, founder_id, founder_email, demo_video_url')
+      .select('id, organization_id, startup_name, founder_id, founder_email, demo_video_url')
       .eq('id', id)
       .maybeSingle();
-    return st;
+
+    if (error) {
+      console.error('Error resolving startup by id:', error);
+    }
+    if (st) {
+      return { ...st, name: st.startup_name };
+    }
   }
 
   if (!user?.email) return null;
   const emailLower = user.email.trim().toLowerCase();
-  const { data: st } = await supabaseAdmin
+
+  const { data: st, error } = await supabaseAdmin
     .from('startups')
-    .select('id, organization_id, startup_name, name, founder_id, founder_email, demo_video_url')
-    .or(`founder_email.ilike.${emailLower},founder_id.eq.${user.id}`)
-    .eq('is_active', true)
+    .select('id, organization_id, startup_name, founder_id, founder_email, demo_video_url')
+    .ilike('founder_email', emailLower)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  return st;
+  if (error) {
+    console.error('Error resolving startup by founder email:', error);
+  }
+  if (st) {
+    return { ...st, name: st.startup_name };
+  }
+
+  // Fallback: lookup by user.id if UUID
+  if (user?.id && isValidUUID(user.id)) {
+    const { data: stById } = await supabaseAdmin
+      .from('startups')
+      .select('id, organization_id, startup_name, founder_id, founder_email, demo_video_url')
+      .eq('founder_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (stById) {
+      return { ...stById, name: stById.startup_name };
+    }
+  }
+
+  return null;
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -52,7 +79,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Permission check: owning founder or incubator staff/super admin
     const userRole = (user?.role || '').toLowerCase();
+    const isOrgMember = Boolean(
+      user?.organization_id &&
+      startup.organization_id &&
+      user.organization_id === startup.organization_id
+    );
     const isStaff =
+      isOrgMember ||
       userRole.includes('admin') ||
       userRole.includes('incubator') ||
       userRole === 'super-admin' ||
@@ -135,8 +168,29 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json();
     const action = body.action || 'decide'; // 'cancel' | 'decide'
 
+    const userRole = (user?.role || '').toLowerCase();
+    const isOrgMember = Boolean(
+      user?.organization_id &&
+      startup.organization_id &&
+      user.organization_id === startup.organization_id
+    );
+    const isStaff =
+      isOrgMember ||
+      userRole.includes('admin') ||
+      userRole.includes('incubator') ||
+      userRole === 'super-admin' ||
+      userRole === 'super_admin';
+
+    const isOwner =
+      (user?.email && startup.founder_email && user.email.toLowerCase() === startup.founder_email.toLowerCase()) ||
+      (user?.id && startup.founder_id && user.id === startup.founder_id);
+
     // 1. Cancel action (by founder or staff)
     if (action === 'cancel') {
+      if (!isStaff && !isOwner && id !== 'me') {
+        return NextResponse.json({ error: 'Forbidden: Access denied' }, { status: 403 });
+      }
+
       const { data: latest } = await supabaseAdmin
         .from('startup_video_submissions')
         .select('*')
@@ -169,13 +223,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // 2. Decide action (Approve / Reject) -> ONLY INCUBATOR STAFF
     if (action === 'decide') {
-      const userRole = (user?.role || '').toLowerCase();
-      const isStaff =
-        userRole.includes('admin') ||
-        userRole.includes('incubator') ||
-        userRole === 'super-admin' ||
-        userRole === 'super_admin';
-
       if (!isStaff) {
         return NextResponse.json(
           { error: 'Forbidden: Only incubator administrators can approve or reject video submissions.' },
