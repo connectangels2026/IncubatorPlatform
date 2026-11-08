@@ -6,7 +6,7 @@ import ProtectedRoute from '@/frontend/components/ProtectedRoute';
 import { DashboardLayout } from '@/frontend/components/layouts/DashboardLayout';
 import StartupDashboard from '@/frontend/components/startup-dashboard/StartupDashboard';
 import { StartupDetailModal } from '@/frontend/components/startups/StartupDetailModal';
-import { apiClient } from '@/services/apiClient';
+import { useStartup } from '@/frontend/hooks/useStartup';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { Loader2, ShieldAlert, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -24,46 +24,25 @@ function StartupPreviewContent() {
   const { organization } = useAuth();
   const startupId = params?.id as string;
 
-  const [startup, setStartup] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const {
+    startup,
+    isLoading,
+    error,
+    updateStartup,
+  } = useStartup(startupId, {
+    enabled: Boolean(startupId),
+  });
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    async function fetchStartup() {
-      if (!startupId) return;
-      setIsLoading(true);
-      setNotFound(false);
-      try {
-        const res = await apiClient.get(`/startups/${startupId}`);
-        const data = res.data?.data;
+  // Validate organization ownership: only allow startups belonging to the incubator's organization
+  const currentOrgId =
+    organization?.id ||
+    (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
 
-        if (!data) {
-          setNotFound(true);
-          return;
-        }
-
-        // Validate organization ownership: only allow startups belonging to the incubator's organization
-        const currentOrgId =
-          organization?.id ||
-          (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-
-        if (currentOrgId && data.organization_id && data.organization_id !== currentOrgId) {
-          setNotFound(true);
-          return;
-        }
-
-        setStartup(data);
-      } catch (err: any) {
-        console.warn('Error fetching startup for preview:', err);
-        setNotFound(true);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchStartup();
-  }, [startupId, organization?.id]);
+  const isUnauthorized =
+    Boolean(startup && currentOrgId && startup.organization_id && startup.organization_id !== currentOrgId);
+  const notFound = Boolean(error || isUnauthorized || (!isLoading && !startup));
 
   const startupName = startup?.startup_name || startup?.name || 'Startup';
 
@@ -136,7 +115,7 @@ function StartupPreviewContent() {
         onSignMOUClick={() => {}}
         onRemoveCoIncubator={() => {}}
         onUpdateStartup={(updated) => {
-          setStartup((prev: any) => ({ ...prev, ...updated }));
+          updateStartup(updated);
         }}
       />
     </DashboardLayout>

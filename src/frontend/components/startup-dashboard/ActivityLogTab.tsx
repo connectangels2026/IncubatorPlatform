@@ -60,11 +60,39 @@ const INITIAL_LOGS: ActivityLogItem[] = [
 ];
 
 interface ActivityLogTabProps {
+  startup?: any;
   readOnly?: boolean;
 }
 
-export function ActivityLogTab({ readOnly = false }: ActivityLogTabProps = {}) {
-  const [logs, setLogs] = useState<ActivityLogItem[]>(INITIAL_LOGS);
+export function ActivityLogTab({ startup, readOnly = false }: ActivityLogTabProps = {}) {
+  const [logs, setLogs] = useState<ActivityLogItem[]>(() => {
+    if (Array.isArray(startup?.activity_logs) && startup.activity_logs.length > 0) {
+      return startup.activity_logs.map((l: any, idx: number) => ({
+        id: l.id || `real-${idx}`,
+        title: l.description || l.action || 'Activity Event',
+        tag: l.action === 'startup_updated' ? 'Update' : l.action === 'startup_change_requested' ? 'Change Request' : 'Milestone',
+        author: l.triggered_by || 'User',
+        timestamp: l.created_at ? new Date(l.created_at).toLocaleDateString() : 'Recent',
+        quote: l.description || '',
+      }));
+    }
+    return INITIAL_LOGS;
+  });
+
+  React.useEffect(() => {
+    if (Array.isArray(startup?.activity_logs) && startup.activity_logs.length > 0) {
+      setLogs(
+        startup.activity_logs.map((l: any, idx: number) => ({
+          id: l.id || `real-${idx}`,
+          title: l.description || l.action || 'Activity Event',
+          tag: l.action === 'startup_updated' ? 'Update' : l.action === 'startup_change_requested' ? 'Change Request' : 'Milestone',
+          author: l.triggered_by || 'User',
+          timestamp: l.created_at ? new Date(l.created_at).toLocaleDateString() : 'Recent',
+          quote: l.description || '',
+        }))
+      );
+    }
+  }, [startup?.activity_logs]);
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [replyInput, setReplyInput] = useState<{ [id: string]: string }>({});
   const [showNewLogModal, setShowNewLogModal] = useState(false);

@@ -64,6 +64,7 @@ const resolveOrgId = (orgId: string): string => {
 // Map DB row from Supabase to Startup interface
 const mapRowToStartup = (row: any): Startup => {
   return {
+    ...row,
     id: row.id,
     startup_name: row.startup_name || row.name || 'Startup',
     name: row.startup_name || row.name || 'Startup',
@@ -80,9 +81,9 @@ const mapRowToStartup = (row: any): Startup => {
     created_at: row.created_at,
     updated_at: row.updated_at,
     is_deleted: !!row.deleted_at,
-    mentors: [],
-    investors: [],
-    co_incubations: [],
+    mentors: row.mentors || [],
+    investors: row.investors || [],
+    co_incubations: row.co_incubations || [],
   };
 };
 

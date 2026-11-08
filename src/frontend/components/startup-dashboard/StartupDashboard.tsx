@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/context/AuthContext';
 import { supabase } from '@/backend/lib/supabase';
+import { useStartup } from '@/frontend/hooks/useStartup';
+import { apiClient } from '@/services/apiClient';
 import { StartupProfileMenu } from './StartupProfileMenu';
 import { OverviewTab } from './OverviewTab';
 import { PitchPrototypeTab } from './PitchPrototypeTab';
@@ -26,6 +28,8 @@ import {
   Download,
   MoreHorizontal,
   Pencil,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/frontend/components/ui/Logo';
@@ -51,8 +55,27 @@ export default function StartupDashboard({
   const [isStartupModalOpen, setIsStartupModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<'more' | 'profile' | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const [profile, setProfile] = useState<StartupProfile | null>(null);
-  const [rawStartup, setRawStartup] = useState<any | null>(null);
+
+  // Single Source of Truth via SWR hook
+  const {
+    startup: rawStartup,
+    isLoading: startupLoading,
+    saveSuccess,
+    saveError,
+    updateStartup,
+    error: fetchError,
+    refresh,
+  } = useStartup(startupId || 'me', {
+    initialData: initialStartup,
+    enabled: Boolean(initialStartup || (!authLoading && user)),
+  });
+
+  // Redirect to login if unauthenticated on founder dashboard
+  useEffect(() => {
+    if (!authLoading && !user && !readOnly && !initialStartup) {
+      router.replace('/login?redirect=/startup/dashboard');
+    }
+  }, [user, authLoading, readOnly, initialStartup, router]);
 
   const handleOpenProfileSection = (section: string = 'basic') => {
     if (readOnly) return;
@@ -62,133 +85,48 @@ export default function StartupDashboard({
     }, 120);
   };
 
-  const handleStartupUpdate = (updated: any) => {
-    setRawStartup(updated);
-    setProfile((prev) =>
-      prev
-        ? {
-          ...prev,
-          name: updated.startup_name || updated.name || prev.name,
-          tagline: updated.tagline || updated.description || updated.solution_description || prev.tagline,
-          stage: updated.stage || prev.stage,
-          logo_url: updated.logo_url !== undefined ? updated.logo_url : prev.logo_url,
-          logo_color: updated.logo_color !== undefined ? updated.logo_color : prev.logo_color,
-          initials: updated.initials !== undefined ? updated.initials : prev.initials,
-        }
-        : null
-    );
-  };
-  const [applications, setApplications] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasAssignedDashboard, setHasAssignedDashboard] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    async function loadStartupData() {
-      if (initialStartup) {
-        setRawStartup(initialStartup);
-        setProfile({
-          id: initialStartup.id,
-          name: initialStartup.startup_name || initialStartup.name || 'Startup',
-          batch: initialStartup.cohort || initialStartup.batch || 'Batch 2026',
-          tagline: initialStartup.tagline || initialStartup.description || 'Accelerated Startup',
-          stage: initialStartup.stage || 'Validation Phase',
-          stageProgress: typeof initialStartup.stage_progress === 'number' ? initialStartup.stage_progress : 70,
-          track: (initialStartup.track || 'both') as any,
-          incubatorName: initialStartup.organization?.name || 'Incubator Hub',
-          logo_url: initialStartup.logo_url || null,
-          logo_color: initialStartup.logo_color || null,
-          initials: initialStartup.initials || null,
-        });
-        setHasAssignedDashboard(true);
-        setIsLoading(false);
-        return;
-      }
-
-      if (authLoading) return;
-      if (!user) {
-        router.replace('/login?redirect=/startup/dashboard');
-        return;
-      }
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token ? `Bearer ${session.access_token}` : '';
-        const headers: Record<string, string> = token ? { Authorization: token } : {};
-
-        // If startupId is provided, fetch specific startup (incubator preview mode)
-        const endpoint = startupId ? `/api/v1/startups/${startupId}` : '/api/v1/startups/me';
-        const res = await fetch(endpoint, { headers });
-        const data = await res.json();
-
-        if (startupId) {
-          if (!res.ok || !data.success || !data.data) {
-            setHasAssignedDashboard(false);
-            setIsLoading(false);
-            return;
-          }
-
-          const st = data.data;
-          setRawStartup(st);
-          setProfile({
-            id: st.id,
-            name: st.startup_name || st.name || 'Startup',
-            batch: st.cohort || st.batch || 'Batch 2026',
-            tagline: st.tagline || st.description || 'Accelerated Startup',
-            stage: st.stage || 'Validation Phase',
-            stageProgress: typeof st.stage_progress === 'number' ? st.stage_progress : 70,
-            track: (st.track || 'both') as any,
-            incubatorName: st.organization?.name || 'Incubator Hub',
-            logo_url: st.logo_url || null,
-            logo_color: st.logo_color || null,
-            initials: st.initials || null,
-          });
-          setHasAssignedDashboard(true);
-        } else {
-          // Standard founder /dashboard
-          if (!res.ok || !data.has_assigned_dashboard || !data.startup) {
-            setHasAssignedDashboard(false);
-            setIsLoading(false);
-            return;
-          }
-
-          setHasAssignedDashboard(true);
-          const startup = data.startup;
-          setRawStartup(startup);
-          const app = data.application;
-          const org = data.organization;
-
-          if (app) {
-            setApplications([app]);
-          }
-
-          const fd = app?.form_data || {};
-          const savedTrack = fd.startup_track || (user as any)?.user_metadata?.startup_track;
-          const resolvedTrack = savedTrack || (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null) || 'both';
-
-          setProfile({
-            id: startup?.id || app?.id || 'startup',
-            name: startup?.startup_name || startup?.name || fd.startup_name || fd.businessName || `${user.email?.split('@')[0]}'s Startup`,
-            batch: app?.cohort_name || 'Batch 2026',
-            tagline: startup?.tagline || startup?.description || fd.oneSentencePitch || 'Incubator Accelerated Startup',
-            stage: startup?.stage || fd.businessStage || 'Validation Phase',
-            stageProgress: typeof startup?.stage_progress === 'number' ? startup.stage_progress : 70,
-            track: resolvedTrack as any,
-            incubatorName: org?.name || app?.incubator_name_text || 'Incubator Hub',
-            logo_url: startup?.logo_url || null,
-            logo_color: startup?.logo_color || null,
-            initials: startup?.initials || null,
-          });
-        }
-      } catch (err) {
-        console.warn('Startup data fetch error:', err);
-        setHasAssignedDashboard(false);
-      } finally {
-        setIsLoading(false);
-      }
+  const handleStartupUpdate = async (updated: any) => {
+    // If updated is already an existing saved startup from modal/drawer, don't re-PUT
+    if (updated?.id && (updated?.updated_at || updated?.created_at)) {
+      refresh();
+      return;
     }
+    try {
+      await updateStartup(updated);
+    } catch (err) {
+      console.error('Failed to update startup:', err);
+    }
+  };
 
-    loadStartupData();
-  }, [user, authLoading, router, startupId, initialStartup]);
+  const applications = rawStartup?.application ? [rawStartup.application] : [];
+
+  const profile: StartupProfile | null = rawStartup
+    ? {
+        id: rawStartup.id,
+        name: rawStartup.startup_name || rawStartup.name || 'Startup',
+        batch: rawStartup.cohort || rawStartup.batch || 'Batch 2026',
+        tagline:
+          rawStartup.tagline ||
+          rawStartup.description ||
+          rawStartup.solution_description ||
+          'Accelerated Startup',
+        stage: rawStartup.stage || 'Validation Phase',
+        stageProgress:
+          typeof rawStartup.stage_progress === 'number' ? rawStartup.stage_progress : 70,
+        track: (rawStartup.track || 'both') as any,
+        incubatorName: rawStartup.organization?.name || 'Incubator Hub',
+        logo_url: rawStartup.logo_url || null,
+        logo_color: rawStartup.logo_color || null,
+        initials: rawStartup.initials || null,
+      }
+    : null;
+
+  const isLoading = authLoading || (startupLoading && !rawStartup);
+  const hasAssignedDashboard =
+    !isLoading &&
+    rawStartup &&
+    rawStartup.has_assigned_dashboard !== false &&
+    fetchError?.response?.status !== 403;
 
   const handleExportReport = () => {
     if (profile) {
@@ -352,6 +290,18 @@ export default function StartupDashboard({
             <span className="hidden sm:inline-block text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
               {profile.track === 'both' ? 'DeepTech' : `${profile.track} Track`}
             </span>
+            {saveSuccess && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 animate-in fade-in duration-200 shrink-0">
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span>Saved</span>
+              </span>
+            )}
+            {saveError && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200/80 animate-in fade-in duration-200 shrink-0">
+                <AlertCircle className="w-3 h-3 text-rose-600" />
+                <span className="max-w-[140px] truncate">{saveError}</span>
+              </span>
+            )}
           </div>
 
           {/* Right: Export + Share + ⋯ Menu + Avatar (Hidden in readOnly mode) */}
@@ -573,7 +523,7 @@ export default function StartupDashboard({
               readOnly={readOnly}
             />
           )}
-          {activeTab === 'activity' && <ActivityLogTab readOnly={readOnly} />}
+          {activeTab === 'activity' && <ActivityLogTab startup={rawStartup} readOnly={readOnly} />}
         </div>
       </main>
 

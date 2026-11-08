@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
+import { StartupService as UnifiedStartupService } from '@/backend/services/startupService';
 import { StartupService } from '@/modules/startups/services';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { orgId } = requireOrg(req);
 
-    const startup = await StartupService.getStartupById(id, orgId || '');
+    const startup = await UnifiedStartupService.getStartup(id, user);
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
     }
@@ -130,57 +131,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       });
     }
 
-    // Role-based field restrictions for incubator staff
-    let updatePayload = { ...body };
-    if (isStaff && !isSuperAdmin) {
-      // Incubator allowlist: status, lifecycle_stage, cohort/batch, track, stage, incubation dates, is_active, milestones
-      const ALLOWED_INCUBATOR_FIELDS = [
-        'status',
-        'lifecycle_stage',
-        'cohort',
-        'batch',
-        'track',
-        'stage',
-        'incubation_start_date',
-        'incubation_end_date',
-        'is_active',
-        'milestones',
-      ];
-
-      const filteredPayload: any = {};
-      for (const key of ALLOWED_INCUBATOR_FIELDS) {
-        if (updatePayload[key] !== undefined) {
-          filteredPayload[key] = updatePayload[key];
-        }
-      }
-      updatePayload = filteredPayload;
-    }
-
-    const updated = await StartupService.updateStartup(id, orgId!, updatePayload);
-    if (!updated) {
-      return NextResponse.json({ error: 'Startup not found or update failed' }, { status: 404 });
-    }
-
-    // Log incubator edit to organization_activity_log
-    if (isStaff) {
-      try {
-        await supabaseAdmin.from('organization_activity_log').insert({
-          organization_id: orgId!,
-          action: 'startup_updated_by_incubator',
-          description: `Updated startup ${updated.startup_name || updated.name} fields: ${Object.keys(updatePayload).join(', ')}`,
-          triggered_by: user?.email || 'Incubator Staff',
-          triggered_by_id: user?.id || null,
-          metadata: {
-            startup_id: id,
-            updated_fields: Object.keys(updatePayload),
-          },
-        });
-      } catch (logErr) {
-        console.warn('Failed to log incubator update:', logErr);
-      }
-    }
-
-    return NextResponse.json({ success: true, data: updated });
+    const updated = await UnifiedStartupService.updateStartup(id, body, user);
+    return NextResponse.json({ success: true, data: updated, startup: updated });
   } catch (error) {
     return handleApiError(error);
   }

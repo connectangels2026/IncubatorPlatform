@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { mutate as globalMutate } from 'swr';
 import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface StartupProfileMenuProps {
@@ -183,7 +184,6 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
         {
           name: startupForm.name,
           sector: startupForm.sector,
-          stage: startupForm.stage,
           website: startupForm.website,
           description: startupForm.description,
           solution_description: startupForm.pitch,
@@ -191,15 +191,21 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
         { headers: orgId ? { 'x-org-id': orgId } : undefined }
       );
 
-      const updated = res.data?.data || {
+      const updated = res.data?.data || res.data?.startup || {
         ...startup,
         name: startupForm.name,
+        startup_name: startupForm.name,
         sector: startupForm.sector,
         stage: startupForm.stage,
         website: startupForm.website,
         description: startupForm.description,
         solution_description: startupForm.pitch,
       };
+
+      if (startup?.id) {
+        globalMutate(`/startups/${startup.id}`, updated, false);
+      }
+      globalMutate('/startups/me', updated, false);
 
       if (onStartupUpdate) {
         onStartupUpdate(updated);

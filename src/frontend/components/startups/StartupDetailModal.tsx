@@ -25,6 +25,7 @@ import { ActivityTabSection } from './profile/ActivityTabSection';
 import { RequestChangeModal } from './profile/RequestChangeModal';
 import StartupLogo from '@/frontend/components/ui/StartupLogo';
 import { apiClient } from '@/services/apiClient';
+import { mutate as globalMutate } from 'swr';
 
 interface StartupDetailModalProps {
   startup: StartupItem | null;
@@ -76,6 +77,8 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   const [liveCoIncubators, setLiveCoIncubators] = useState<CoIncubatorItem[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
@@ -190,6 +193,8 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   const handleSaveStartup = async (updatedFields: Partial<StartupItem>) => {
     if (!startup) return;
     setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
     try {
       const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
       const orgIdFromUrl = searchParams?.get('org');
@@ -210,9 +215,19 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
 
       setFullStartup(merged);
       onUpdateStartup?.(merged);
+
+      // Invalidate SWR caches globally across open views
+      globalMutate(`/startups/${startup.id}`, merged, false);
+      globalMutate('/startups/me', merged, false);
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
       setEditingSection(null);
     } catch (err: any) {
       console.error('Failed to save startup changes:', err);
+      const msg = err.response?.data?.error || err.message || 'Failed to save startup changes';
+      setSaveError(msg);
+      setTimeout(() => setSaveError(null), 4000);
       throw err;
     } finally {
       setIsSaving(false);
@@ -588,9 +603,14 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
         {/* 5. Sticky Inline Edit Footer (Rendered ONLY while editing a section) */}
         {editingSection ? (
           <div className="px-6 py-3 border-t border-slate-200 bg-indigo-50/70 flex items-center justify-between text-xs shrink-0 animate-in slide-in-from-bottom-2 duration-150">
-            <span className="text-slate-600 font-medium">
-              Editing {editingSection === 'incubation' ? 'incubation details' : 'milestones'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-600 font-medium">
+                Editing {editingSection === 'incubation' ? 'incubation details' : 'milestones'}
+              </span>
+              {saveError && (
+                <span className="text-rose-600 font-medium">{saveError}</span>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -614,15 +634,26 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
         ) : (
           /* 6. Standard Drawer Footer */
           <div className="px-6 py-3 border-t border-slate-200 bg-white flex items-center justify-between text-xs shrink-0">
-            <button
-              type="button"
-              onClick={handleCopyId}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono text-[11px] transition-colors cursor-pointer"
-              title="Copy startup ID"
-            >
-              <span>ID: {activeStartup.id.slice(0, 8)}...</span>
-              {copiedId ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleCopyId}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 font-mono text-[11px] transition-colors cursor-pointer"
+                title="Copy startup ID"
+              >
+                <span>ID: {activeStartup.id.slice(0, 8)}...</span>
+                {copiedId ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+              </button>
+              {saveSuccess && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 animate-in fade-in duration-200">
+                  <Check className="w-3 h-3 text-emerald-600" />
+                  <span>Saved</span>
+                </span>
+              )}
+              {saveError && (
+                <span className="text-rose-600 text-xs font-medium">{saveError}</span>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <Link

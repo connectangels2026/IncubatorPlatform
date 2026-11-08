@@ -38,6 +38,7 @@ import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
 import { DocumentsSectionEdit, formatIncubationTenure } from './DocumentsSectionEdit';
 import { apiClient } from '@/services/apiClient';
+import { mutate as globalMutate } from 'swr';
 import StartupLogo, { LOGO_SWATCH_COLORS, getDerivedColor, getDerivedInitials } from '@/frontend/components/ui/StartupLogo';
 
 interface StartupProfileManagerProps {
@@ -108,7 +109,6 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         payload.initials = formData.initials || null;
         payload.website = formData.website;
         payload.sector = formData.sector;
-        payload.stage = formData.stage;
         payload.founded_date = formData.founded_date;
       } else if (section === 'team') {
         payload.founder_name = formData.founder_name;
@@ -143,16 +143,24 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         payload.github_url = formData.github_url;
         payload.figma_url = formData.figma_url;
         payload.demo_url = formData.demo_url;
-        payload.demo_video_url = formData.demo_video_url;
         payload.tech_stack = formData.tech_stack;
       }
 
-      const res = await apiClient.put('/startups/me', payload);
+      const endpoint = startup?.id ? `/startups/${startup.id}` : '/startups/me';
+      const res = await apiClient.put(endpoint, payload);
 
-      if (res.data?.success && res.data?.startup) {
-        setStartup(res.data.startup);
-        setFormData(res.data.startup);
-        onStartupUpdate?.(res.data.startup);
+      if (res.data?.success && (res.data?.startup || res.data?.data)) {
+        const updatedStartup = res.data.startup || res.data.data;
+        setStartup(updatedStartup);
+        setFormData(updatedStartup);
+        onStartupUpdate?.(updatedStartup);
+
+        // Update global SWR cache across views
+        globalMutate('/startups/me', updatedStartup, false);
+        if (updatedStartup?.id) {
+          globalMutate(`/startups/${updatedStartup.id}`, updatedStartup, false);
+        }
+
         setSaveSuccessSection(section);
         setTimeout(() => setSaveSuccessSection(null), 2500);
         showToast('Section updated and saved successfully!', 'success');
@@ -406,11 +414,14 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Development Stage *</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Development Stage <span className="text-[10px] font-normal text-slate-500">(Managed by Incubator)</span>
+                </label>
                 <select
                   value={formData.stage || 'MVP'}
-                  onChange={(e) => handleFieldChange('stage', e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled
+                  title="Startup development stage is evaluated and managed by your host incubator"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none bg-slate-50 text-slate-500 cursor-not-allowed"
                 >
                   <option value="Idea">Idea</option>
                   <option value="MVP">MVP</option>

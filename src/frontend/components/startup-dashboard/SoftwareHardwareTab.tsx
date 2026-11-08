@@ -76,9 +76,11 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
     setShowAddTagModal(false);
 
     try {
-      const res = await apiClient.put('/startups/me', { tech_stack: updated });
-      if (res.data?.startup && onStartupUpdate) {
-        onStartupUpdate(res.data.startup);
+      if (onStartupUpdate) {
+        onStartupUpdate({ tech_stack: updated });
+      } else {
+        const endpoint = startup?.id ? `/startups/${startup.id}` : '/startups/me';
+        await apiClient.put(endpoint, { tech_stack: updated });
       }
     } catch (err) {
       console.warn('Failed to save tech stack:', err);
