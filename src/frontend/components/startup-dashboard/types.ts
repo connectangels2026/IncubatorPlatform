@@ -6,8 +6,8 @@ export interface StartupProfile {
   batch: string;
   tagline: string;
   stage: string;
-  stageProgress: number; // e.g. 70
-  track: 'hardware' | 'software' | 'both';
+  stageProgress?: number | null;
+  track?: 'hardware' | 'software' | 'both' | null;
   incubatorName: string;
   logo_url?: string | null;
   logo_color?: string | null;

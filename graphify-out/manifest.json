@@ -2160,9 +2160,9 @@
     "semantic_hash": ""
   },
   "src/app/choose-role/page.tsx": {
-    "mtime": 1793357661.3249557,
-    "seen": 1793873704.6530268,
-    "ast_hash": "386116f43999bf1e2285d5e844a55663",
+    "mtime": 1794155805.1019442,
+    "seen": 1794155926.5737948,
+    "ast_hash": "b7f2514d87ecca37bd7b2b29e32d7ffb",
     "semantic_hash": ""
   },
   "src/app/incubators/[slug]/page.tsx": {
@@ -2190,15 +2190,15 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/ActivityLogTab.tsx": {
-    "mtime": 1794151484.2319384,
-    "seen": 1794151722.9718778,
+    "mtime": 1794151954.5121255,
+    "seen": 1794155926.6409981,
     "ast_hash": "638a210784f657025411aea2cbc5faa6",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/OverviewTab.tsx": {
-    "mtime": 1794151632.465079,
-    "seen": 1794151722.9718778,
-    "ast_hash": "dbc404a172d5730fc3bed393badeb3e0",
+    "mtime": 1794155688.4623623,
+    "seen": 1794155926.6409981,
+    "ast_hash": "8300d6a8dafbf70ef344ec5ddca19ce2",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx": {
@@ -2208,15 +2208,15 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/SoftwareHardwareTab.tsx": {
-    "mtime": 1794151431.1089125,
-    "seen": 1794151722.972877,
-    "ast_hash": "a80fa073b8994f2f21b6dfe3ed18c295",
+    "mtime": 1794155846.1814933,
+    "seen": 1794155926.6409981,
+    "ast_hash": "07904197bc09b5dd4566764514b75ec6",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboard.tsx": {
-    "mtime": 1794151358.9660933,
-    "seen": 1794151722.972877,
-    "ast_hash": "4887ecfdd3380cf8011ae1683bd7d2c8",
+    "mtime": 1794155569.333261,
+    "seen": 1794155926.6409981,
+    "ast_hash": "c9a6f87441f7c40e6c735a8d11988435",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx": {
@@ -2226,9 +2226,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/types.ts": {
-    "mtime": 1794151573.8713498,
-    "seen": 1794151722.9753819,
-    "ast_hash": "c7e86e432da75b2648107658900534c8",
+    "mtime": 1794155500.1318486,
+    "seen": 1794155926.6430135,
+    "ast_hash": "302ca0fc726895ee1b84ed55eab1d0c7",
     "semantic_hash": ""
   },
   "tests/test-roles-and-security.mjs": {
@@ -2424,9 +2424,9 @@
     "semantic_hash": ""
   },
   "src/backend/services/startupService.ts": {
-    "mtime": 1794151087.7902226,
-    "seen": 1794151722.9498732,
-    "ast_hash": "10f8cbaff6bdf2ce96401ce55d2241bf",
+    "mtime": 1794155490.2417982,
+    "seen": 1794155926.6222491,
+    "ast_hash": "a8c1c91d1fe31838700cf6bf21702ac3",
     "semantic_hash": ""
   },
   "src/frontend/hooks/useStartup.ts": {
@@ -2442,15 +2442,15 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/[id]/activity/route.ts": {
-    "mtime": 1794151586.8803,
-    "seen": 1794151722.8719423,
+    "mtime": 1794151954.1435494,
+    "seen": 1794155926.5404582,
     "ast_hash": "1f0e1b2274c9df64daf2519196cfcb81",
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/[id]/schedule/route.ts": {
-    "mtime": 1794151112.2775156,
-    "seen": 1794151722.8791726,
-    "ast_hash": "394320126dbe4e580413f528dd223cc6",
+    "mtime": 1794151749.339303,
+    "seen": 1794155926.550165,
+    "ast_hash": "9e39a2f1a0c8925e76ce9e5b86f301d4",
     "semantic_hash": ""
   }
 }

@@ -74,6 +74,11 @@ export default function ChooseRolePage() {
         );
       }
 
+      // Also persist directly to startups table if startup record exists
+      try {
+        await apiClient.put('/startups/me', { track }, { headers });
+      } catch {}
+
       // Also persist to localStorage for fast local routing
       if (typeof window !== 'undefined') {
         localStorage.setItem('startup_track', track);

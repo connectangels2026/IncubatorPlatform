@@ -23,6 +23,8 @@ import {
   TrendingUp,
   FileText,
   Cpu,
+  Code,
+  Layers,
   MessageSquare,
   Share2,
   Download,
@@ -110,16 +112,14 @@ export default function StartupDashboard({
           rawStartup.description ||
           rawStartup.solution_description ||
           'Accelerated Startup',
-        stage: rawStartup.stage || 'Validation Phase',
+        stage: rawStartup.stage || 'Not started',
         stageProgress:
-          typeof rawStartup.stage_progress === 'number' ? rawStartup.stage_progress : 70,
-        track: (
-          rawStartup.track ||
-          rawStartup?.application?.form_data?.startup_track ||
-          (user as any)?.user_metadata?.startup_track ||
-          (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null) ||
-          'both'
-        ) as any,
+          typeof rawStartup.stage_progress === 'number'
+            ? rawStartup.stage_progress
+            : (Array.isArray(rawStartup.milestones) && rawStartup.milestones.length > 0
+                ? Math.round((rawStartup.milestones.filter((m: any) => m.completed).length / rawStartup.milestones.length) * 100)
+                : null),
+        track: rawStartup.track || null,
         incubatorName: rawStartup.organization?.name || 'Incubator Hub',
         logo_url: rawStartup.logo_url || null,
         logo_color: rawStartup.logo_color || null,
@@ -236,10 +236,99 @@ export default function StartupDashboard({
     );
   }
 
+  if (!readOnly && !rawStartup?.track) {
+    return (
+      <div className="min-h-screen w-full bg-[#F8FAFC] flex flex-col justify-center items-center px-4 py-12">
+        <div className="w-full max-w-3xl space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Choose your track</h1>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">
+              Select the primary engineering and product track for your startup. This tailors your workspace tools and pipeline.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Hardware */}
+            <div
+              onClick={() => handleStartupUpdate({ track: 'hardware' })}
+              className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-500 p-6 flex flex-col justify-between shadow-2xs hover:shadow-md transition-all cursor-pointer"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Cpu className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Hardware</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Physical devices, IoT, robotics, electronics, lab equipment allocation, and fabrication pipelines.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-50 group-hover:bg-blue-600 text-slate-700 group-hover:text-white transition-colors"
+              >
+                Select Hardware
+              </button>
+            </div>
+
+            {/* Software */}
+            <div
+              onClick={() => handleStartupUpdate({ track: 'software' })}
+              className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-500 p-6 flex flex-col justify-between shadow-2xs hover:shadow-md transition-all cursor-pointer"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Code className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Software</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Web &amp; mobile apps, cloud infrastructure, AI models, SaaS platforms, and software architecture.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-50 group-hover:bg-blue-600 text-slate-700 group-hover:text-white transition-colors"
+              >
+                Select Software
+              </button>
+            </div>
+
+            {/* Both */}
+            <div
+              onClick={() => handleStartupUpdate({ track: 'both' })}
+              className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-500 p-6 flex flex-col justify-between shadow-2xs hover:shadow-md transition-all cursor-pointer"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Both</h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Full DeepTech integration combining proprietary hardware devices with cloud platforms and AI.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-50 group-hover:bg-blue-600 text-slate-700 group-hover:text-white transition-colors"
+              >
+                Select Both
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const milestonesList = Array.isArray(rawStartup?.milestones) ? rawStartup.milestones : [];
   const completedMilestones = milestonesList.filter((m: any) => m.completed).length;
-  const totalMilestones = milestonesList.length || 10;
-  const milestoneBadgeText = `${completedMilestones}/${totalMilestones}`;
+  const totalMilestones = milestonesList.length;
+  const milestoneBadgeText = totalMilestones > 0 ? `${completedMilestones}/${totalMilestones}` : '';
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#F8FAFC]">
@@ -460,14 +549,16 @@ export default function StartupDashboard({
           >
             <TrendingUp className="w-4 h-4" />
             <span>Overview &amp; KPIs</span>
-            <span
-              className={`px-1.5 py-0.5 rounded-full text-xs font-semibold shrink-0 whitespace-nowrap ${activeTab === 'overview'
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-slate-100 text-slate-500'
-                }`}
-            >
-              {milestoneBadgeText}
-            </span>
+            {totalMilestones > 0 && (
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-xs font-semibold shrink-0 whitespace-nowrap ${activeTab === 'overview'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-slate-100 text-slate-500'
+                  }`}
+              >
+                {milestoneBadgeText}
+              </span>
+            )}
           </button>
 
           <button
@@ -493,10 +584,10 @@ export default function StartupDashboard({
             <Cpu className="w-4 h-4" />
             <span>
               {profile?.track === 'software'
-                ? 'Software Architecture'
+                ? 'Software'
                 : profile?.track === 'hardware'
-                ? 'Hardware & Lab'
-                : 'Software & Hardware'}
+                ? 'Hardware'
+                : 'Software and Hardware'}
             </span>
           </button>
 

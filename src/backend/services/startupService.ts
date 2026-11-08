@@ -117,7 +117,7 @@ export class StartupService {
       fabrication_pipeline: Array.isArray(startup.fabrication_pipeline) ? startup.fabrication_pipeline : [],
       deck_revisions: Array.isArray(startup.deck_revisions) ? startup.deck_revisions : [],
       batch: startup.batch || startup.cohort || null,
-      track: startup.track || 'both',
+      track: startup.track || null,
     };
   }
 
@@ -174,6 +174,12 @@ export class StartupService {
       }
 
       for (const key of inputKeys) {
+        // Allow founder to choose their track on initial setup when track is not yet assigned
+        if (key === 'track' && !current.track) {
+          cleanPayload.track = fields.track;
+          continue;
+        }
+
         if ((INCUBATOR_MUTABLE_FIELDS as readonly string[]).includes(key)) {
           // If value is identical to current DB state, omit without error
           if (

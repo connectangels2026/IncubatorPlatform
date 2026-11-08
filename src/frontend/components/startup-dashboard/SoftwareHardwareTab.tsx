@@ -16,29 +16,32 @@ import {
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
 
-interface TechItem {
-  category: 'FRONTEND' | 'BACKEND' | 'CLOUD & DATABASE' | 'AI MODELS';
-  items: string[];
+export interface TechTag {
+  name: string;
+  category?: string;
 }
 
-const DEFAULT_STACK: TechItem[] = [
-  {
-    category: 'FRONTEND',
-    items: ['Next.js 16', 'React 19', 'Tailwind CSS v4', 'TypeScript', 'Zustand', 'Recharts'],
-  },
-  {
-    category: 'BACKEND',
-    items: ['Node.js 22', 'GraphQL', 'Python FastAPI', 'gRPC', 'Redis Cache'],
-  },
-  {
-    category: 'CLOUD & DATABASE',
-    items: ['AWS Lambda', 'PostgreSQL (Supabase)', 'Pinecone Vector DB', 'Docker', 'Kubernetes'],
-  },
-  {
-    category: 'AI MODELS',
-    items: ['Gemini 1.5 Pro', 'Claude 3.5 Sonnet', 'Whisper V3', 'Custom Llama-3 Fine-Tune'],
-  },
-];
+function parseTechStack(raw: any): TechTag[] {
+  if (!Array.isArray(raw)) return [];
+  const tags: TechTag[] = [];
+  for (const item of raw) {
+    if (typeof item === 'string') {
+      if (item.trim()) tags.push({ name: item.trim() });
+    } else if (item && typeof item === 'object') {
+      if (item.name) {
+        tags.push({
+          name: String(item.name).trim(),
+          category: item.category ? String(item.category).trim() : undefined,
+        });
+      } else if (item.category && Array.isArray(item.items)) {
+        for (const sub of item.items) {
+          if (sub) tags.push({ name: String(sub).trim(), category: String(item.category).trim() });
+        }
+      }
+    }
+  }
+  return tags;
+}
 
 export interface HardwareBomItem {
   id: string;
@@ -66,25 +69,22 @@ export interface FabricationStep {
 }
 
 interface Props {
-  track?: 'hardware' | 'software' | 'both';
+  track?: 'hardware' | 'software' | 'both' | null;
   startup?: any;
   onStartupUpdate?: (updated: any) => void;
   readOnly?: boolean;
 }
 
 export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, readOnly = false }: Props) {
+  const isSoftware = track === 'software';
+  const isHardware = track === 'hardware';
+  const isBoth = track === 'both' || (!isSoftware && !isHardware);
+
   // 1. Software Tech Stack
-  const [techStack, setTechStack] = useState<TechItem[]>(() => {
-    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
-      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
-        return startup.tech_stack as TechItem[];
-      }
-    }
-    return DEFAULT_STACK;
-  });
+  const [techTags, setTechTags] = useState<TechTag[]>(() => parseTechStack(startup?.tech_stack));
   const [showAddTagModal, setShowAddTagModal] = useState(false);
   const [newTag, setNewTag] = useState('');
-  const [targetCategory, setTargetCategory] = useState<string>('FRONTEND');
+  const [targetCategory, setTargetCategory] = useState<string>('');
 
   // 2. Hardware BOM (read & write from startups.hardware_bom)
   const [hardwareBom, setHardwareBom] = useState<HardwareBomItem[]>(() => {
@@ -111,12 +111,23 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
 
   // Sync state from prop updates
   useEffect(() => {
-    if (Array.isArray(startup?.tech_stack) && startup.tech_stack.length > 0) {
-      if (typeof startup.tech_stack[0] === 'object' && startup.tech_stack[0]?.category) {
-        setTechStack(startup.tech_stack as TechItem[]);
-      }
-    }
+    setTechTags(parseTechStack(startup?.tech_stack));
   }, [startup?.tech_stack]);
+
+  const hasCategories = useMemo(() => {
+    return techTags.some((t) => Boolean(t.category && t.category.trim()));
+  }, [techTags]);
+
+  const groupedCategories = useMemo(() => {
+    if (!hasCategories) return [];
+    const groups: Record<string, string[]> = {};
+    for (const tag of techTags) {
+      const cat = tag.category?.trim() || 'General';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(tag.name);
+    }
+    return Object.entries(groups).map(([category, items]) => ({ category, items }));
+  }, [techTags, hasCategories]);
 
   useEffect(() => {
     if (Array.isArray(startup?.hardware_bom)) {
@@ -144,15 +155,25 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
     }
   };
 
-  // Tech stack tag handler
+  // Tech stack tag handlers
   const handleAddTag = async () => {
     if (!newTag.trim()) return;
-    const updated = techStack.map((cat) =>
-      cat.category === targetCategory ? { ...cat, items: [...cat.items, newTag.trim()] } : cat
-    );
-    setTechStack(updated);
+    const newEntry: TechTag = {
+      name: newTag.trim(),
+      category: targetCategory.trim() || undefined,
+    };
+    const updated = [...techTags, newEntry];
+    setTechTags(updated);
     setNewTag('');
+    setTargetCategory('');
     setShowAddTagModal(false);
+    await persistField('tech_stack', updated);
+  };
+
+  const handleRemoveTag = async (indexToRemove: number) => {
+    if (readOnly) return;
+    const updated = techTags.filter((_, idx) => idx !== indexToRemove);
+    setTechTags(updated);
     await persistField('tech_stack', updated);
   };
 
@@ -229,7 +250,7 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
   return (
     <div className="space-y-6">
       {/* 1. Software Tech Stack Architecture (Top Card) */}
-      {(track === 'software' || track === 'both') && (
+      {(isSoftware || isBoth) && (
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
             <div>
@@ -255,42 +276,97 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
             )}
           </div>
 
-          {/* 4 Categorized Columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
-            {techStack.map((cat) => (
-              <div
-                key={cat.category}
-                className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/70">
-                    <span className="text-xs font-medium text-slate-500">
-                      {cat.category}
-                    </span>
-                    <span className="text-[10px] font-medium text-slate-400">
-                      {cat.items.length} {cat.items.length === 1 ? 'item' : 'items'}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5">
-                    {cat.items.map((item) => (
-                      <span
-                        key={item}
-                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200/90 text-slate-800 shadow-2xs hover:border-blue-400 transition"
-                      >
-                        {item}
+          {techTags.length === 0 ? (
+            <div className="py-12 px-6 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-slate-800">No technologies added yet</h4>
+                <p className="text-xs text-slate-500">Document your stack, frameworks, and infrastructure.</p>
+              </div>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddTagModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Tech Tag</span>
+                </button>
+              )}
+            </div>
+          ) : hasCategories ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-5">
+              {groupedCategories.map((group) => (
+                <div
+                  key={group.category}
+                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200/70">
+                      <span className="text-xs font-semibold text-slate-600">
+                        {group.category}
                       </span>
-                    ))}
+                      <span className="text-[10px] font-medium text-slate-400">
+                        {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map((item, i) => (
+                        <span
+                          key={`${item}-${i}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200/90 text-slate-800 shadow-2xs hover:border-blue-400 transition"
+                        >
+                          <span>{item}</span>
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const idx = techTags.findIndex(
+                                  (t) => t.name === item && t.category === group.category
+                                );
+                                if (idx !== -1) handleRemoveTag(idx);
+                              }}
+                              className="text-slate-300 hover:text-rose-600 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 pt-5">
+              {techTags.map((tag, idx) => (
+                <span
+                  key={`${tag.name}-${idx}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-800 shadow-2xs hover:border-blue-400 transition"
+                >
+                  <span>{tag.name}</span>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(idx)}
+                      className="text-slate-300 hover:text-rose-600 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* 2. Hardware BOM + Lab Equipment + Fabrication Pipeline (Bottom Row) */}
-      {(track === 'hardware' || track === 'both') && (
+      {(isHardware || isBoth) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card A: Hardware BOM Status */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 flex flex-col justify-between">
@@ -553,21 +629,22 @@ export function SoftwareHardwareTab({ track = 'both', startup, onStartupUpdate, 
             <h3 className="text-sm font-black text-[#1A2151]">Add Tech Stack Item</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Category</label>
-                <select
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Category (optional)
+                </label>
+                <input
+                  type="text"
                   value={targetCategory}
                   onChange={(e) => setTargetCategory(e.target.value)}
+                  placeholder="e.g. Frontend, Backend, AI / ML, Cloud"
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="FRONTEND">FRONTEND</option>
-                  <option value="BACKEND">BACKEND</option>
-                  <option value="CLOUD & DATABASE">CLOUD & DATABASE</option>
-                  <option value="AI MODELS">AI MODELS</option>
-                </select>
+                />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 mb-1">Technology Name</label>
+                <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                  Technology Name *
+                </label>
                 <input
                   type="text"
                   value={newTag}

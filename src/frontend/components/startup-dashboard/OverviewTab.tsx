@@ -21,34 +21,6 @@ import {
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 
-const DEFAULT_INCUBATOR_MILESTONES: MilestoneItem[] = [
-  { id: 'm1', title: 'Conduct 50 Customer Discovery Interviews', category: 'Customer Discovery', dueDate: 'Month 1', completed: false },
-  { id: 'm2', title: 'Draft 5-Year Financial & Unit Economics Model', category: 'Financial Model', dueDate: 'Month 1', completed: false },
-  { id: 'm3', title: 'Architect Vector Search & Core Tech Integration', category: 'Tech Architecture', dueDate: 'Month 2', completed: false },
-  { id: 'm4', title: 'File Provisional Patent & Legal Incorporation', category: 'Legal & IP', dueDate: 'Month 2', completed: false },
-  { id: 'm5', title: 'Validate Pipeline with 5 B2B Pilot Partners', category: 'Customer Discovery', dueDate: 'Month 3', completed: false },
-  { id: 'm6', title: 'Complete Security & Compliance Audit', category: 'Legal & IP', dueDate: 'Month 3', completed: false },
-  { id: 'm7', title: 'Prototype & Fabrication Testing in Lab', category: 'Hardware BOM', dueDate: 'Month 4', completed: false },
-  { id: 'm8', title: 'Beta User Closed Cohort Rollout', category: 'Traction', dueDate: 'Month 4', completed: false },
-  { id: 'm9', title: 'Lead VC Term Sheet Practice & Gate 2 Rehearsal', category: 'Pitch Review', dueDate: 'Month 5', completed: false },
-  { id: 'm10', title: 'Graduation Demo Day Main Stage Presentation', category: 'Graduation', dueDate: 'Month 6', completed: false },
-];
-
-const STAGE_PROGRESS_MAP: Record<string, number> = {
-  idea: 17,
-  mvp: 33,
-  'pre-revenue': 50,
-  revenue: 67,
-  growth: 83,
-  scale: 100,
-};
-
-function getStageProgress(stage?: string): number {
-  if (!stage) return 33;
-  const key = stage.toLowerCase().trim().replace(/\s+/g, '-');
-  return STAGE_PROGRESS_MAP[key] ?? 33;
-}
-
 function getDomainOnly(url?: string): string {
   if (!url) return '';
   return url.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0];
@@ -77,26 +49,19 @@ export function OverviewTab({
   readOnly = false,
 }: OverviewTabProps) {
   const [milestones, setMilestones] = useState<MilestoneItem[]>(() => {
-    if (Array.isArray(startup?.milestones) && startup.milestones.length > 0) {
-      return startup.milestones;
-    }
-    return DEFAULT_INCUBATOR_MILESTONES;
+    return Array.isArray(startup?.milestones) ? startup.milestones : [];
   });
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEventItem[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const hasSeededRef = useRef(false);
 
-  // Sync with prop updates & seed if empty
+  // Sync with prop updates - only defined by incubator
   useEffect(() => {
-    if (Array.isArray(startup?.milestones) && startup.milestones.length > 0) {
+    if (Array.isArray(startup?.milestones)) {
       setMilestones(startup.milestones);
-    } else if (!readOnly && onStartupUpdate && !hasSeededRef.current && startup?.id) {
-      hasSeededRef.current = true;
-      onStartupUpdate({ milestones: DEFAULT_INCUBATOR_MILESTONES });
     }
-  }, [startup?.milestones, startup?.id, readOnly, onStartupUpdate]);
+  }, [startup?.milestones]);
 
   // Fetch upcoming schedule (events + mentor sessions merged by date)
   useEffect(() => {
@@ -195,7 +160,16 @@ export function OverviewTab({
   }, [startup]);
 
   const teamCount = mergedTeam.length > 0 ? mergedTeam.length : Number(startup?.team_size || 1);
-  const computedStageProgress = getStageProgress(startup?.stage);
+  const stageName = startup?.stage?.trim() || 'Not started';
+  const computedStageProgress: number | null = useMemo(() => {
+    if (typeof startup?.stage_progress === 'number') {
+      return startup.stage_progress;
+    }
+    if (totalCount > 0) {
+      return Math.round((completedCount / totalCount) * 100);
+    }
+    return null;
+  }, [startup?.stage_progress, completedCount, totalCount]);
 
   const renderEmptyField = (section: string, addLabel: string = 'Add') => (
     <span className="inline-flex items-center gap-1.5 text-sm text-slate-400">
@@ -224,22 +198,30 @@ export function OverviewTab({
               <Award className="w-4 h-4 text-indigo-500" />
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">{startup?.stage || 'Validation Phase'}</h3>
-              <span className="text-xs font-semibold text-blue-600">
-                {computedStageProgress}%
-              </span>
+              <h3 className="text-lg font-semibold text-slate-900">{stageName}</h3>
+              {computedStageProgress !== null ? (
+                <span className="text-xs font-semibold text-blue-600">
+                  {computedStageProgress}%
+                </span>
+              ) : (
+                <span className="text-xs font-medium text-slate-400">
+                  Not started
+                </span>
+              )}
             </div>
             {startup?.sector ? (
               <p className="text-xs text-slate-500 mt-1">
                 Sector: <span className="font-medium text-slate-700">{startup.sector}</span>
               </p>
             ) : null}
-            <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
-                style={{ width: `${computedStageProgress}%` }}
-              />
-            </div>
+            {computedStageProgress !== null && (
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden mt-2.5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
+                  style={{ width: `${computedStageProgress}%` }}
+                />
+              </div>
+            )}
           </div>
           <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
             <span>Funding raised</span>
@@ -499,68 +481,84 @@ export function OverviewTab({
                 Toggle checkboxes to update cohort progress dynamically
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/70 shrink-0 whitespace-nowrap">
-              Progress: {completedCount}/{totalCount}
-            </span>
+            {totalCount > 0 && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200/70 shrink-0 whitespace-nowrap">
+                Progress: {completedCount}/{totalCount}
+              </span>
+            )}
           </div>
 
-          {/* Scrollable Milestone Checklist */}
-          <div className="space-y-2.5 pt-4 max-h-[460px] overflow-y-auto pr-2 scrollbar-thin">
-            {milestones.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => toggleMilestone(item.id)}
-                className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${item.completed
-                  ? 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'
-                  : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-xs'
-                  }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 ${item.completed
-                      ? 'bg-indigo-600 text-white'
-                      : 'border-2 border-slate-300 hover:border-indigo-500'
-                      }`}
-                  >
-                    {item.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </div>
-
-                  <div className="min-w-0">
-                    <p
-                      className={`text-xs font-bold truncate ${item.completed ? 'text-slate-500 line-through' : 'text-slate-800'
+          {/* Milestone Checklist or Empty State */}
+          {totalCount === 0 ? (
+            <div className="py-12 px-4 text-center space-y-2">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-semibold text-slate-800">
+                Your incubator hasn't set milestones yet
+              </h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Milestones will appear here once assigned by your program managers.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-4 max-h-[460px] overflow-y-auto pr-2 scrollbar-thin">
+              {milestones.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => toggleMilestone(item.id)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${item.completed
+                    ? 'bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/80'
+                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-xs'
+                    }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors shrink-0 ${item.completed
+                        ? 'bg-indigo-600 text-white'
+                        : 'border-2 border-slate-300 hover:border-indigo-500'
                         }`}
                     >
-                      {item.title}
-                    </p>
-                    {item.assignedMentor && (
-                      <div className="flex items-center gap-2 mt-1">
-                        {item.assignedMentor.avatar && (
-                          <img
-                            src={item.assignedMentor.avatar}
-                            alt={item.assignedMentor.name}
-                            className="w-4 h-4 rounded-full"
-                          />
-                        )}
-                        <span className="text-[11px] text-slate-500 font-medium">
-                          {item.assignedMentor.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                      {item.completed && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
 
-                <div className="text-right shrink-0">
-                  <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-600 mb-0.5">
-                    {item.category}
-                  </span>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{item.dueDate}</span>
+                    <div className="min-w-0">
+                      <p
+                        className={`text-xs font-bold truncate ${item.completed ? 'text-slate-500 line-through' : 'text-slate-800'
+                          }`}
+                      >
+                        {item.title}
+                      </p>
+                      {item.assignedMentor && (
+                        <div className="flex items-center gap-2 mt-1">
+                          {item.assignedMentor.avatar && (
+                            <img
+                              src={item.assignedMentor.avatar}
+                              alt={item.assignedMentor.name}
+                              className="w-4 h-4 rounded-full"
+                            />
+                          )}
+                          <span className="text-[11px] text-slate-500 font-medium">
+                            {item.assignedMentor.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-600 mb-0.5">
+                      {item.category}
+                    </span>
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{item.dueDate}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right Column (Upcoming Schedule): 4 cols */}
