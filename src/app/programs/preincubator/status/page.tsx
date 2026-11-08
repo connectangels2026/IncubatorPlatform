@@ -151,9 +151,13 @@ function StatusContent() {
         const json = await singleRes.json();
         let appData: any = null;
         if (queryId) {
-          appData = json.application || json.data || json;
+          appData = json.application || (Array.isArray(json.data) ? json.data[0] : json.data) || json;
         } else if (Array.isArray(json.applications) && json.applications.length > 0) {
           appData = json.applications[0];
+        } else if (Array.isArray(json.data) && json.data.length > 0) {
+          appData = json.data[0];
+        } else if (json.data && !Array.isArray(json.data)) {
+          appData = json.data;
         } else if (json.application) {
           appData = json.application;
         }
@@ -172,6 +176,12 @@ function StatusContent() {
             ? allJson.data
             : [];
         setAllApplications(appsList);
+
+        // Fallback: If single application wasn't set, use first application from allApplications
+        setApplication((prev: any) => prev || (appsList.length > 0 ? appsList[0] : null));
+        if (appsList.length > 0) {
+          setIsUnauthorized(false);
+        }
       }
     } catch (err) {
       console.warn('Error loading application status:', err);

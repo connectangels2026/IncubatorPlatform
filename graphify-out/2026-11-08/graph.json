@@ -11955,7 +11955,7 @@
       "file_type": "code",
       "norm_label": "handlekeydown()",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L215"
+      "source_location": "L217"
     },
     {
       "id": "src_frontend_components_startup_dashboard_startupdashboard_startupdashboard_loadstartupdata",
@@ -53628,7 +53628,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L332",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -53640,7 +53640,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L340",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -53652,7 +53652,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L465",
+      "source_location": "L467",
       "weight": 1.0
     },
     {
@@ -53676,7 +53676,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L552",
+      "source_location": "L554",
       "weight": 1.0
     },
     {
@@ -53688,7 +53688,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L560",
+      "source_location": "L562",
       "weight": 1.0
     },
     {
@@ -53700,7 +53700,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L567",
+      "source_location": "L569",
       "weight": 1.0
     },
     {
@@ -53712,7 +53712,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L574",
+      "source_location": "L576",
       "weight": 1.0
     },
     {
@@ -53724,7 +53724,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L580",
+      "source_location": "L582",
       "weight": 1.0
     },
     {
@@ -109346,7 +109346,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L221",
+      "source_location": "L223",
       "weight": 1.0
     },
     {
@@ -109358,7 +109358,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "src/frontend/components/startup-dashboard/StartupDashboard.tsx",
-      "source_location": "L222",
+      "source_location": "L224",
       "weight": 1.0
     },
     {

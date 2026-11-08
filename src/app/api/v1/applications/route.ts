@@ -31,15 +31,31 @@ export async function GET(req: NextRequest) {
     const role = user?.role?.toLowerCase() || '';
     const userEmail = user?.email?.toLowerCase();
     const effectiveOrgId = (rawOrgId && isValidUUID(rawOrgId)) ? rawOrgId : (user?.organization_id && isValidUUID(user.organization_id) ? user.organization_id : null);
+    const isMine = searchParams.get('mine') === 'true';
 
-    if (role === 'super-admin' || rawOrgId === 'all') {
+    if (isMine && (user?.id || userEmail)) {
+      // Direct "mine=true" request by founder/applicant
+      if (user?.id && userEmail) {
+        query = query.or(`created_by.eq.${user.id},applicant_email.ilike.${userEmail}`);
+      } else if (userEmail) {
+        query = query.ilike('applicant_email', userEmail);
+      } else if (user?.id) {
+        query = query.eq('created_by', user.id);
+      }
+    } else if (role === 'super-admin' || rawOrgId === 'all') {
       // Super admin or explicit 'all' shows all applications
-    } else if (effectiveOrgId) {
+    } else if (effectiveOrgId && (role === 'admin' || role === 'incubator_admin' || role === 'incubator')) {
       // Incubator view: show applications assigned or accepted by this incubator
       query = query.or(`organization_id.eq.${effectiveOrgId},selected_incubator_id.eq.${effectiveOrgId},form_data->>selected_incubator_id.eq.${effectiveOrgId}`);
-    } else if (userEmail) {
-      // Founder view: show applications submitted by this applicant email
-      query = query.eq('applicant_email', userEmail);
+    } else if (userEmail || user?.id) {
+      // Founder view: show applications submitted by this applicant email or user id
+      if (user?.id && userEmail) {
+        query = query.or(`created_by.eq.${user.id},applicant_email.ilike.${userEmail}`);
+      } else if (userEmail) {
+        query = query.ilike('applicant_email', userEmail);
+      } else if (user?.id) {
+        query = query.eq('created_by', user.id);
+      }
     }
 
     if (status) query = query.eq('status', status);
@@ -58,6 +74,7 @@ export async function GET(req: NextRequest) {
       organization_id: rawOrgId || 'all',
       total: count ?? data?.length ?? 0,
       data: data || [],
+      applications: data || [],
     });
   } catch (err) {
     return handleApiError(err);
