@@ -597,6 +597,7 @@ export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: 
         onClose={() => setViewerFile(null)}
         url={viewerFile?.url}
         title={viewerFile?.title}
+        subtitle={startup?.startup_name || startup?.name}
         type={viewerFile?.type || 'auto'}
       />
     </div>

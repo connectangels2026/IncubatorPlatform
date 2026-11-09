@@ -17,7 +17,7 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_api_v1_documents_id_versions_route_routecontext",
+      "id": "src_app_api_v1_documents_id_sign_route_routecontext",
       "label": "RouteContext",
       "_callable": true,
       "_callable_class": true,
@@ -26,7 +26,7 @@
       "community_name": "next",
       "file_type": "code",
       "norm_label": "routecontext",
-      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
+      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
       "source_location": "L5"
     },
     {
@@ -56,13 +56,26 @@
       "source_location": "L63"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_shadcninstaller",
+      "label": "ShadcnInstaller",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "shadcninstaller",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L17"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller",
       "label": "TestShadcnInstaller",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": "testshadcninstaller",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -160,26 +173,13 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_api_v1_applications_id_score_route_params",
-      "label": "Params",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 109,
-      "community_name": "score/route.ts",
-      "file_type": "code",
-      "norm_label": "params",
-      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
-      "source_location": "L11"
-    },
-    {
       "id": "src_app_api_v1_startups_id_reviews_route_params",
       "label": "Params",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 109,
-      "community_name": "score/route.ts",
+      "community_name": "reviews/route.ts",
       "file_type": "code",
       "norm_label": "params",
       "source_file": "src/app/api/v1/startups/[id]/reviews/route.ts",
@@ -290,17 +290,147 @@
       "source_location": "L3"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_shadcninstaller",
-      "label": "ShadcnInstaller",
+      "id": "src_frontend_components_startup_dashboard_overviewtab_mergedmember",
+      "label": "MergedMember",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": "shadcninstaller",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "norm_label": "mergedmember",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L31"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtabprops",
+      "label": "OverviewTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "overviewtabprops",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L38"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_pitchprototypetabprops",
+      "label": "PitchPrototypeTabProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "pitchprototypetabprops",
+      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
+      "source_location": "L37"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_headerprops",
+      "label": "HeaderProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "headerprops",
+      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_activitylogitem",
+      "label": "ActivityLogItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "activitylogitem",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L46"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_applicationsummary",
+      "label": "ApplicationSummary",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "applicationsummary",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L68"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_dashboardtab",
+      "label": "DashboardTab",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "dashboardtab",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_deckrevision",
+      "label": "DeckRevision",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "deckrevision",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L38"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_milestoneitem",
+      "label": "MilestoneItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "milestoneitem",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
       "source_location": "L17"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_scheduleeventitem",
+      "label": "ScheduleEventItem",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "scheduleeventitem",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L29"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_types_startupprofile",
+      "label": "StartupProfile",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "startupprofile",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L3"
     },
     {
       "id": "agents_skills_design_scripts_logo_generate_saferedirecthandler",
@@ -537,6 +667,19 @@
       "source_location": "L5"
     },
     {
+      "id": "src_app_api_v1_applications_id_score_route_params",
+      "label": "Params",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 142,
+      "community_name": "csv/route.ts",
+      "file_type": "code",
+      "norm_label": "params",
+      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
+      "source_location": "L11"
+    },
+    {
       "id": "src_backend_middleware_validation_validationrule",
       "label": "ValidationRule",
       "_callable": true,
@@ -574,19 +717,6 @@
       "norm_label": "coincubationservice",
       "source_file": "src/modules/co_incubations/services/index.ts",
       "source_location": "L32"
-    },
-    {
-      "id": "src_app_api_v1_mentors_id_route_params",
-      "label": "Params",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "params",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L11"
     },
     {
       "id": "src_modules_startups_services_index_getstartupsfilter",
@@ -784,6 +914,19 @@
       "source_location": "L96"
     },
     {
+      "id": "src_app_api_v1_mentorship_sessions_id_route_params",
+      "label": "Params",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 168,
+      "community_name": "mentorship-sessions/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "params",
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L19"
+    },
+    {
       "id": "src_frontend_components_startup_dashboard_softwarehardwaretab_fabricationstep",
       "label": "FabricationStep",
       "_callable": true,
@@ -888,19 +1031,6 @@
       "source_location": "L11"
     },
     {
-      "id": "src_backend_services_emailtemplates_emailtemplatedata",
-      "label": "EmailTemplateData",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 171,
-      "community_name": "emailTemplates.ts",
-      "file_type": "code",
-      "norm_label": "emailtemplatedata",
-      "source_file": "src/backend/services/emailTemplates.ts",
-      "source_location": "L5"
-    },
-    {
       "id": "src_app_auth_signup_incubator_page_plantier",
       "label": "PlanTier",
       "_callable": true,
@@ -925,19 +1055,6 @@
       "norm_label": "params",
       "source_file": "src/app/api/v1/notifications/[id]/route.ts",
       "source_location": "L14"
-    },
-    {
-      "id": "src_app_api_v1_evaluation_criteria_id_route_params",
-      "label": "Params",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "params",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
-      "source_location": "L11"
     },
     {
       "id": "src_frontend_components_forms_datepicker_datepickerprops",
@@ -1005,6 +1122,32 @@
       "source_location": "L11"
     },
     {
+      "id": "src_app_api_v1_evaluation_criteria_id_route_params",
+      "label": "Params",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "params",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_params",
+      "label": "Params",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "params",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L11"
+    },
+    {
       "id": "src_app_api_v1_mentorship_sessions_id_action_points_route_params",
       "label": "Params",
       "_callable": true,
@@ -1029,19 +1172,6 @@
       "norm_label": "params",
       "source_file": "src/app/api/v1/mentorship-sessions/[id]/feedback/route.ts",
       "source_location": "L11"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_params",
-      "label": "Params",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "params",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L19"
     },
     {
       "id": "src_frontend_components_forms_checkbox_checkboxprops",
@@ -1223,59 +1353,7 @@
       "file_type": "code",
       "norm_label": "fileviewermodalprops",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_overviewtab_mergedmember",
-      "label": "MergedMember",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "mergedmember",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtabprops",
-      "label": "OverviewTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "overviewtabprops",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L38"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_pitchprototypetabprops",
-      "label": "PitchPrototypeTabProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "pitchprototypetabprops",
-      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
-      "source_location": "L37"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_headerprops",
-      "label": "HeaderProps",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "headerprops",
-      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
-      "source_location": "L21"
+      "source_location": "L8"
     },
     {
       "id": "src_frontend_components_startup_dashboard_startupdetailmodal_startupdetailmodalprops",
@@ -1289,97 +1367,6 @@
       "norm_label": "startupdetailmodalprops",
       "source_file": "src/frontend/components/startup-dashboard/StartupDetailModal.tsx",
       "source_location": "L21"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_activitylogitem",
-      "label": "ActivityLogItem",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "activitylogitem",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L46"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_applicationsummary",
-      "label": "ApplicationSummary",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "applicationsummary",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L68"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_dashboardtab",
-      "label": "DashboardTab",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "dashboardtab",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_deckrevision",
-      "label": "DeckRevision",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "deckrevision",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L38"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_milestoneitem",
-      "label": "MilestoneItem",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "milestoneitem",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L17"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_scheduleeventitem",
-      "label": "ScheduleEventItem",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "scheduleeventitem",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L29"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types_startupprofile",
-      "label": "StartupProfile",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "startupprofile",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
-      "source_location": "L3"
     },
     {
       "id": "src_frontend_components_startup_profile_documentssectionedit_documentssectioneditprops",
@@ -1484,19 +1471,6 @@
       "norm_label": "startuplogoprops",
       "source_file": "src/frontend/components/ui/StartupLogo.tsx",
       "source_location": "L38"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_progress_route_params",
-      "label": "Params",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "progress/route.ts",
-      "file_type": "code",
-      "norm_label": "params",
-      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
-      "source_location": "L11"
     },
     {
       "id": "src_app_api_v1_notifications_id_read_route_params",
@@ -1785,6 +1759,19 @@
       "source_location": "L5"
     },
     {
+      "id": "src_backend_services_emailtemplates_emailtemplatedata",
+      "label": "EmailTemplateData",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "emailtemplatedata",
+      "source_file": "src/backend/services/emailTemplates.ts",
+      "source_location": "L5"
+    },
+    {
       "id": "src_backend_services_notificationservice_createnotificationparams",
       "label": "CreateNotificationParams",
       "_callable": true,
@@ -1954,7 +1941,7 @@
       "source_location": "L131"
     },
     {
-      "id": "src_app_api_v1_documents_id_sign_route_routecontext",
+      "id": "src_app_api_v1_documents_id_versions_route_routecontext",
       "label": "RouteContext",
       "_callable": true,
       "_callable_class": true,
@@ -1963,7 +1950,7 @@
       "community_name": "errorHandler.ts",
       "file_type": "code",
       "norm_label": "routecontext",
-      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
+      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
       "source_location": "L5"
     },
     {
@@ -2630,6 +2617,19 @@
       "source_location": "L13"
     },
     {
+      "id": "src_app_api_v1_startups_id_progress_route_params",
+      "label": "Params",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 89,
+      "community_name": "evaluations/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "params",
+      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
+      "source_location": "L11"
+    },
+    {
       "id": "src_app_api_health_route_get",
       "label": "GET()",
       "_callable": true,
@@ -2678,18 +2678,6 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_api_v1_documents_id_versions_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "next",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
-      "source_location": "L10"
-    },
-    {
       "id": "src_app_api_v1_incubators_route_get",
       "label": "GET()",
       "_callable": true,
@@ -2712,42 +2700,6 @@
       "norm_label": "post()",
       "source_file": "src/app/api/v1/incubators/route.ts",
       "source_location": "L30"
-    },
-    {
-      "id": "src_app_api_v1_reports_applications_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "next",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/reports/applications/route.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_app_api_v1_reports_applications_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "next",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/reports/applications/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_reports_applications_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "next",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/reports/applications/route.ts",
-      "source_location": "L9"
     },
     {
       "id": "src_app_api_v1_reports_dashboard_route_get",
@@ -2774,7 +2726,7 @@
       "source_location": "L7"
     },
     {
-      "id": "src_app_api_v1_reports_funding_route_get",
+      "id": "src_app_api_v1_reports_incubation_lifecycle_route_get",
       "label": "GET()",
       "_callable": true,
       "_origin": "ast",
@@ -2782,11 +2734,11 @@
       "community_name": "next",
       "file_type": "code",
       "norm_label": "get()",
-      "source_file": "src/app/api/v1/reports/funding/route.ts",
+      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
       "source_location": "L12"
     },
     {
-      "id": "src_app_api_v1_reports_funding_route_isvaliduuid",
+      "id": "src_app_api_v1_reports_incubation_lifecycle_route_isvaliduuid",
       "label": "isValidUUID()",
       "_callable": true,
       "_origin": "ast",
@@ -2794,11 +2746,11 @@
       "community_name": "next",
       "file_type": "code",
       "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/reports/funding/route.ts",
+      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
       "source_location": "L8"
     },
     {
-      "id": "src_app_api_v1_reports_funding_route_resolveorg",
+      "id": "src_app_api_v1_reports_incubation_lifecycle_route_resolveorg",
       "label": "resolveOrg()",
       "_callable": true,
       "_origin": "ast",
@@ -2806,7 +2758,7 @@
       "community_name": "next",
       "file_type": "code",
       "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/reports/funding/route.ts",
+      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
       "source_location": "L9"
     },
     {
@@ -2930,16 +2882,88 @@
       "source_location": "L336"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L210"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_shadcninstaller_init",
+      "label": ".__init__()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".__init__()",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L20"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_temp_project",
       "label": ".temp_project()",
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".temp_project()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L21"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_dry_run",
+      "label": ".test_add_all_components_dry_run()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_all_components_dry_run()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L212"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_no_config",
+      "label": ".test_add_all_components_no_config()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_all_components_no_config()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L204"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_success",
+      "label": ".test_add_all_components_success()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_all_components_success()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L222"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_already_installed",
+      "label": ".test_add_components_already_installed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_already_installed()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L111"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_dry_run",
@@ -2947,11 +2971,119 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_add_components_dry_run()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L146"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_no_components",
+      "label": ".test_add_components_no_components()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_no_components()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L95"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_no_config",
+      "label": ".test_add_components_no_config()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_no_config()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L103"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_npx_not_found",
+      "label": ".test_add_components_npx_not_found()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_npx_not_found()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L194"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_subprocess_error",
+      "label": ".test_add_components_subprocess_error()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_subprocess_error()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L181"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_success",
+      "label": ".test_add_components_success()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_success()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L157"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_with_overwrite",
+      "label": ".test_add_components_with_overwrite()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_add_components_with_overwrite()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L123"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_check_shadcn_config_exists",
+      "label": ".test_check_shadcn_config_exists()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_check_shadcn_config_exists()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L60"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_check_shadcn_config_not_exists",
+      "label": ".test_check_shadcn_config_not_exists()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_check_shadcn_config_not_exists()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L65"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_get_installed_components_empty",
+      "label": ".test_get_installed_components_empty()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_get_installed_components_empty()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L70"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_get_installed_components_no_config",
@@ -2959,7 +3091,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_get_installed_components_no_config()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -2971,7 +3103,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_get_installed_components_with_files()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -2983,7 +3115,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_init_custom_project_root()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -2995,11 +3127,47 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_init_default_project_root()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L44"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_init_dry_run",
+      "label": ".test_init_dry_run()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_init_dry_run()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L55"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_list_installed_empty",
+      "label": ".test_list_installed_empty()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_list_installed_empty()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L247"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_list_installed_no_config",
+      "label": ".test_list_installed_no_config()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": ".test_list_installed_no_config()",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L239"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_list_installed_with_components",
@@ -3007,7 +3175,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": ".test_list_installed_with_components()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -3302,48 +3470,12 @@
       "source_location": "L13"
     },
     {
-      "id": "src_app_api_v1_applications_id_score_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 109,
-      "community_name": "score/route.ts",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_applications_id_score_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 109,
-      "community_name": "score/route.ts",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_applications_id_score_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 109,
-      "community_name": "score/route.ts",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_app_api_v1_startups_id_reviews_route_get",
       "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 109,
-      "community_name": "score/route.ts",
+      "community_name": "reviews/route.ts",
       "file_type": "code",
       "norm_label": "get()",
       "source_file": "src/app/api/v1/startups/[id]/reviews/route.ts",
@@ -3355,7 +3487,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 109,
-      "community_name": "score/route.ts",
+      "community_name": "reviews/route.ts",
       "file_type": "code",
       "norm_label": "isvaliduuid()",
       "source_file": "src/app/api/v1/startups/[id]/reviews/route.ts",
@@ -3367,7 +3499,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 109,
-      "community_name": "score/route.ts",
+      "community_name": "reviews/route.ts",
       "file_type": "code",
       "norm_label": "resolveorg()",
       "source_file": "src/app/api/v1/startups/[id]/reviews/route.ts",
@@ -3794,52 +3926,112 @@
       "source_location": "L10"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_main",
-      "label": "main()",
+      "id": "src_frontend_components_startup_dashboard_overviewtab_getdomainonly",
+      "label": "getDomainOnly()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": "main()",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
-      "source_location": "L210"
+      "norm_label": "getdomainonly()",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L26"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_check_shadcn_config_exists",
-      "label": ".test_check_shadcn_config_exists()",
+      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtab",
+      "label": "OverviewTab()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": ".test_check_shadcn_config_exists()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L60"
+      "norm_label": "overviewtab()",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L46"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_check_shadcn_config_not_exists",
-      "label": ".test_check_shadcn_config_not_exists()",
+      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtab_loadschedule",
+      "label": "loadSchedule()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": ".test_check_shadcn_config_not_exists()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L65"
+      "norm_label": "loadschedule()",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L72"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_init_dry_run",
-      "label": ".test_init_dry_run()",
+      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_figmaicon",
+      "label": "FigmaIcon()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": ".test_init_dry_run()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L55"
+      "norm_label": "figmaicon()",
+      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
+      "source_location": "L25"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_githubicon",
+      "label": "GithubIcon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "githubicon()",
+      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
+      "source_location": "L17"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_pitchprototypetab",
+      "label": "PitchPrototypeTab()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "pitchprototypetab()",
+      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
+      "source_location": "L43"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader",
+      "label": "StartupDashboardHeader()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "startupdashboardheader()",
+      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
+      "source_location": "L31"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader_handleclickoutside",
+      "label": "handleClickOutside()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "handleclickoutside()",
+      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
+      "source_location": "L44"
+    },
+    {
+      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader_handlekeydown",
+      "label": "handleKeyDown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "handlekeydown()",
+      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
+      "source_location": "L49"
     },
     {
       "id": "scratch_test_forward_testforward",
@@ -4094,52 +4286,76 @@
       "source_location": "L162"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_success",
-      "label": ".test_add_all_components_success()",
+      "id": "src_app_api_v1_startups_id_video_submission_route_get",
+      "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
+      "community_name": "[id]/video-submission/route.ts",
       "file_type": "code",
-      "norm_label": ".test_add_all_components_success()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L222"
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L66"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_npx_not_found",
-      "label": ".test_add_components_npx_not_found()",
+      "id": "src_app_api_v1_startups_id_video_submission_route_isvaliduuid",
+      "label": "isValidUUID()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
+      "community_name": "[id]/video-submission/route.ts",
       "file_type": "code",
-      "norm_label": ".test_add_components_npx_not_found()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L194"
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L11"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_subprocess_error",
-      "label": ".test_add_components_subprocess_error()",
+      "id": "src_app_api_v1_startups_id_video_submission_route_post",
+      "label": "POST()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
+      "community_name": "[id]/video-submission/route.ts",
       "file_type": "code",
-      "norm_label": ".test_add_components_subprocess_error()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L181"
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L154"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_success",
-      "label": ".test_add_components_success()",
+      "id": "src_app_api_v1_startups_id_video_submission_route_resolvestartup",
+      "label": "resolveStartup()",
       "_callable": true,
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
+      "community_name": "[id]/video-submission/route.ts",
       "file_type": "code",
-      "norm_label": ".test_add_components_success()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L157"
+      "norm_label": "resolvestartup()",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_app_api_v1_startups_me_video_submission_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "[id]/video-submission/route.ts",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_app_api_v1_startups_me_video_submission_route_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 131,
+      "community_name": "[id]/video-submission/route.ts",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
+      "source_location": "L10"
     },
     {
       "id": "src_app_api_v1_auth_google_callback_route_post",
@@ -4826,6 +5042,42 @@
       "source_location": "L26"
     },
     {
+      "id": "src_app_api_v1_applications_id_score_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 142,
+      "community_name": "csv/route.ts",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_app_api_v1_applications_id_score_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 142,
+      "community_name": "csv/route.ts",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_applications_id_score_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 142,
+      "community_name": "csv/route.ts",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "src_app_api_v1_reports_export_csv_route_escapecsvvalue",
       "label": "escapeCsvValue()",
       "_callable": true,
@@ -5210,6 +5462,18 @@
       "source_location": "L6"
     },
     {
+      "id": "src_app_api_v1_applications_id_document_upload_route_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/applications/[id]/document/upload/route.ts",
+      "source_location": "L6"
+    },
+    {
       "id": "src_app_api_v1_applications_id_evaluate_route_post",
       "label": "POST()",
       "_callable": true,
@@ -5219,6 +5483,18 @@
       "file_type": "code",
       "norm_label": "post()",
       "source_file": "src/app/api/v1/applications/[id]/evaluate/route.ts",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_app_api_v1_applications_id_mou_sign_route_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/applications/[id]/mou/sign/route.ts",
       "source_location": "L6"
     },
     {
@@ -5244,6 +5520,18 @@
       "norm_label": "get()",
       "source_file": "src/app/api/v1/documents/[id]/download/route.ts",
       "source_location": "L13"
+    },
+    {
+      "id": "src_app_api_v1_documents_id_sign_route_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
+      "source_location": "L10"
     },
     {
       "id": "src_app_api_v1_evaluation_criteria_route_get",
@@ -5318,66 +5606,6 @@
       "source_location": "L20"
     },
     {
-      "id": "src_app_api_v1_mentors_id_route_delete",
-      "label": "DELETE()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "delete()",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L133"
-    },
-    {
-      "id": "src_app_api_v1_mentors_id_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_mentors_id_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_mentors_id_route_put",
-      "label": "PUT()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "put()",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L55"
-    },
-    {
-      "id": "src_app_api_v1_mentors_id_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_app_api_v1_mentors_route_get",
       "label": "GET()",
       "_callable": true,
@@ -5438,7 +5666,7 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_api_v1_reports_incubation_lifecycle_route_get",
+      "id": "src_app_api_v1_reports_funding_route_get",
       "label": "GET()",
       "_callable": true,
       "_origin": "ast",
@@ -5446,11 +5674,11 @@
       "community_name": "handleApiError",
       "file_type": "code",
       "norm_label": "get()",
-      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
+      "source_file": "src/app/api/v1/reports/funding/route.ts",
       "source_location": "L12"
     },
     {
-      "id": "src_app_api_v1_reports_incubation_lifecycle_route_isvaliduuid",
+      "id": "src_app_api_v1_reports_funding_route_isvaliduuid",
       "label": "isValidUUID()",
       "_callable": true,
       "_origin": "ast",
@@ -5458,11 +5686,11 @@
       "community_name": "handleApiError",
       "file_type": "code",
       "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
+      "source_file": "src/app/api/v1/reports/funding/route.ts",
       "source_location": "L8"
     },
     {
-      "id": "src_app_api_v1_reports_incubation_lifecycle_route_resolveorg",
+      "id": "src_app_api_v1_reports_funding_route_resolveorg",
       "label": "resolveOrg()",
       "_callable": true,
       "_origin": "ast",
@@ -5470,7 +5698,7 @@
       "community_name": "handleApiError",
       "file_type": "code",
       "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
+      "source_file": "src/app/api/v1/reports/funding/route.ts",
       "source_location": "L9"
     },
     {
@@ -5520,6 +5748,42 @@
       "norm_label": "get()",
       "source_file": "src/app/api/v1/reports/route.ts",
       "source_location": "L6"
+    },
+    {
+      "id": "src_app_api_v1_reports_startups_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/reports/startups/route.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_app_api_v1_reports_startups_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/reports/startups/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_reports_startups_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/reports/startups/route.ts",
+      "source_location": "L9"
     },
     {
       "id": "src_app_api_v1_startups_id_co_incubations_route_get",
@@ -6014,76 +6278,76 @@
       "source_location": "L5"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route_get",
+      "id": "src_app_api_v1_mentorship_sessions_id_route_delete",
+      "label": "DELETE()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 168,
+      "community_name": "mentorship-sessions/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "delete()",
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L162"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_id_route_get",
       "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
       "norm_label": "get()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L26"
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L23"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route_getdayname",
-      "label": "getDayName()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
-      "file_type": "code",
-      "norm_label": "getdayname()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_route_isvaliduuid",
+      "id": "src_app_api_v1_mentorship_sessions_id_route_isvaliduuid",
       "label": "isValidUUID()",
       "_callable": true,
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
       "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L9"
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L8"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route_post",
-      "label": "POST()",
+      "id": "src_app_api_v1_mentorship_sessions_id_route_put",
+      "label": "PUT()",
       "_callable": true,
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L85"
+      "norm_label": "put()",
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L60"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route_resolveorg",
+      "id": "src_app_api_v1_mentorship_sessions_id_route_resolveorg",
       "label": "resolveOrg()",
       "_callable": true,
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
       "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L10"
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L9"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route_timetominutes",
+      "id": "src_app_api_v1_mentorship_sessions_id_route_timetominutes",
       "label": "timeToMinutes()",
       "_callable": true,
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
       "norm_label": "timetominutes()",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
-      "source_location": "L12"
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
+      "source_location": "L11"
     },
     {
       "id": "scratch_check_cols_checkcols",
@@ -6302,16 +6566,40 @@
       "source_location": "L9"
     },
     {
-      "id": "src_backend_services_emailtemplates_generatebaseemail",
-      "label": "generateBaseEmail()",
+      "id": "src_app_api_v1_reports_applications_route_get",
+      "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 171,
-      "community_name": "emailTemplates.ts",
+      "community_name": "reports/applications/route.ts",
       "file_type": "code",
-      "norm_label": "generatebaseemail()",
-      "source_file": "src/backend/services/emailTemplates.ts",
-      "source_location": "L14"
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/reports/applications/route.ts",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_app_api_v1_reports_applications_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 171,
+      "community_name": "reports/applications/route.ts",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/reports/applications/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_reports_applications_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 171,
+      "community_name": "reports/applications/route.ts",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/reports/applications/route.ts",
+      "source_location": "L9"
     },
     {
       "id": "src_app_auth_signup_incubator_page_signupincubatorcontent",
@@ -6434,54 +6722,6 @@
       "source_location": "L11"
     },
     {
-      "id": "src_app_api_v1_evaluation_criteria_id_route_delete",
-      "label": "DELETE()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "delete()",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
-      "source_location": "L73"
-    },
-    {
-      "id": "src_app_api_v1_evaluation_criteria_id_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_evaluation_criteria_id_route_put",
-      "label": "PUT()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "put()",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_evaluation_criteria_id_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_frontend_components_forms_datepicker_datepicker",
       "label": "DatePicker()",
       "_callable": true,
@@ -6602,30 +6842,6 @@
       "source_location": "L10"
     },
     {
-      "id": "src_app_api_v1_applications_id_document_upload_route_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/applications/[id]/document/upload/route.ts",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_app_api_v1_applications_id_mou_sign_route_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/applications/[id]/mou/sign/route.ts",
-      "source_location": "L6"
-    },
-    {
       "id": "src_app_api_v1_applications_status_route_get",
       "label": "GET()",
       "_callable": true,
@@ -6648,6 +6864,114 @@
       "norm_label": "put()",
       "source_file": "src/app/api/v1/auth/profile/route.ts",
       "source_location": "L5"
+    },
+    {
+      "id": "src_app_api_v1_evaluation_criteria_id_route_delete",
+      "label": "DELETE()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "delete()",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L73"
+    },
+    {
+      "id": "src_app_api_v1_evaluation_criteria_id_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_evaluation_criteria_id_route_put",
+      "label": "PUT()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "put()",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_app_api_v1_evaluation_criteria_id_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_delete",
+      "label": "DELETE()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "delete()",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L133"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_put",
+      "label": "PUT()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "put()",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L55"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L9"
     },
     {
       "id": "src_app_api_v1_mentorship_sessions_id_action_points_route_get",
@@ -6732,78 +7056,6 @@
       "norm_label": "resolveorg()",
       "source_file": "src/app/api/v1/mentorship-sessions/[id]/feedback/route.ts",
       "source_location": "L9"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_delete",
-      "label": "DELETE()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "delete()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L162"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L23"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_put",
-      "label": "PUT()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "put()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L60"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route_timetominutes",
-      "label": "timeToMinutes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "timetominutes()",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
-      "source_location": "L11"
     },
     {
       "id": "src_app_api_v1_startups_id_activity_route_get",
@@ -6971,7 +7223,7 @@
       "file_type": "code",
       "norm_label": "detectfiletype()",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L15"
+      "source_location": "L17"
     },
     {
       "id": "src_frontend_components_common_fileviewermodal_fileviewermodal",
@@ -6983,115 +7235,7 @@
       "file_type": "code",
       "norm_label": "fileviewermodal()",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L34"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_overviewtab_getdomainonly",
-      "label": "getDomainOnly()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "getdomainonly()",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L26"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtab",
-      "label": "OverviewTab()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "overviewtab()",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L46"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_overviewtab_overviewtab_loadschedule",
-      "label": "loadSchedule()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "loadschedule()",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L72"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_figmaicon",
-      "label": "FigmaIcon()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "figmaicon()",
-      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
-      "source_location": "L25"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_githubicon",
-      "label": "GithubIcon()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "githubicon()",
-      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
-      "source_location": "L17"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_pitchprototypetab_pitchprototypetab",
-      "label": "PitchPrototypeTab()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "pitchprototypetab()",
-      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
-      "source_location": "L43"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader",
-      "label": "StartupDashboardHeader()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "startupdashboardheader()",
-      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader_handleclickoutside",
-      "label": "handleClickOutside()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "handleclickoutside()",
-      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
-      "source_location": "L44"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_startupdashboardheader_startupdashboardheader_handlekeydown",
-      "label": "handleKeyDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "handlekeydown()",
-      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
-      "source_location": "L49"
+      "source_location": "L35"
     },
     {
       "id": "src_frontend_components_startup_dashboard_startupdetailmodal_startupdetailmodal",
@@ -7262,42 +7406,6 @@
       "source_location": "L15"
     },
     {
-      "id": "src_app_api_v1_startups_id_progress_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "progress/route.ts",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_progress_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "progress/route.ts",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_progress_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "progress/route.ts",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "scratch_test_flow_testflow",
       "label": "testFlow()",
       "_callable": true,
@@ -7308,42 +7416,6 @@
       "norm_label": "testflow()",
       "source_file": "scratch/test_flow.js",
       "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_reports_startups_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 208,
-      "community_name": "reports/startups/route.ts",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/reports/startups/route.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_app_api_v1_reports_startups_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 208,
-      "community_name": "reports/startups/route.ts",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/reports/startups/route.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_app_api_v1_reports_startups_route_resolveorg",
-      "label": "resolveOrg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 208,
-      "community_name": "reports/startups/route.ts",
-      "file_type": "code",
-      "norm_label": "resolveorg()",
-      "source_file": "src/app/api/v1/reports/startups/route.ts",
-      "source_location": "L9"
     },
     {
       "id": "src_app_api_v1_notifications_id_read_route_isvaliduuid",
@@ -7499,18 +7571,6 @@
       "file_type": "code",
       "norm_label": "pageheader()",
       "source_file": "src/frontend/components/layouts/PageHeader.tsx",
-      "source_location": "L20"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_shadcninstaller_init",
-      "label": ".__init__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 212,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": ".__init__()",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
       "source_location": "L20"
     },
     {
@@ -7850,42 +7910,6 @@
       "source_location": "L393"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_no_config",
-      "label": ".test_add_components_no_config()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 220,
-      "community_name": ".test_add_components_no_config",
-      "file_type": "code",
-      "norm_label": ".test_add_components_no_config()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L103"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_already_installed",
-      "label": ".test_add_components_already_installed()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 221,
-      "community_name": ".test_add_components_already_installed",
-      "file_type": "code",
-      "norm_label": ".test_add_components_already_installed()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L111"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_with_overwrite",
-      "label": ".test_add_components_with_overwrite()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 222,
-      "community_name": ".test_add_components_with_overwrite",
-      "file_type": "code",
-      "norm_label": ".test_add_components_with_overwrite()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L123"
-    },
-    {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator_test_add_breakpoints",
       "label": ".test_add_breakpoints()",
       "_callable": true,
@@ -7898,54 +7922,6 @@
       "source_location": "L150"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_no_config",
-      "label": ".test_add_all_components_no_config()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 224,
-      "community_name": ".test_add_all_components_no_config",
-      "file_type": "code",
-      "norm_label": ".test_add_all_components_no_config()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L204"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_all_components_dry_run",
-      "label": ".test_add_all_components_dry_run()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 225,
-      "community_name": ".test_add_all_components_dry_run",
-      "file_type": "code",
-      "norm_label": ".test_add_all_components_dry_run()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L212"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_list_installed_no_config",
-      "label": ".test_list_installed_no_config()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 226,
-      "community_name": ".test_list_installed_no_config",
-      "file_type": "code",
-      "norm_label": ".test_list_installed_no_config()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L239"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_list_installed_empty",
-      "label": ".test_list_installed_empty()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 227,
-      "community_name": ".test_list_installed_empty",
-      "file_type": "code",
-      "norm_label": ".test_list_installed_empty()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L247"
-    },
-    {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator_test_generate_typescript_config",
       "label": ".test_generate_typescript_config()",
       "_callable": true,
@@ -7956,18 +7932,6 @@
       "norm_label": ".test_generate_typescript_config()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
       "source_location": "L196"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_get_installed_components_empty",
-      "label": ".test_get_installed_components_empty()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 229,
-      "community_name": ".test_get_installed_components_empty",
-      "file_type": "code",
-      "norm_label": ".test_get_installed_components_empty()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L70"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator_test_generate_config_with_plugins",
@@ -7992,18 +7956,6 @@
       "norm_label": ".test_validate_config_valid()",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
       "source_location": "L231"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_testshadcninstaller_test_add_components_no_components",
-      "label": ".test_add_components_no_components()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 232,
-      "community_name": ".test_add_components_no_components",
-      "file_type": "code",
-      "norm_label": ".test_add_components_no_components()",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L95"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator_test_validate_config_no_content",
@@ -8774,6 +8726,78 @@
       "source_location": "L10"
     },
     {
+      "id": "src_app_api_v1_mentorship_sessions_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L26"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_route_getdayname",
+      "label": "getDayName()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "getdayname()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_route_post",
+      "label": "POST()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "post()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L85"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_app_api_v1_mentorship_sessions_route_timetominutes",
+      "label": "timeToMinutes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "timetominutes()",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L12"
+    },
+    {
       "id": "src_app_api_v1_notifications_preferences_route_get",
       "label": "GET()",
       "_callable": true,
@@ -8882,76 +8906,16 @@
       "source_location": "L11"
     },
     {
-      "id": "src_app_api_v1_startups_id_video_submission_route_get",
-      "label": "GET()",
+      "id": "src_backend_services_emailtemplates_generatebaseemail",
+      "label": "generateBaseEmail()",
       "_callable": true,
       "_origin": "ast",
       "community": 27,
       "community_name": "notificationService.ts",
       "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
-      "source_location": "L66"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_video_submission_route_isvaliduuid",
-      "label": "isValidUUID()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "isvaliduuid()",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_video_submission_route_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
-      "source_location": "L154"
-    },
-    {
-      "id": "src_app_api_v1_startups_id_video_submission_route_resolvestartup",
-      "label": "resolveStartup()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "resolvestartup()",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_app_api_v1_startups_me_video_submission_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_app_api_v1_startups_me_video_submission_route_post",
-      "label": "POST()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
-      "source_location": "L10"
+      "norm_label": "generatebaseemail()",
+      "source_file": "src/backend/services/emailTemplates.ts",
+      "source_location": "L14"
     },
     {
       "id": "src_backend_services_notificationservice_isvaliduuid",
@@ -9535,7 +9499,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "build_cip_prompt()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9547,7 +9511,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "check_logo_required()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9559,7 +9523,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "generate_cip_set()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9571,7 +9535,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "generate_with_nano_banana()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9583,7 +9547,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "load_env()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9595,7 +9559,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "load_logo_image()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9607,7 +9571,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -9619,7 +9583,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "format_brief()",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
@@ -9631,7 +9595,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "format_results()",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
@@ -9643,23 +9607,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
       "source_location": "L65"
-    },
-    {
-      "id": "agents_skills_design_system_scripts_slide_token_validator_main",
-      "label": "main()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "code",
-      "norm_label": "main()",
-      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
-      "source_location": "L20"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tailwind_config_gen_main",
@@ -9667,7 +9619,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": ".agents/skills/ui-styling/scripts/tailwind_config_gen.py",
@@ -9758,15 +9710,15 @@
       "source_location": "L21"
     },
     {
-      "id": "src_app_api_v1_documents_id_sign_route_post",
-      "label": "POST()",
+      "id": "src_app_api_v1_documents_id_versions_route_get",
+      "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 43,
       "community_name": "errorHandler.ts",
       "file_type": "code",
-      "norm_label": "post()",
-      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
       "source_location": "L10"
     },
     {
@@ -10562,6 +10514,18 @@
       "source_location": "L47"
     },
     {
+      "id": "agents_skills_design_system_scripts_slide_token_validator_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
+      "source_location": "L20"
+    },
+    {
       "id": "agents_skills_design_system_scripts_tests_test_validate_tokens_run",
       "label": "_run()",
       "_callable": true,
@@ -10603,7 +10567,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "_find_project_root()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10615,7 +10579,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "generate_css_for_background()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10627,7 +10591,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "get_background_image()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10639,7 +10603,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "get_curated_images()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10651,7 +10615,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "get_overlay_css()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10663,7 +10627,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "get_pexels_search_url()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10675,7 +10639,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "load_backgrounds_config()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10687,7 +10651,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "load_brand_colors()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10699,7 +10663,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "main()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -10711,7 +10675,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "resolve_token_reference()",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -12638,6 +12602,42 @@
       "source_location": "L10"
     },
     {
+      "id": "src_app_api_v1_startups_id_progress_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 89,
+      "community_name": "evaluations/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_app_api_v1_startups_id_progress_route_isvaliduuid",
+      "label": "isValidUUID()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 89,
+      "community_name": "evaluations/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "isvaliduuid()",
+      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_app_api_v1_startups_id_progress_route_resolveorg",
+      "label": "resolveOrg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 89,
+      "community_name": "evaluations/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "resolveorg()",
+      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "agents_skills_design_system_scripts_embed_tokens_extracttokens",
       "label": "extractTokens()",
       "_callable": true,
@@ -13122,14 +13122,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_documents_id_versions_route",
-      "label": "versions/route.ts",
+      "id": "src_app_api_v1_documents_id_sign_route",
+      "label": "[id]/sign/route.ts",
       "_origin": "ast",
       "community": 0,
       "community_name": "next",
       "file_type": "code",
-      "norm_label": "versions/route.ts",
-      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
+      "norm_label": "[id]/sign/route.ts",
+      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
       "source_location": "L1"
     },
     {
@@ -13155,17 +13155,6 @@
       "source_location": "L5"
     },
     {
-      "id": "src_app_api_v1_reports_applications_route",
-      "label": "reports/applications/route.ts",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "next",
-      "file_type": "code",
-      "norm_label": "reports/applications/route.ts",
-      "source_file": "src/app/api/v1/reports/applications/route.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_api_v1_reports_dashboard_route",
       "label": "reports/dashboard/route.ts",
       "_origin": "ast",
@@ -13177,14 +13166,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_reports_funding_route",
-      "label": "funding/route.ts",
+      "id": "src_app_api_v1_reports_incubation_lifecycle_route",
+      "label": "incubation-lifecycle/route.ts",
       "_origin": "ast",
       "community": 0,
       "community_name": "next",
       "file_type": "code",
-      "norm_label": "funding/route.ts",
-      "source_file": "src/app/api/v1/reports/funding/route.ts",
+      "norm_label": "incubation-lifecycle/route.ts",
+      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
       "source_location": "L1"
     },
     {
@@ -13419,55 +13408,264 @@
       "source_location": "L57"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add",
+      "label": "shadcn_add.py",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "shadcn_add.py",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_py_path",
+      "label": "Path",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "path",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add",
+      "label": "test_shadcn_add.py",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "test_shadcn_add.py",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L1"
+    },
+    {
       "id": "fixture",
       "label": "fixture",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "code",
       "norm_label": "fixture",
       "source_file": "",
       "source_location": ""
     },
     {
+      "id": "patch",
+      "label": "patch",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "code",
+      "norm_label": "patch",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_18",
+      "label": "Handle shadcn/ui component installation.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "handle shadcn/ui component installation.",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L18"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_2",
+      "label": "shadcn/ui Component Installer Add shadcn/ui components to project with\u2026",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "shadcn/ui component installer add shadcn/ui components to project with...",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L2"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_21",
+      "label": "Initialize installer. Args: project_root: Project root directory (default:\u2026",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "initialize installer. args: project_root: project root directory (default:...",
+      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "source_location": "L21"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_1",
+      "label": "Tests for shadcn_add.py",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "tests for shadcn_add.py",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_104",
+      "label": "Test adding components without shadcn config.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding components without shadcn config.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L104"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_112",
+      "label": "Test adding components that are already installed.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding components that are already installed.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L112"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_124",
+      "label": "Test adding components with overwrite flag.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding components with overwrite flag.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L124"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_147",
       "label": "Test adding components in dry run mode.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test adding components in dry run mode.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L147"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_158",
+      "label": "Test successful component addition.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test successful component addition.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L158"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_18",
       "label": "Test ShadcnInstaller class.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test shadcninstaller class.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L18"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_182",
+      "label": "Test component addition with subprocess error.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test component addition with subprocess error.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L182"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_195",
+      "label": "Test component addition when npx is not found.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test component addition when npx is not found.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L195"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_205",
+      "label": "Test adding all components without config.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding all components without config.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L205"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_213",
+      "label": "Test adding all components in dry run mode.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding all components in dry run mode.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L213"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_22",
       "label": "Create temporary project structure.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "create temporary project structure.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L22"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_223",
+      "label": "Test successful addition of all components.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test successful addition of all components.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L223"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_240",
+      "label": "Test listing installed components without config.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test listing installed components without config.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L240"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_248",
+      "label": "Test listing installed components when none exist.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test listing installed components when none exist.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L248"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_256",
       "label": "Test listing installed components when they exist.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test listing installed components when they exist.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -13478,7 +13676,7 @@
       "label": "Test initialization with default project root.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test initialization with default project root.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -13489,18 +13687,62 @@
       "label": "Test initialization with custom project root.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test initialization with custom project root.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L51"
     },
     {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_56",
+      "label": "Test initialization with dry run mode.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test initialization with dry run mode.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L56"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_61",
+      "label": "Test checking for existing shadcn config.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test checking for existing shadcn config.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L61"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_66",
+      "label": "Test checking for non-existent shadcn config.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test checking for non-existent shadcn config.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L66"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_71",
+      "label": "Test getting installed components when none exist.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test getting installed components when none exist.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L71"
+    },
+    {
       "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_77",
       "label": "Test getting installed components when files exist.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test getting installed components when files exist.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
@@ -13511,11 +13753,22 @@
       "label": "Test getting installed components without config.",
       "_origin": "ast",
       "community": 1,
-      "community_name": "TestShadcnInstaller",
+      "community_name": "ShadcnInstaller",
       "file_type": "rationale",
       "norm_label": "test getting installed components without config.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
       "source_location": "L90"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_96",
+      "label": "Test adding components with empty list.",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "file_type": "rationale",
+      "norm_label": "test adding components with empty list.",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
+      "source_location": "L96"
     },
     {
       "id": "agents_skills_ui_ux_pro_max_skill",
@@ -14753,22 +15006,11 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_applications_id_score_route",
-      "label": "score/route.ts",
-      "_origin": "ast",
-      "community": 109,
-      "community_name": "score/route.ts",
-      "file_type": "code",
-      "norm_label": "score/route.ts",
-      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_api_v1_startups_id_reviews_route",
       "label": "reviews/route.ts",
       "_origin": "ast",
       "community": 109,
-      "community_name": "score/route.ts",
+      "community_name": "reviews/route.ts",
       "file_type": "code",
       "norm_label": "reviews/route.ts",
       "source_file": "src/app/api/v1/startups/[id]/reviews/route.ts",
@@ -17094,70 +17336,48 @@
       "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add",
-      "label": "shadcn_add.py",
+      "id": "src_frontend_components_startup_dashboard_overviewtab",
+      "label": "OverviewTab.tsx",
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
+      "community_name": "OverviewTab.tsx",
       "file_type": "code",
-      "norm_label": "shadcn_add.py",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
+      "norm_label": "overviewtab.tsx",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
       "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_18",
-      "label": "Handle shadcn/ui component installation.",
+      "id": "src_frontend_components_startup_dashboard_pitchprototypetab",
+      "label": "PitchPrototypeTab.tsx",
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
-      "file_type": "rationale",
-      "norm_label": "handle shadcn/ui component installation.",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
-      "source_location": "L18"
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "pitchprototypetab.tsx",
+      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_2",
-      "label": "shadcn/ui Component Installer Add shadcn/ui components to project with\u2026",
+      "id": "src_frontend_components_startup_dashboard_startupdashboardheader",
+      "label": "StartupDashboardHeader.tsx",
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
-      "file_type": "rationale",
-      "norm_label": "shadcn/ui component installer add shadcn/ui components to project with...",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
-      "source_location": "L2"
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "startupdashboardheader.tsx",
+      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_56",
-      "label": "Test initialization with dry run mode.",
+      "id": "src_frontend_components_startup_dashboard_types",
+      "label": "startup-dashboard/types.ts",
       "_origin": "ast",
       "community": 123,
-      "community_name": "ShadcnInstaller",
-      "file_type": "rationale",
-      "norm_label": "test initialization with dry run mode.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L56"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_61",
-      "label": "Test checking for existing shadcn config.",
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "ShadcnInstaller",
-      "file_type": "rationale",
-      "norm_label": "test checking for existing shadcn config.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L61"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_66",
-      "label": "Test checking for non-existent shadcn config.",
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "ShadcnInstaller",
-      "file_type": "rationale",
-      "norm_label": "test checking for non-existent shadcn config.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L66"
+      "community_name": "OverviewTab.tsx",
+      "file_type": "code",
+      "norm_label": "startup-dashboard/types.ts",
+      "source_file": "src/frontend/components/startup-dashboard/types.ts",
+      "source_location": "L1"
     },
     {
       "id": "agents_skills_slides_references_html_template",
@@ -18263,59 +18483,48 @@
       "source_location": "L37"
     },
     {
-      "id": "patch",
-      "label": "patch",
+      "id": "src_app_api_v1_startups_id_video_submission_route",
+      "label": "[id]/video-submission/route.ts",
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
+      "community_name": "[id]/video-submission/route.ts",
       "file_type": "code",
-      "norm_label": "patch",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "[id]/video-submission/route.ts",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_158",
-      "label": "Test successful component addition.",
+      "id": "src_app_api_v1_startups_id_video_submission_route_dynamic",
+      "label": "dynamic",
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
-      "file_type": "rationale",
-      "norm_label": "test successful component addition.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L158"
+      "community_name": "[id]/video-submission/route.ts",
+      "file_type": "code",
+      "norm_label": "dynamic",
+      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "source_location": "L6"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_182",
-      "label": "Test component addition with subprocess error.",
+      "id": "src_app_api_v1_startups_me_video_submission_route",
+      "label": "me/video-submission/route.ts",
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
-      "file_type": "rationale",
-      "norm_label": "test component addition with subprocess error.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L182"
+      "community_name": "[id]/video-submission/route.ts",
+      "file_type": "code",
+      "norm_label": "me/video-submission/route.ts",
+      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
+      "source_location": "L1"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_195",
-      "label": "Test component addition when npx is not found.",
+      "id": "src_app_api_v1_startups_me_video_submission_route_dynamic",
+      "label": "dynamic",
       "_origin": "ast",
       "community": 131,
-      "community_name": ".test_add_all_components_success",
-      "file_type": "rationale",
-      "norm_label": "test component addition when npx is not found.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L195"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_223",
-      "label": "Test successful addition of all components.",
-      "_origin": "ast",
-      "community": 131,
-      "community_name": ".test_add_all_components_success",
-      "file_type": "rationale",
-      "norm_label": "test successful addition of all components.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L223"
+      "community_name": "[id]/video-submission/route.ts",
+      "file_type": "code",
+      "norm_label": "dynamic",
+      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
+      "source_location": "L4"
     },
     {
       "id": "src_app_api_v1_auth_google_callback_route",
@@ -19632,6 +19841,17 @@
       "norm_label": "**what to watch for**:",
       "source_file": "AUTH_AUDIT_AND_FIXES.md",
       "source_location": "L235"
+    },
+    {
+      "id": "src_app_api_v1_applications_id_score_route",
+      "label": "score/route.ts",
+      "_origin": "ast",
+      "community": 142,
+      "community_name": "csv/route.ts",
+      "file_type": "code",
+      "norm_label": "score/route.ts",
+      "source_file": "src/app/api/v1/applications/[id]/score/route.ts",
+      "source_location": "L1"
     },
     {
       "id": "src_app_api_v1_reports_export_csv_route",
@@ -21573,17 +21793,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_mentors_id_route",
-      "label": "mentors/[id]/route.ts",
-      "_origin": "ast",
-      "community": 165,
-      "community_name": "handleApiError",
-      "file_type": "code",
-      "norm_label": "mentors/[id]/route.ts",
-      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_api_v1_mentors_route",
       "label": "v1/mentors/route.ts",
       "_origin": "ast",
@@ -21606,14 +21815,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_reports_incubation_lifecycle_route",
-      "label": "incubation-lifecycle/route.ts",
+      "id": "src_app_api_v1_reports_funding_route",
+      "label": "funding/route.ts",
       "_origin": "ast",
       "community": 165,
       "community_name": "handleApiError",
       "file_type": "code",
-      "norm_label": "incubation-lifecycle/route.ts",
-      "source_file": "src/app/api/v1/reports/incubation-lifecycle/route.ts",
+      "norm_label": "funding/route.ts",
+      "source_file": "src/app/api/v1/reports/funding/route.ts",
       "source_location": "L1"
     },
     {
@@ -21636,6 +21845,17 @@
       "file_type": "code",
       "norm_label": "reports/route.ts",
       "source_file": "src/app/api/v1/reports/route.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_api_v1_reports_startups_route",
+      "label": "reports/startups/route.ts",
+      "_origin": "ast",
+      "community": 165,
+      "community_name": "handleApiError",
+      "file_type": "code",
+      "norm_label": "reports/startups/route.ts",
+      "source_file": "src/app/api/v1/reports/startups/route.ts",
       "source_location": "L1"
     },
     {
@@ -21925,14 +22145,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_mentorship_sessions_route",
-      "label": "mentorship-sessions/route.ts",
+      "id": "src_app_api_v1_mentorship_sessions_id_route",
+      "label": "mentorship-sessions/[id]/route.ts",
       "_origin": "ast",
       "community": 168,
-      "community_name": "mentorship-sessions/route.ts",
+      "community_name": "mentorship-sessions/[id]/route.ts",
       "file_type": "code",
-      "norm_label": "mentorship-sessions/route.ts",
-      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "norm_label": "mentorship-sessions/[id]/route.ts",
+      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
       "source_location": "L1"
     },
     {
@@ -22156,26 +22376,15 @@
       "source_location": "L1"
     },
     {
-      "id": "src_backend_services_emailtemplates",
-      "label": "emailTemplates.ts",
+      "id": "src_app_api_v1_reports_applications_route",
+      "label": "reports/applications/route.ts",
       "_origin": "ast",
       "community": 171,
-      "community_name": "emailTemplates.ts",
+      "community_name": "reports/applications/route.ts",
       "file_type": "code",
-      "norm_label": "emailtemplates.ts",
-      "source_file": "src/backend/services/emailTemplates.ts",
+      "norm_label": "reports/applications/route.ts",
+      "source_file": "src/app/api/v1/reports/applications/route.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_backend_services_emailtemplates_emailtemplates",
-      "label": "emailTemplates",
-      "_origin": "ast",
-      "community": 171,
-      "community_name": "emailTemplates.ts",
-      "file_type": "code",
-      "norm_label": "emailtemplates",
-      "source_file": "src/backend/services/emailTemplates.ts",
-      "source_location": "L101"
     },
     {
       "id": "src_app_auth_signup_incubator_page",
@@ -22285,17 +22494,6 @@
       "file_type": "code",
       "norm_label": "notifications/[id]/route.ts",
       "source_file": "src/app/api/v1/notifications/[id]/route.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_api_v1_evaluation_criteria_id_route",
-      "label": "evaluation-criteria/[id]/route.ts",
-      "_origin": "ast",
-      "community": 177,
-      "community_name": "evaluation-criteria/[id]/route.ts",
-      "file_type": "code",
-      "norm_label": "evaluation-criteria/[id]/route.ts",
-      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
       "source_location": "L1"
     },
     {
@@ -22607,6 +22805,28 @@
       "source_location": "L46"
     },
     {
+      "id": "src_app_api_v1_evaluation_criteria_id_route",
+      "label": "evaluation-criteria/[id]/route.ts",
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "evaluation-criteria/[id]/route.ts",
+      "source_file": "src/app/api/v1/evaluation-criteria/[id]/route.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_api_v1_mentors_id_route",
+      "label": "mentors/[id]/route.ts",
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "verifyAuth",
+      "file_type": "code",
+      "norm_label": "mentors/[id]/route.ts",
+      "source_file": "src/app/api/v1/mentors/[id]/route.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_app_api_v1_mentorship_sessions_id_action_points_route",
       "label": "action-points/route.ts",
       "_origin": "ast",
@@ -22626,17 +22846,6 @@
       "file_type": "code",
       "norm_label": "feedback/route.ts",
       "source_file": "src/app/api/v1/mentorship-sessions/[id]/feedback/route.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_api_v1_mentorship_sessions_id_route",
-      "label": "mentorship-sessions/[id]/route.ts",
-      "_origin": "ast",
-      "community": 180,
-      "community_name": "verifyAuth",
-      "file_type": "code",
-      "norm_label": "mentorship-sessions/[id]/route.ts",
-      "source_file": "src/app/api/v1/mentorship-sessions/[id]/route.ts",
       "source_location": "L1"
     },
     {
@@ -23781,17 +23990,6 @@
       "source_location": "L100"
     },
     {
-      "id": "agents_skills_design_scripts_logo_tests_test_generate",
-      "label": "test_generate.py",
-      "_origin": "ast",
-      "community": 196,
-      "community_name": "test_generate.py",
-      "file_type": "code",
-      "norm_label": "test_generate.py",
-      "source_file": ".agents/skills/design/scripts/logo/tests/test_generate.py",
-      "source_location": "L1"
-    },
-    {
       "id": "agents_skills_design_system_templates_design_tokens_starter_16_type",
       "label": "$type",
       "_origin": "ast",
@@ -23913,39 +24111,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_frontend_components_startup_dashboard_overviewtab",
-      "label": "OverviewTab.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "overviewtab.tsx",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_pitchprototypetab",
-      "label": "PitchPrototypeTab.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "pitchprototypetab.tsx",
-      "source_file": "src/frontend/components/startup-dashboard/PitchPrototypeTab.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_startupdashboardheader",
-      "label": "StartupDashboardHeader.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "startupdashboardheader.tsx",
-      "source_file": "src/frontend/components/startup-dashboard/StartupDashboardHeader.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "src_frontend_components_startup_dashboard_startupdetailmodal",
       "label": "startup-dashboard/StartupDetailModal.tsx",
       "_origin": "ast",
@@ -23954,17 +24119,6 @@
       "file_type": "code",
       "norm_label": "startup-dashboard/startupdetailmodal.tsx",
       "source_file": "src/frontend/components/startup-dashboard/StartupDetailModal.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_frontend_components_startup_dashboard_types",
-      "label": "startup-dashboard/types.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "StartupProfileManager.tsx",
-      "file_type": "code",
-      "norm_label": "startup-dashboard/types.ts",
-      "source_file": "src/frontend/components/startup-dashboard/types.ts",
       "source_location": "L1"
     },
     {
@@ -24650,17 +24804,6 @@
       "source_location": "L13"
     },
     {
-      "id": "src_app_api_v1_startups_id_progress_route",
-      "label": "progress/route.ts",
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "progress/route.ts",
-      "file_type": "code",
-      "norm_label": "progress/route.ts",
-      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "scratch_test_flow",
       "label": "test_flow.js",
       "_origin": "ast",
@@ -24725,17 +24868,6 @@
       "norm_label": "supabase",
       "source_file": "scratch/test_flow.js",
       "source_location": "L13"
-    },
-    {
-      "id": "src_app_api_v1_reports_startups_route",
-      "label": "reports/startups/route.ts",
-      "_origin": "ast",
-      "community": 208,
-      "community_name": "reports/startups/route.ts",
-      "file_type": "code",
-      "norm_label": "reports/startups/route.ts",
-      "source_file": "src/app/api/v1/reports/startups/route.ts",
-      "source_location": "L1"
     },
     {
       "id": "src_app_api_v1_notifications_id_read_route",
@@ -24857,28 +24989,6 @@
       "norm_label": "pageheader.tsx",
       "source_file": "src/frontend/components/layouts/PageHeader.tsx",
       "source_location": "L1"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_py_path",
-      "label": "Path",
-      "_origin": "ast",
-      "community": 212,
-      "community_name": ".__init__",
-      "file_type": "code",
-      "norm_label": "path",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_shadcn_add_rationale_21",
-      "label": "Initialize installer. Args: project_root: Project root directory (default:\u2026",
-      "_origin": "ast",
-      "community": 212,
-      "community_name": ".__init__",
-      "file_type": "rationale",
-      "norm_label": "initialize installer. args: project_root: project root directory (default:...",
-      "source_file": ".agents/skills/ui-styling/scripts/shadcn_add.py",
-      "source_location": "L21"
     },
     {
       "id": "src_frontend_components_forms_fileupload",
@@ -25233,39 +25343,6 @@
       "source_location": "L236"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_104",
-      "label": "Test adding components without shadcn config.",
-      "_origin": "ast",
-      "community": 220,
-      "community_name": ".test_add_components_no_config",
-      "file_type": "rationale",
-      "norm_label": "test adding components without shadcn config.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L104"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_112",
-      "label": "Test adding components that are already installed.",
-      "_origin": "ast",
-      "community": 221,
-      "community_name": ".test_add_components_already_installed",
-      "file_type": "rationale",
-      "norm_label": "test adding components that are already installed.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L112"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_124",
-      "label": "Test adding components with overwrite flag.",
-      "_origin": "ast",
-      "community": 222,
-      "community_name": ".test_add_components_with_overwrite",
-      "file_type": "rationale",
-      "norm_label": "test adding components with overwrite flag.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L124"
-    },
-    {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_rationale_151",
       "label": "Test adding custom breakpoints.",
       "_origin": "ast",
@@ -25277,50 +25354,6 @@
       "source_location": "L151"
     },
     {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_205",
-      "label": "Test adding all components without config.",
-      "_origin": "ast",
-      "community": 224,
-      "community_name": ".test_add_all_components_no_config",
-      "file_type": "rationale",
-      "norm_label": "test adding all components without config.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L205"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_213",
-      "label": "Test adding all components in dry run mode.",
-      "_origin": "ast",
-      "community": 225,
-      "community_name": ".test_add_all_components_dry_run",
-      "file_type": "rationale",
-      "norm_label": "test adding all components in dry run mode.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L213"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_240",
-      "label": "Test listing installed components without config.",
-      "_origin": "ast",
-      "community": 226,
-      "community_name": ".test_list_installed_no_config",
-      "file_type": "rationale",
-      "norm_label": "test listing installed components without config.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L240"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_248",
-      "label": "Test listing installed components when none exist.",
-      "_origin": "ast",
-      "community": 227,
-      "community_name": ".test_list_installed_empty",
-      "file_type": "rationale",
-      "norm_label": "test listing installed components when none exist.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L248"
-    },
-    {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_rationale_197",
       "label": "Test generating TypeScript configuration.",
       "_origin": "ast",
@@ -25330,17 +25363,6 @@
       "norm_label": "test generating typescript configuration.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
       "source_location": "L197"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_71",
-      "label": "Test getting installed components when none exist.",
-      "_origin": "ast",
-      "community": 229,
-      "community_name": ".test_get_installed_components_empty",
-      "file_type": "rationale",
-      "norm_label": "test getting installed components when none exist.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L71"
     },
     {
       "id": "agents_skills_brand_references_typography_specifications",
@@ -25735,17 +25757,6 @@
       "norm_label": "test validating valid configuration.",
       "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
       "source_location": "L232"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_96",
-      "label": "Test adding components with empty list.",
-      "_origin": "ast",
-      "community": 232,
-      "community_name": ".test_add_components_no_components",
-      "file_type": "rationale",
-      "norm_label": "test adding components with empty list.",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L96"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_rationale_239",
@@ -26646,6 +26657,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_app_api_v1_mentorship_sessions_route",
+      "label": "mentorship-sessions/route.ts",
+      "_origin": "ast",
+      "community": 27,
+      "community_name": "notificationService.ts",
+      "file_type": "code",
+      "norm_label": "mentorship-sessions/route.ts",
+      "source_file": "src/app/api/v1/mentorship-sessions/route.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_app_api_v1_notifications_preferences_route",
       "label": "preferences/route.ts",
       "_origin": "ast",
@@ -26668,48 +26690,26 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_startups_id_video_submission_route",
-      "label": "[id]/video-submission/route.ts",
+      "id": "src_backend_services_emailtemplates",
+      "label": "emailTemplates.ts",
       "_origin": "ast",
       "community": 27,
       "community_name": "notificationService.ts",
       "file_type": "code",
-      "norm_label": "[id]/video-submission/route.ts",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
+      "norm_label": "emailtemplates.ts",
+      "source_file": "src/backend/services/emailTemplates.ts",
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_startups_id_video_submission_route_dynamic",
-      "label": "dynamic",
+      "id": "src_backend_services_emailtemplates_emailtemplates",
+      "label": "emailTemplates",
       "_origin": "ast",
       "community": 27,
       "community_name": "notificationService.ts",
       "file_type": "code",
-      "norm_label": "dynamic",
-      "source_file": "src/app/api/v1/startups/[id]/video-submission/route.ts",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_app_api_v1_startups_me_video_submission_route",
-      "label": "me/video-submission/route.ts",
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "me/video-submission/route.ts",
-      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_api_v1_startups_me_video_submission_route_dynamic",
-      "label": "dynamic",
-      "_origin": "ast",
-      "community": 27,
-      "community_name": "notificationService.ts",
-      "file_type": "code",
-      "norm_label": "dynamic",
-      "source_file": "src/app/api/v1/startups/me/video-submission/route.ts",
-      "source_location": "L4"
+      "norm_label": "emailtemplates",
+      "source_file": "src/backend/services/emailTemplates.ts",
+      "source_location": "L101"
     },
     {
       "id": "src_backend_services_notificationservice",
@@ -27738,6 +27738,17 @@
       "source_location": "L19"
     },
     {
+      "id": "agents_skills_design_scripts_logo_tests_test_generate",
+      "label": "test_generate.py",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "object",
+      "file_type": "code",
+      "norm_label": "test_generate.py",
+      "source_file": ".agents/skills/design/scripts/logo/tests/test_generate.py",
+      "source_location": "L1"
+    },
+    {
       "id": "object",
       "label": "object",
       "_origin": "ast",
@@ -28739,7 +28750,7 @@
       "label": "cip/generate.py",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "cip/generate.py",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28750,21 +28761,10 @@
       "label": "cip/search.py",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "cip/search.py",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "agents_skills_design_system_scripts_slide_token_validator",
-      "label": "slide-token-validator.py",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "code",
-      "norm_label": "slide-token-validator.py",
-      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
       "source_location": "L1"
     },
     {
@@ -28772,32 +28772,10 @@
       "label": "tailwind_config_gen.py",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "code",
       "norm_label": "tailwind_config_gen.py",
       "source_file": ".agents/skills/ui-styling/scripts/tailwind_config_gen.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add",
-      "label": "test_shadcn_add.py",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "code",
-      "norm_label": "test_shadcn_add.py",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen",
-      "label": "test_tailwind_config_gen.py",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "code",
-      "norm_label": "test_tailwind_config_gen.py",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
       "source_location": "L1"
     },
     {
@@ -28805,7 +28783,7 @@
       "label": "Generate image using Gemini Nano Banana (native image generation) Supports two\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "generate image using gemini nano banana (native image generation) supports two...",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28816,7 +28794,7 @@
       "label": "Generate a complete CIP set for a brand Args: brand_name: Brand name to\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "generate a complete cip set for a brand args: brand_name: brand name to...",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28827,7 +28805,7 @@
       "label": "CIP Design Generator - Generate corporate identity mockups using Gemini Nano\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "cip design generator - generate corporate identity mockups using gemini nano...",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28838,7 +28816,7 @@
       "label": "Check if logo is required and suggest logo-design skill if not provided\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "check if logo is required and suggest logo-design skill if not provided...",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28849,7 +28827,7 @@
       "label": "Load logo image using PIL for Gemini image editing",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "load logo image using pil for gemini image editing",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28860,7 +28838,7 @@
       "label": "Load environment variables from .env files",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "load environment variables from .env files",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28871,7 +28849,7 @@
       "label": "Build an optimized prompt for CIP mockup generation Args: deliverable: Type of\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "build an optimized prompt for cip mockup generation args: deliverable: type of...",
       "source_file": ".agents/skills/design/scripts/cip/generate.py",
@@ -28882,7 +28860,7 @@
       "label": "Format search results for display",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "format search results for display",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
@@ -28893,7 +28871,7 @@
       "label": "CIP Design Search CLI - Search corporate identity design guidelines",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "cip design search cli - search corporate identity design guidelines",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
@@ -28904,66 +28882,22 @@
       "label": "Format CIP brief for display",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "format cip brief for display",
       "source_file": ".agents/skills/design/scripts/cip/search.py",
       "source_location": "L33"
     },
     {
-      "id": "agents_skills_design_system_scripts_slide_token_validator_rationale_2",
-      "label": "Slide Token Validator (Legacy Wrapper) Now delegates to html-token-validator.py\u2026",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "rationale",
-      "norm_label": "slide token validator (legacy wrapper) now delegates to html-token-validator.py...",
-      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
-      "source_location": "L2"
-    },
-    {
-      "id": "agents_skills_design_system_scripts_slide_token_validator_rationale_21",
-      "label": "Delegate to unified html-token-validator.py with --type slides.",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "rationale",
-      "norm_label": "delegate to unified html-token-validator.py with --type slides.",
-      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
-      "source_location": "L21"
-    },
-    {
       "id": "agents_skills_ui_styling_scripts_tailwind_config_gen_rationale_2",
       "label": "Tailwind CSS Configuration Generator Generate tailwind.config.js/ts with custom\u2026",
       "_origin": "ast",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "file_type": "rationale",
       "norm_label": "tailwind css configuration generator generate tailwind.config.js/ts with custom...",
       "source_file": ".agents/skills/ui-styling/scripts/tailwind_config_gen.py",
       "source_location": "L2"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_shadcn_add_rationale_1",
-      "label": "Tests for shadcn_add.py",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "rationale",
-      "norm_label": "tests for shadcn_add.py",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_shadcn_add.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_rationale_1",
-      "label": "Tests for tailwind_config_gen.py",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "json",
-      "file_type": "rationale",
-      "norm_label": "tests for tailwind_config_gen.py",
-      "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
-      "source_location": "L1"
     },
     {
       "id": "agents_skills_brand_references_color_palette_management",
@@ -31086,14 +31020,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_v1_documents_id_sign_route",
-      "label": "[id]/sign/route.ts",
+      "id": "src_app_api_v1_documents_id_versions_route",
+      "label": "versions/route.ts",
       "_origin": "ast",
       "community": 43,
       "community_name": "errorHandler.ts",
       "file_type": "code",
-      "norm_label": "[id]/sign/route.ts",
-      "source_file": "src/app/api/v1/documents/[id]/sign/route.ts",
+      "norm_label": "versions/route.ts",
+      "source_file": "src/app/api/v1/documents/[id]/versions/route.ts",
       "source_location": "L1"
     },
     {
@@ -32297,6 +32231,17 @@
       "source_location": ""
     },
     {
+      "id": "agents_skills_design_system_scripts_slide_token_validator",
+      "label": "slide-token-validator.py",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "code",
+      "norm_label": "slide-token-validator.py",
+      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
+      "source_location": "L1"
+    },
+    {
       "id": "agents_skills_design_system_scripts_tests_test_validate_tokens",
       "label": "test_validate_tokens.py",
       "_origin": "ast",
@@ -32328,6 +32273,17 @@
       "norm_label": "path",
       "source_file": "",
       "source_location": ""
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen",
+      "label": "test_tailwind_config_gen.py",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "code",
+      "norm_label": "test_tailwind_config_gen.py",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
+      "source_location": "L1"
     },
     {
       "id": "agents_skills_brand_scripts_tests_test_sync_brand_to_tokens_rationale_1",
@@ -32495,6 +32451,28 @@
       "source_location": "L75"
     },
     {
+      "id": "agents_skills_design_system_scripts_slide_token_validator_rationale_2",
+      "label": "Slide Token Validator (Legacy Wrapper) Now delegates to html-token-validator.py\u2026",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "rationale",
+      "norm_label": "slide token validator (legacy wrapper) now delegates to html-token-validator.py...",
+      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
+      "source_location": "L2"
+    },
+    {
+      "id": "agents_skills_design_system_scripts_slide_token_validator_rationale_21",
+      "label": "Delegate to unified html-token-validator.py with --type slides.",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "rationale",
+      "norm_label": "delegate to unified html-token-validator.py with --type slides.",
+      "source_file": ".agents/skills/design-system/scripts/slide-token-validator.py",
+      "source_location": "L21"
+    },
+    {
       "id": "agents_skills_design_system_scripts_tests_test_validate_tokens_rationale_1",
       "label": "Regression tests for validate-tokens.cjs. The validator used to skip any line\u2026",
       "_origin": "ast",
@@ -32526,6 +32504,17 @@
       "norm_label": "a line that references only tokens produces no false positives.",
       "source_file": ".agents/skills/design-system/scripts/tests/test_validate_tokens.py",
       "source_location": "L46"
+    },
+    {
+      "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_rationale_1",
+      "label": "Tests for tailwind_config_gen.py",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "file_type": "rationale",
+      "norm_label": "tests for tailwind_config_gen.py",
+      "source_file": ".agents/skills/ui-styling/scripts/tests/test_tailwind_config_gen.py",
+      "source_location": "L1"
     },
     {
       "id": "agents_skills_design_references_design_routing",
@@ -32772,7 +32761,7 @@
       "label": "fetch-background.py",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "code",
       "norm_label": "fetch-background.py",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32783,7 +32772,7 @@
       "label": "Load background configuration from CSV.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "load background configuration from csv.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32794,7 +32783,7 @@
       "label": "Generate overlay CSS using brand colors from design-tokens.json.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "generate overlay css using brand colors from design-tokens.json.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32805,7 +32794,7 @@
       "label": "Background Image Fetcher Fetches real images from Pexels for slide backgrounds.\u2026",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "background image fetcher fetches real images from pexels for slide backgrounds....",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32816,7 +32805,7 @@
       "label": "Get curated images for slide type.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "get curated images for slide type.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32827,7 +32816,7 @@
       "label": "Generate Pexels search URL for manual lookup.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "generate pexels search url for manual lookup.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32838,7 +32827,7 @@
       "label": "Get curated image matching slide type and brand aesthetic. Uses pre-selected\u2026",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "get curated image matching slide type and brand aesthetic. uses pre-selected...",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32849,7 +32838,7 @@
       "label": "Generate CSS for a background slide.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "generate css for a background slide.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32860,7 +32849,7 @@
       "label": "Resolve token reference like {primitive.color.ocean-blue.500} to hex value.",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "resolve token reference like {primitive.color.ocean-blue.500} to hex value.",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -32871,7 +32860,7 @@
       "label": "Load colors from assets/design-tokens.json for overlay gradients. Resolves\u2026",
       "_origin": "ast",
       "community": 51,
-      "community_name": "fetch-background.py",
+      "community_name": "json",
       "file_type": "rationale",
       "norm_label": "load colors from assets/design-tokens.json for overlay gradients. resolves...",
       "source_file": ".agents/skills/design-system/scripts/fetch-background.py",
@@ -39299,6 +39288,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_app_api_v1_startups_id_progress_route",
+      "label": "progress/route.ts",
+      "_origin": "ast",
+      "community": 89,
+      "community_name": "evaluations/[id]/route.ts",
+      "file_type": "code",
+      "norm_label": "progress/route.ts",
+      "source_file": "src/app/api/v1/startups/[id]/progress/route.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "agents_skills_ui_styling_references_tailwind_utilities",
       "label": "tailwind-utilities.md",
       "_origin": "ast",
@@ -40878,6 +40878,18 @@
       "source_location": "L81"
     },
     {
+      "id": "pathlib",
+      "label": "pathlib",
+      "_origin": "semantic",
+      "community": 1,
+      "community_name": "ShadcnInstaller",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "pathlib",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ref_dotenv",
       "label": "ref_dotenv",
       "_origin": "semantic",
@@ -41046,54 +41058,6 @@
       "type": "external"
     },
     {
-      "id": "importlib_util",
-      "label": "importlib_util",
-      "_origin": "semantic",
-      "community": 196,
-      "community_name": "test_generate.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "importlib_util",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "tempfile",
-      "label": "tempfile",
-      "_origin": "semantic",
-      "community": 196,
-      "community_name": "test_generate.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "tempfile",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "unittest",
-      "label": "unittest",
-      "_origin": "semantic",
-      "community": 196,
-      "community_name": "test_generate.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "unittest",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "unittest_mock",
-      "label": "unittest_mock",
-      "_origin": "semantic",
-      "community": 196,
-      "community_name": "test_generate.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "unittest_mock",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "next_types_root_params_d",
       "label": "next_types_root_params_d",
       "_origin": "semantic",
@@ -41142,6 +41106,54 @@
       "type": "external"
     },
     {
+      "id": "importlib_util",
+      "label": "importlib_util",
+      "_origin": "semantic",
+      "community": 32,
+      "community_name": "object",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "importlib_util",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "tempfile",
+      "label": "tempfile",
+      "_origin": "semantic",
+      "community": 32,
+      "community_name": "object",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "tempfile",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "unittest",
+      "label": "unittest",
+      "_origin": "semantic",
+      "community": 32,
+      "community_name": "object",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "unittest",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "unittest_mock",
+      "label": "unittest_mock",
+      "_origin": "semantic",
+      "community": 32,
+      "community_name": "object",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "unittest_mock",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ambiguous_python_import_a6b04fb6bec4",
       "label": "ambiguous_python_import_a6b04fb6bec4",
       "_origin": "semantic",
@@ -41158,7 +41170,7 @@
       "label": "ambiguous_python_import_46a1fbc47267",
       "_origin": "semantic",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "external": true,
       "file_type": "concept",
       "norm_label": "ambiguous_python_import_46a1fbc47267",
@@ -41170,7 +41182,7 @@
       "label": "ambiguous_python_import_b0b9cec42bc1",
       "_origin": "semantic",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "external": true,
       "file_type": "concept",
       "norm_label": "ambiguous_python_import_b0b9cec42bc1",
@@ -41182,46 +41194,10 @@
       "label": "argparse",
       "_origin": "semantic",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "external": true,
       "file_type": "concept",
       "norm_label": "argparse",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "json",
-      "label": "json",
-      "_origin": "semantic",
-      "community": 37,
-      "community_name": "json",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "json",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "pathlib",
-      "label": "pathlib",
-      "_origin": "semantic",
-      "community": 37,
-      "community_name": "json",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "pathlib",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "subprocess",
-      "label": "subprocess",
-      "_origin": "semantic",
-      "community": 37,
-      "community_name": "json",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "subprocess",
       "source_file": "",
       "type": "external"
     },
@@ -41230,7 +41206,7 @@
       "label": "sys",
       "_origin": "semantic",
       "community": 37,
-      "community_name": "json",
+      "community_name": "argparse",
       "external": true,
       "file_type": "concept",
       "norm_label": "sys",
@@ -41342,6 +41318,30 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "shutil",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "subprocess",
+      "label": "subprocess",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "test_sync_brand_to_tokens.py",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "subprocess",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "json",
+      "label": "json",
+      "_origin": "semantic",
+      "community": 51,
+      "community_name": "json",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "json",
       "source_file": "",
       "type": "external"
     },
@@ -53997,6 +53997,18 @@
     },
     {
       "source": "src_frontend_components_common_fileviewermodal_fileviewermodal",
+      "target": "src_frontend_context_authcontext_useauth",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/frontend/components/common/FileViewerModal.tsx",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "src_frontend_components_common_fileviewermodal_fileviewermodal",
       "target": "src_frontend_components_common_fileviewermodal_detectfiletype",
       "relation": "calls",
       "_origin": "ast",
@@ -54004,7 +54016,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L47",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -54364,7 +54376,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-profile/DocumentsSectionEdit.tsx",
-      "source_location": "L945",
+      "source_location": "L946",
       "weight": 1.0
     },
     {
@@ -54376,7 +54388,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startup-profile/DocumentsSectionEdit.tsx",
-      "source_location": "L998",
+      "source_location": "L999",
       "weight": 1.0
     },
     {
@@ -63582,6 +63594,18 @@
       "context": "import",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_frontend_components_common_fileviewermodal",
+      "target": "src_frontend_context_authcontext_useauth",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/frontend/components/common/FileViewerModal.tsx",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -74611,6 +74635,18 @@
       "context": "import",
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_frontend_components_common_fileviewermodal",
+      "target": "src_frontend_context_authcontext",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/frontend/components/common/FileViewerModal.tsx",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -103048,7 +103084,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -103059,7 +103095,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -103070,7 +103106,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/frontend/components/common/FileViewerModal.tsx",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -111844,5 +111880,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "5ed7aa1715168facf6572af26ac509c45e33c32f"
+  "built_at_commit": "9b5fd5bd1a604daef3b8c411d5486fe306f585f1"
 }

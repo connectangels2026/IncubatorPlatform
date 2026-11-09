@@ -873,6 +873,7 @@ export function StartupProfilePreview({
         onClose={() => setViewerFile(null)}
         url={viewerFile?.url}
         title={viewerFile?.title}
+        subtitle={startupName || startup?.name}
         type={viewerFile?.type || 'auto'}
       />
     </div>

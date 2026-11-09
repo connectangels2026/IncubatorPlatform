@@ -106,7 +106,7 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
 
   // Tech Stack Tag Input State
   const [tagInput, setTagInput] = useState('');
-  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; subtitle?: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   // Hidden File Input Refs
   const pitchFileInputRef = useRef<HTMLInputElement>(null);
@@ -787,7 +787,8 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
                   onClick={() =>
                     setViewerFile({
                       url: videoUrl || formData.demo_video_url,
-                      title: 'Product Demo Video',
+                      title: 'Product demo video',
+                      subtitle: formData.startup_name || formData.businessName || formData.name,
                       type: 'video',
                     })
                   }
@@ -1000,6 +1001,7 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
         onClose={() => setViewerFile(null)}
         url={viewerFile?.url}
         title={viewerFile?.title}
+        subtitle={viewerFile?.subtitle || formData?.startup_name || formData?.businessName || formData?.name}
         type={viewerFile?.type || 'auto'}
       />
     </div>
