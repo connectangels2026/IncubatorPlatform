@@ -19,8 +19,10 @@ import {
   Loader2,
   ShieldAlert,
   Edit3,
+  Eye,
 } from 'lucide-react';
 import { StartupProfileManager } from '@/frontend/components/startup-profile/StartupProfileManager';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 export default function StartupDetailPage() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function StartupDetailPage() {
   const [organization, setOrganization] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   useEffect(() => {
     async function fetchStartupDetail() {
@@ -218,15 +221,20 @@ export default function StartupDetailPage() {
               </a>
             )}
             {startup.pitch_deck_url && (
-              <a
-                href={startup.pitch_deck_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition"
+              <button
+                type="button"
+                onClick={() =>
+                  setViewerFile({
+                    url: startup.pitch_deck_url,
+                    title: `${startup.startup_name || startup.name || 'Startup'} - Pitch Deck`,
+                    type: 'pdf',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
               >
-                <FileText className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
                 <span>Pitch Deck</span>
-              </a>
+              </button>
             )}
           </div>
         </div>
@@ -270,6 +278,15 @@ export default function StartupDetailPage() {
           isReadOnly={!isOwner}
         />
       </main>
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 # Graph Report - Incubator-WebApp  (2026-11-09)
 
 ## Corpus Check
-- 386 files · ~315,095 words
+- 386 files · ~315,187 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 100 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 3)
 

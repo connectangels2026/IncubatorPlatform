@@ -1,18 +1,21 @@
-import React from 'react';
-import { Lightbulb, FileCheck, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lightbulb, FileCheck, Eye } from 'lucide-react';
 import { StartupItem } from '../types';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 interface BasicInfoProps {
   startup: StartupItem;
-  onDownloadDeck?: () => void;
+  onViewDeck?: () => void;
 }
 
-export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
-  const handleDownload = () => {
-    if (onDownloadDeck) {
-      onDownloadDeck();
+export function BasicInfo({ startup, onViewDeck }: BasicInfoProps) {
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  const handleView = () => {
+    if (onViewDeck) {
+      onViewDeck();
     } else {
-      alert(`Downloading pitch deck for ${startup.name}`);
+      setIsViewerOpen(true);
     }
   };
 
@@ -45,13 +48,21 @@ export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
         </div>
         <button
           type="button"
-          onClick={handleDownload}
+          onClick={handleView}
           className="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
         >
-          <Download className="w-3.5 h-3.5" />
-          Download PDF
+          <Eye className="w-3.5 h-3.5" />
+          View PDF
         </button>
       </div>
+
+      <FileViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        url={startup.pitch_deck_url}
+        title={`${startup.name} - Pitch Deck`}
+        type="pdf"
+      />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   Edit3,
   Copy,
   Check,
-  Download,
+  Eye,
   CheckCircle2,
   Clock,
   Plus,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { StartupItem } from '../types';
 import { apiClient } from '@/services/apiClient';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 interface StartupProfilePreviewProps {
   startup: StartupItem;
@@ -49,6 +50,7 @@ export function StartupProfilePreview({
   const [isDecidingVideo, setIsDecidingVideo] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -629,15 +631,20 @@ export function StartupProfilePreview({
               </div>
             </div>
             {startup.pitch_deck_url ? (
-              <a
-                href={startup.pitch_deck_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              <button
+                type="button"
+                onClick={() =>
+                  setViewerFile({
+                    url: startup.pitch_deck_url!,
+                    title: `${startupName || startup.name || 'Startup'} - Pitch Deck`,
+                    type: 'pdf',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
                 <span>View deck</span>
-              </a>
+              </button>
             ) : (
               <span className="text-xs text-slate-400 font-medium">Uploaded in portal</span>
             )}
@@ -655,15 +662,20 @@ export function StartupProfilePreview({
               </div>
             </div>
             {startup.business_plan_url ? (
-              <a
-                href={startup.business_plan_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+              <button
+                type="button"
+                onClick={() =>
+                  setViewerFile({
+                    url: startup.business_plan_url!,
+                    title: `${startupName || startup.name || 'Startup'} - Business Plan`,
+                    type: 'pdf',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
                 <span>View plan</span>
-              </a>
+              </button>
             ) : (
               <span className="text-xs text-slate-400 font-medium">Under review</span>
             )}
@@ -729,6 +741,9 @@ export function StartupProfilePreview({
                   <video
                     src={videoSignedUrl}
                     controls
+                    controlsList="nodownload"
+                    disablePictureInPicture
+                    onContextMenu={(e) => e.preventDefault()}
                     preload="metadata"
                     className="w-full h-full max-h-56 object-contain"
                   >
@@ -810,15 +825,20 @@ export function StartupProfilePreview({
               </div>
               {videoSubmission.published_url && (
                 <div className="flex justify-end">
-                  <a
-                    href={videoSubmission.published_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:underline"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: videoSubmission.published_url,
+                        title: `${startupName || 'Startup'} - Product Demo Video`,
+                        type: 'video',
+                      })
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:underline cursor-pointer"
                   >
                     <span>View public video</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                    <Eye className="w-3 h-3" />
+                  </button>
                 </div>
               )}
             </div>
@@ -846,6 +866,15 @@ export function StartupProfilePreview({
           )}
         </div>
       </div>
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 }

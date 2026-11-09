@@ -5878,7 +5878,7 @@
       "file_type": "code",
       "norm_label": "delete()",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L150"
+      "source_location": "L148"
     },
     {
       "id": "src_app_api_v1_startups_id_route_get",
@@ -5902,7 +5902,7 @@
       "file_type": "code",
       "norm_label": "patch()",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L146"
+      "source_location": "L144"
     },
     {
       "id": "src_app_api_v1_startups_id_route_put",
@@ -5914,7 +5914,7 @@
       "file_type": "code",
       "norm_label": "put()",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L75"
+      "source_location": "L73"
     },
     {
       "id": "src_app_api_v1_startups_id_schedule_route_get",
@@ -50764,7 +50764,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L153",
+      "source_location": "L151",
       "weight": 1.0
     },
     {
@@ -50776,7 +50776,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L156",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -50788,7 +50788,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L181",
+      "source_location": "L179",
       "weight": 1.0
     },
     {
@@ -50824,7 +50824,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L71",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -50836,7 +50836,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L147",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -50848,7 +50848,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L142",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -50860,7 +50860,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L78",
+      "source_location": "L76",
       "weight": 1.0
     },
     {
@@ -50872,7 +50872,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L81",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -53800,7 +53800,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L410",
+      "source_location": "L413",
       "weight": 1.0
     },
     {
@@ -100158,7 +100158,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L146",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -100169,7 +100169,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L150",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -100180,7 +100180,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/api/v1/startups/[id]/route.ts",
-      "source_location": "L75",
+      "source_location": "L73",
       "weight": 1.0
     },
     {

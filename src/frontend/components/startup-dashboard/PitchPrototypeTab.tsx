@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FileText,
   Eye,
-  Download,
   ExternalLink,
   Layers,
   Sparkles,
@@ -13,6 +12,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import { DeckRevision } from './types';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 function GithubIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -41,6 +41,8 @@ interface PitchPrototypeTabProps {
 }
 
 export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: PitchPrototypeTabProps) {
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
+
   // Safe parsing of deck revisions from startup data
   const revisions: DeckRevision[] = useMemo(() => {
     let list = startup?.deck_revisions;
@@ -206,27 +208,20 @@ export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: 
 
             <div className="flex items-center gap-2 shrink-0">
               {startup?.pitch_deck_url ? (
-                <>
-                  <a
-                    href={startup.pitch_deck_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 inline-flex items-center gap-1 transition cursor-pointer shadow-2xs"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View</span>
-                  </a>
-                  <a
-                    href={startup.pitch_deck_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-medium text-blue-700 inline-flex items-center gap-1 transition cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                  </a>
-                </>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setViewerFile({
+                      url: startup.pitch_deck_url,
+                      title: `${startup.startup_name || startup.name || 'Startup'} - Pitch Deck`,
+                      type: 'pdf',
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View</span>
+                </button>
               ) : !readOnly ? (
                 <button
                   type="button"
@@ -263,27 +258,20 @@ export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: 
 
             <div className="flex items-center gap-2 shrink-0">
               {startup?.business_plan_url ? (
-                <>
-                  <a
-                    href={startup.business_plan_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-medium text-slate-700 inline-flex items-center gap-1 transition cursor-pointer shadow-2xs"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>View</span>
-                  </a>
-                  <a
-                    href={startup.business_plan_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-medium text-blue-700 inline-flex items-center gap-1 transition cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download</span>
-                  </a>
-                </>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setViewerFile({
+                      url: startup.business_plan_url,
+                      title: `${startup.startup_name || startup.name || 'Startup'} - Business Plan`,
+                      type: 'pdf',
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5 transition cursor-pointer shadow-2xs"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>View</span>
+                </button>
               ) : !readOnly ? (
                 <button
                   type="button"
@@ -513,14 +501,20 @@ export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: 
               {/* Centered Play Button */}
               <div className="py-6 flex justify-center">
                 {startup?.demo_video_url ? (
-                  <a
-                    href={startup.demo_video_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.demo_video_url,
+                        title: `${startup.startup_name || startup.name || 'Startup'} - Product Demo Video`,
+                        type: 'video',
+                      })
+                    }
                     className="w-14 h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform cursor-pointer"
+                    title="Watch demo video"
                   >
                     <Play className="w-6 h-6 ml-1 fill-slate-900 text-slate-900" />
-                  </a>
+                  </button>
                 ) : (
                   <button
                     type="button"
@@ -596,6 +590,15 @@ export function PitchPrototypeTab({ startup, onOpenProfile, readOnly = false }: 
           </div>
         </div>
       </div>
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 }

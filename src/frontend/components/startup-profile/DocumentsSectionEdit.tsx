@@ -6,7 +6,6 @@ import {
   Upload,
   Link as LinkIcon,
   ExternalLink,
-  Download,
   Trash2,
   RefreshCw,
   Lock,
@@ -22,9 +21,11 @@ import {
   X,
   Loader2,
   Check,
+  Eye,
 } from 'lucide-react';
 import axios from 'axios';
 import { apiClient } from '@/services/apiClient';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 interface DocumentsSectionEditProps {
   formData: any;
@@ -105,6 +106,7 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
 
   // Tech Stack Tag Input State
   const [tagInput, setTagInput] = useState('');
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   // Hidden File Input Refs
   const pitchFileInputRef = useRef<HTMLInputElement>(null);
@@ -359,23 +361,20 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <a
-                      href={formData.pitch_deck_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition"
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setViewerFile({
+                          url: formData.pitch_deck_url,
+                          title: 'Pitch Deck',
+                          type: 'pdf',
+                        })
+                      }
+                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition cursor-pointer"
                       title="View document"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href={formData.pitch_deck_url}
-                      download
-                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 rounded-md transition"
-                      title="Download document"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </a>
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => pitchFileInputRef.current?.click()}
@@ -508,23 +507,20 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <a
-                      href={formData.business_plan_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-md transition"
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setViewerFile({
+                          url: formData.business_plan_url,
+                          title: 'Business Plan',
+                          type: 'pdf',
+                        })
+                      }
+                      className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-md transition cursor-pointer"
                       title="View document"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href={formData.business_plan_url}
-                      download
-                      className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-md transition"
-                      title="Download document"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </a>
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => bizFileInputRef.current?.click()}
@@ -786,16 +782,21 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-emerald-200/60">
               {(videoUrl || formData.demo_video_url) && (
-                <a
-                  href={videoUrl || formData.demo_video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-medium rounded-lg transition"
+                <button
+                  type="button"
+                  onClick={() =>
+                    setViewerFile({
+                      url: videoUrl || formData.demo_video_url,
+                      title: 'Product Demo Video',
+                      type: 'video',
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold rounded-lg transition cursor-pointer"
                 >
                   <Play className="w-3 h-3 fill-emerald-700" />
                   <span>View</span>
-                  <ExternalLink className="w-3 h-3 text-emerald-600" />
-                </a>
+                  <Eye className="w-3 h-3 text-emerald-600" />
+                </button>
               )}
               <button
                 type="button"
@@ -992,6 +993,15 @@ export const DocumentsSectionEdit: React.FC<DocumentsSectionEditProps> = ({
           </button>
         </div>
       </div>
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 };

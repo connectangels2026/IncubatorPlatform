@@ -32,7 +32,7 @@ import {
   Code,
   Copy,
   Check,
-  Download,
+  Eye,
 } from 'lucide-react';
 import { ProfileCompletionWidget } from './ProfileCompletionWidget';
 import { LogoImageUploader } from './LogoImageUploader';
@@ -40,6 +40,7 @@ import { DocumentsSectionEdit, formatIncubationTenure } from './DocumentsSection
 import { apiClient } from '@/services/apiClient';
 import { mutate as globalMutate } from 'swr';
 import StartupLogo, { LOGO_SWATCH_COLORS, getDerivedColor, getDerivedInitials } from '@/frontend/components/ui/StartupLogo';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 interface StartupProfileManagerProps {
   initialStartup: any;
@@ -61,6 +62,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
   const [logoMode, setLogoMode] = useState<'upload' | 'generate'>('upload');
   const [saveSuccessSection, setSaveSuccessSection] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   useEffect(() => {
     if (initialStartup) {
@@ -1522,15 +1524,20 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   </div>
                 </div>
                 {startup?.pitch_deck_url ? (
-                  <a
-                    href={startup.pitch_deck_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.pitch_deck_url,
+                        title: `${startup?.startup_name || startup?.name || 'Startup'} - Pitch Deck`,
+                        type: 'pdf',
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
                   >
                     <span>View</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </a>
+                    <Eye className="w-3 h-3 text-slate-400" />
+                  </button>
                 ) : (
                   <span className="text-xs text-slate-400 font-normal">Not provided</span>
                 )}
@@ -1546,15 +1553,20 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   </div>
                 </div>
                 {startup?.business_plan_url ? (
-                  <a
-                    href={startup.business_plan_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.business_plan_url,
+                        title: `${startup?.startup_name || startup?.name || 'Startup'} - Business Plan`,
+                        type: 'pdf',
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
                   >
                     <span>View</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </a>
+                    <Eye className="w-3 h-3 text-slate-400" />
+                  </button>
                 ) : (
                   <span className="text-xs text-slate-400 font-normal">Not provided</span>
                 )}
@@ -1642,15 +1654,20 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   </div>
                 </div>
                 {startup?.demo_video_url ? (
-                  <a
-                    href={startup.demo_video_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.demo_video_url,
+                        title: `${startup?.startup_name || startup?.name || 'Startup'} - Video Walkthrough`,
+                        type: 'video',
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
                   >
                     <span>Watch</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </a>
+                    <Eye className="w-3 h-3 text-slate-400" />
+                  </button>
                 ) : (
                   <span className="text-xs text-slate-400 font-normal">Not provided</span>
                 )}
@@ -1685,6 +1702,15 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
       </div>
         </div>
       </div>
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 };

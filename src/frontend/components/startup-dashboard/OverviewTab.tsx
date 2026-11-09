@@ -18,8 +18,10 @@ import {
   Building2,
   Globe,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 function getDomainOnly(url?: string): string {
   if (!url) return '';
@@ -55,6 +57,7 @@ export function OverviewTab({
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
   // Sync with prop updates - only defined by incubator
   useEffect(() => {
@@ -299,15 +302,20 @@ export function OverviewTab({
               </p>
             </div>
             <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
-              <a
-                href={startup.pitch_deck_url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold inline-flex items-center gap-1"
+              <button
+                type="button"
+                onClick={() =>
+                  setViewerFile({
+                    url: startup.pitch_deck_url,
+                    title: `${startup.startup_name || startup.name || 'Startup'} - Pitch Deck`,
+                    type: 'pdf',
+                  })
+                }
+                className="text-blue-600 hover:text-blue-700 hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer"
               >
                 <span>View deck</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+                <Eye className="w-3.5 h-3.5" />
+              </button>
               <span className="font-normal text-slate-600">{teamCount} {teamCount === 1 ? 'member' : 'members'}</span>
             </div>
           </div>
@@ -659,6 +667,15 @@ export function OverviewTab({
           {toastMessage}
         </div>
       )}
+
+      {/* In-app Document & Video Viewer Modal */}
+      <FileViewerModal
+        isOpen={Boolean(viewerFile)}
+        onClose={() => setViewerFile(null)}
+        url={viewerFile?.url}
+        title={viewerFile?.title}
+        type={viewerFile?.type || 'auto'}
+      />
     </div>
   );
 }
