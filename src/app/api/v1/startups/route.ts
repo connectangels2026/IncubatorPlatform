@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       search: url.searchParams.get('search') || undefined,
       sort: (url.searchParams.get('sort') as any) || 'created_at',
       order: (url.searchParams.get('order') as any) || 'desc',
-      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 10,
+      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 100,
       offset: url.searchParams.get('offset') ? parseInt(url.searchParams.get('offset')!, 10) : 0,
     };
 

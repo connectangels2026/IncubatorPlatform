@@ -17,6 +17,17 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   rejected: ['under_review', 'forwarded', 'admitted', 'accepted', 'submitted'],
 };
 
+const normalizeStage = (val?: string): string => {
+  if (!val) return 'Idea';
+  const v = val.trim().toLowerCase();
+  if (v === 'mvp' || v.includes('prototype')) return 'MVP';
+  if (v.includes('pre-revenue') || v.includes('prerevenue')) return 'Pre-revenue';
+  if (v.includes('revenue') || v.includes('commercial')) return 'Revenue';
+  if (v.includes('growth')) return 'Growth';
+  if (v.includes('scale')) return 'Scale';
+  return 'Idea';
+};
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -155,31 +166,64 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
 
       // 3. Create or link startup record in startups table, preventing duplicate assignments
+      const isValidUUID = (val?: any) =>
+        Boolean(val && typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
       const applicantEmail = (currentApp.applicant_email || body.applicant_email || '').toLowerCase().trim();
-      const targetOrgId = appOrgId || userOrgId;
+
+      const queryOrgId = req.nextUrl.searchParams.get('org_id') || req.nextUrl.searchParams.get('org');
+      const headerOrg = req.headers.get('x-org-id');
+      const headerOrgId = (headerOrg && headerOrg !== 'all' && isValidUUID(headerOrg)) ? headerOrg : null;
+
+      // Resolve valid organization_id from all possible sources
+      let validOrgId = [
+        queryOrgId,
+        headerOrgId,
+        body.organization_id,
+        userOrgId,
+        currentApp.organization_id,
+        currentApp.selected_incubator_id,
+        currentApp.form_data?.selected_incubator_id,
+        currentApp.form_data?.selected_id,
+        currentApp.form_data?.incubator_id,
+      ].find((id) => isValidUUID(id));
+
+      if (!validOrgId) {
+        const { data: defaultOrg } = await supabaseAdmin.from('organizations').select('id').limit(1).maybeSingle();
+        validOrgId = defaultOrg?.id;
+      }
 
       let startupRecordId: string | null = null;
 
-      // Check if startup already exists linked to this application ID
-      const { data: existingByAppId } = await supabaseAdmin
-        .from('startups')
-        .select('id, application_id')
-        .eq('application_id', currentApp.id)
-        .maybeSingle();
-
-      if (existingByAppId?.id) {
-        startupRecordId = existingByAppId.id;
-        await supabaseAdmin
-          .from('startups')
-          .update({ is_active: true, status: 'active', updated_at: new Date().toISOString() })
-          .eq('id', existingByAppId.id);
-      } else {
-        // Fallback: check by email and organization to avoid duplicate
-        const { data: existingByEmail } = await supabaseAdmin
+      // Check if startup already exists linked to this application
+      if (isValidUUID(currentApp.startup_id)) {
+        const { data: existingByStartupId } = await supabaseAdmin
           .from('startups')
           .select('id')
-          .eq('organization_id', targetOrgId)
+          .eq('id', currentApp.startup_id)
+          .maybeSingle();
+
+        if (existingByStartupId?.id) {
+          startupRecordId = existingByStartupId.id;
+          await supabaseAdmin
+            .from('startups')
+            .update({
+              organization_id: validOrgId || undefined,
+              is_active: true,
+              status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingByStartupId.id);
+        }
+      }
+
+      if (!startupRecordId && applicantEmail) {
+        const { data: existingByEmail } = await supabaseAdmin
+          .from('startups')
+          .select('id, organization_id')
           .ilike('founder_email', applicantEmail)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (existingByEmail?.id) {
@@ -187,7 +231,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           await supabaseAdmin
             .from('startups')
             .update({
-              application_id: currentApp.id,
+              organization_id: validOrgId || existingByEmail.organization_id || undefined,
               is_active: true,
               status: 'active',
               updated_at: new Date().toISOString(),
@@ -200,31 +244,100 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             currentApp.form_data?.businessName ||
             currentApp.form_data?.name ||
             body.startup_name ||
-            `${currentApp.applicant_name}'s Startup`;
+            `${currentApp.applicant_name || 'Founder'}'s Startup`;
 
-          const { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
+          let validFounderId: string | null = null;
+          if (applicantEmail) {
+            const { data: uData } = await supabaseAdmin
+              .from('users')
+              .select('id')
+              .ilike('email', applicantEmail.trim())
+              .maybeSingle();
+            if (uData?.id && isValidUUID(uData.id)) {
+              validFounderId = uData.id;
+            }
+          }
+          if (!validFounderId && isValidUUID(currentApp.created_by)) {
+            const { data: uData } = await supabaseAdmin
+              .from('users')
+              .select('id')
+              .eq('id', currentApp.created_by)
+              .maybeSingle();
+            if (uData?.id) validFounderId = uData.id;
+          }
+
+          let validCreatedBy: string | null = null;
+          if (isValidUUID(user?.id)) {
+            const { data: uData } = await supabaseAdmin
+              .from('users')
+              .select('id')
+              .eq('id', user.id)
+              .maybeSingle();
+            if (uData?.id) {
+              validCreatedBy = uData.id;
+            } else if (user?.email) {
+              const { data: uByEmail } = await supabaseAdmin
+                .from('users')
+                .select('id')
+                .ilike('email', user.email.trim())
+                .maybeSingle();
+              if (uByEmail?.id) validCreatedBy = uByEmail.id;
+            }
+          }
+
+          const startupPayload: Record<string, any> = {
+            organization_id: validOrgId,
+            startup_name: startupName,
+            founder_email: applicantEmail,
+            founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
+            sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
+            stage: normalizeStage(currentApp.form_data?.businessStage || currentApp.form_data?.stage),
+            problem_statement: currentApp.form_data?.problemStatement || null,
+            solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
+            target_market: currentApp.form_data?.targetAudience || null,
+            founder_id: validFounderId,
+            status: 'active',
+            is_active: true,
+            created_by: validCreatedBy,
+          };
+
+          let { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
             .from('startups')
-            .insert({
-              organization_id: targetOrgId,
-              application_id: currentApp.id,
-              startup_name: startupName,
-              founder_name: currentApp.applicant_name,
-              founder_email: applicantEmail,
-              founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
-              sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
-              stage: currentApp.form_data?.businessStage || currentApp.form_data?.stage || 'Early Stage',
-              problem_statement: currentApp.form_data?.problemStatement || null,
-              solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
-              target_market: currentApp.form_data?.targetAudience || null,
-              founder_id: currentApp.created_by || null,
-              status: 'active',
-              is_active: true,
-              created_by: user.id,
-            })
+            .insert(startupPayload)
             .select('id')
             .single();
 
-          if (!stInsertErr && newStartupRecord?.id) {
+          if (stInsertErr && (stInsertErr.message?.includes("'startup_name'") || (stInsertErr as any).code === 'PGRST204')) {
+            delete startupPayload.startup_name;
+            startupPayload.name = startupName;
+            const retryRes = await supabaseAdmin
+              .from('startups')
+              .insert(startupPayload)
+              .select('id')
+              .single();
+            newStartupRecord = retryRes.data;
+            stInsertErr = retryRes.error;
+          }
+
+          if (stInsertErr && ((stInsertErr as any).code === '23503' || stInsertErr.message?.includes('foreign key constraint'))) {
+            startupPayload.created_by = null;
+            startupPayload.founder_id = null;
+            const retryFk = await supabaseAdmin
+              .from('startups')
+              .insert(startupPayload)
+              .select('id')
+              .single();
+            newStartupRecord = retryFk.data;
+            stInsertErr = retryFk.error;
+          }
+
+          if (stInsertErr) {
+            console.error('[Assign Dashboard] Failed to insert startups row:', stInsertErr);
+            return NextResponse.json(
+              { error: `Failed to create startup record: ${stInsertErr.message}`, details: stInsertErr },
+              { status: 500 }
+            );
+          } else if (newStartupRecord?.id) {
             startupRecordId = newStartupRecord.id;
           }
         }
@@ -232,6 +345,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
       if (startupRecordId) {
         updatePayload.startup_id = startupRecordId;
+      }
+      if (!currentApp.organization_id && validOrgId) {
+        updatePayload.organization_id = validOrgId;
       }
 
       updatePayload.admission_status = 'dashboard_assigned';
@@ -505,15 +621,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
           let startupId = existingStartup?.id;
           if (!startupId) {
-            const { data: newStartup } = await supabaseAdmin
+            const { data: newStartup, error: newStartupErr } = await supabaseAdmin
               .from('startups')
               .insert({
                 organization_id: orgId,
-                startup_name: startupName,
+                name: startupName,
                 founder_email: applicantEmail,
                 founder_phone: updated.applicant_phone || null,
                 sector: updated.form_data?.industryVertical || 'AI & DeepTech',
-                stage: updated.form_data?.businessStage || 'Idea Phase',
+                stage: normalizeStage(updated.form_data?.businessStage),
                 problem_statement: updated.form_data?.problemStatement || null,
                 solution_description: updated.form_data?.oneSentencePitch || updated.form_data?.solutionOverview || null,
                 target_market: updated.form_data?.targetAudience || null,
@@ -522,6 +638,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               })
               .select('id')
               .single();
+            if (newStartupErr) console.error('[applications/[id]] Error inserting startup:', newStartupErr);
             if (newStartup?.id) startupId = newStartup.id;
           }
 

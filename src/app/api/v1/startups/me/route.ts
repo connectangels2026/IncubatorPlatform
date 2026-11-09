@@ -5,6 +5,17 @@ import { StartupService } from '@/backend/services/startupService';
 
 export const dynamic = 'force-dynamic';
 
+const normalizeStage = (val?: string): string => {
+  if (!val) return 'Idea';
+  const v = val.trim().toLowerCase();
+  if (v === 'mvp' || v.includes('prototype')) return 'MVP';
+  if (v.includes('pre-revenue') || v.includes('prerevenue')) return 'Pre-revenue';
+  if (v.includes('revenue') || v.includes('commercial')) return 'Revenue';
+  if (v.includes('growth')) return 'Growth';
+  if (v.includes('scale')) return 'Scale';
+  return 'Idea';
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { user, errorResponse } = await verifyAuth(req);
@@ -63,32 +74,110 @@ export async function GET(req: NextRequest) {
         acceptedApp.applicant_name ||
         'My Startup';
 
-      const { data: createdStartup } = await supabaseAdmin
+      const isValidUUID = (val?: any) =>
+        Boolean(val && typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+      const queryOrgId = req.nextUrl.searchParams.get('org_id');
+      const headerOrgId = req.headers.get('x-org-id');
+
+      let validOrgId = [
+        acceptedApp.organization_id,
+        acceptedApp.selected_incubator_id,
+        acceptedApp.form_data?.selected_incubator_id,
+        acceptedApp.form_data?.selected_id,
+        acceptedApp.form_data?.incubator_id,
+        user.organization_id,
+        queryOrgId,
+        headerOrgId,
+      ].find((id) => isValidUUID(id));
+
+      if (!validOrgId) {
+        const { data: defaultOrg } = await supabaseAdmin.from('organizations').select('id').limit(1).maybeSingle();
+        validOrgId = defaultOrg?.id;
+      }
+
+      let validFounderId: string | null = null;
+      if (emailLower) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').ilike('email', emailLower).maybeSingle();
+        if (uData?.id) validFounderId = uData.id;
+      }
+      if (!validFounderId && isValidUUID(user?.id)) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').eq('id', user.id).maybeSingle();
+        if (uData?.id) validFounderId = uData.id;
+      }
+
+      let validCreatedBy: string | null = validFounderId;
+      if (!validCreatedBy && isValidUUID(user?.id)) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').eq('id', user.id).maybeSingle();
+        if (uData?.id) validCreatedBy = uData.id;
+      }
+
+      const startupPayload: Record<string, any> = {
+        organization_id: validOrgId,
+        startup_name: startupName,
+        founder_id: validFounderId,
+        founder_email: emailLower,
+        founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
+        sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
+        stage: normalizeStage(acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage),
+        status: 'active',
+        is_active: true,
+        created_by: validCreatedBy,
+      };
+
+      let { data: createdStartup, error: autoErr } = await supabaseAdmin
         .from('startups')
-        .insert({
-          organization_id: acceptedApp.organization_id || acceptedApp.selected_incubator_id,
-          application_id: acceptedApp.id,
-          startup_name: startupName,
-          founder_name: acceptedApp.applicant_name,
-          founder_email: emailLower,
-          founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
-          sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
-          stage: acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage || 'Early Stage',
-          status: 'active',
-          is_active: true,
-          created_by: user.id,
-        })
+        .insert(startupPayload)
         .select()
         .single();
 
-      startup = createdStartup;
-    } else if (startup.application_id) {
+      if (autoErr && (autoErr.message?.includes("'startup_name'") || (autoErr as any).code === 'PGRST204')) {
+        delete startupPayload.startup_name;
+        startupPayload.name = startupName;
+        const retryRes = await supabaseAdmin
+          .from('startups')
+          .insert(startupPayload)
+          .select()
+          .single();
+        createdStartup = retryRes.data;
+        autoErr = retryRes.error;
+      }
+
+      if (autoErr && ((autoErr as any).code === '23503' || autoErr.message?.includes('foreign key constraint'))) {
+        startupPayload.created_by = null;
+        startupPayload.founder_id = null;
+        const retryFk = await supabaseAdmin
+          .from('startups')
+          .insert(startupPayload)
+          .select()
+          .single();
+        createdStartup = retryFk.data;
+        autoErr = retryFk.error;
+      }
+
+      if (autoErr) {
+        console.error('[startups/me] Auto-provision insert error:', autoErr);
+      } else {
+        startup = createdStartup;
+      }
+    } else if (startup?.id) {
       const { data: appData } = await supabaseAdmin
         .from('applications')
         .select('*')
-        .eq('id', startup.application_id)
+        .eq('startup_id', startup.id)
         .maybeSingle();
-      linkedApp = appData;
+      if (appData) {
+        linkedApp = appData;
+      } else {
+        const { data: appByEmail } = await supabaseAdmin
+          .from('applications')
+          .select('*')
+          .ilike('applicant_email', emailLower)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        linkedApp = appByEmail;
+      }
     } else {
       const { data: appData } = await supabaseAdmin
         .from('applications')

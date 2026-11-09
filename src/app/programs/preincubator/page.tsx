@@ -326,7 +326,8 @@ export default function PreIncubatorApplicationPage() {
           let userTableFullName = '';
 
           // Check if user has selected a role before accessing application
-          const userRole = session.user.user_metadata?.role || (user as any)?.role;
+          const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+          const userRole = session.user.user_metadata?.role || (user as any)?.role || cachedRole || null;
           let activeRole = userRole;
 
           // 1. Fetch user record from users table via /api/v1/auth/me (using server-side supabaseAdmin)
@@ -341,33 +342,69 @@ export default function PreIncubatorApplicationPage() {
               }
               if (meData?.user?.role) {
                 activeRole = meData.user.role;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('user_role', meData.user.role);
+                }
               }
             }
           } catch (e) {
             console.warn('Could not query users table via /api/v1/auth/me:', e);
           }
 
-          // If role is not selected yet, strictly redirect to choose-role
+          // 2. Direct fallback to users table by id or email
+          if (!activeRole && session.user.id) {
+            try {
+              const cleanEmail = (session.user.email || '').trim().toLowerCase();
+              let uRec: any = null;
+
+              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.user.id)) {
+                const { data: byId } = await supabase
+                  .from('users')
+                  .select('role, full_name, first_name, last_name')
+                  .eq('id', session.user.id)
+                  .maybeSingle();
+                if (byId) uRec = byId;
+              }
+
+              if (!uRec && cleanEmail) {
+                const { data: byEmail } = await supabase
+                  .from('users')
+                  .select('role, full_name, first_name, last_name')
+                  .ilike('email', cleanEmail)
+                  .maybeSingle();
+                if (byEmail) uRec = byEmail;
+              }
+
+              if (uRec?.role) {
+                activeRole = uRec.role;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('user_role', uRec.role);
+                }
+              }
+              if (!userTableFullName && uRec) {
+                userTableFullName = uRec.full_name || [uRec.first_name, uRec.last_name].filter(Boolean).join(' ');
+              }
+            } catch {}
+          }
+
+          // If still no role but on the application form, default to startup role
           if (!activeRole) {
-            router.replace('/auth/choose-role');
+            activeRole = 'startup';
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('user_role', 'startup');
+            }
+          }
+
+          // Only redirect confirmed super-admins or verified incubators with an assigned org
+          const normalizedRole = (activeRole || '').toLowerCase();
+          if (normalizedRole.includes('super')) {
+            router.replace('/super-admin/dashboard');
             return;
           }
 
-          // Issue 1: Admin / Incubator Admin accounts must NOT display startup application forms
-          const normalizedRole = (activeRole || '').toLowerCase();
-          if (
-            normalizedRole === 'admin' ||
-            normalizedRole === 'incubator_admin' ||
-            normalizedRole === 'incubator' ||
-            normalizedRole === 'super-admin' ||
-            normalizedRole === 'super_admin'
-          ) {
-            const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-            if (normalizedRole.includes('super')) {
-              router.replace('/super-admin/dashboard');
-            } else {
-              router.replace(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
-            }
+          const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+          if ((normalizedRole === 'admin' || normalizedRole === 'incubator_admin' || normalizedRole === 'incubator') && orgId) {
+            router.replace(`/dashboard?org=${orgId}`);
             return;
           }
 

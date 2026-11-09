@@ -51,7 +51,7 @@ export default function ChooseRolePage() {
             if (data?.user?.role) {
               existingRole = data.user.role;
             }
-            if (data?.organization?.id) {
+            if (data?.organization?.id && (data?.user?.role === 'incubator_admin' || data?.user?.role === 'admin' || data?.user?.role === 'incubator')) {
               router.replace(`/incubator?org=${data.organization.id}`);
               return;
             }

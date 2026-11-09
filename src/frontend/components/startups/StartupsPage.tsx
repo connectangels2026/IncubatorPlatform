@@ -280,7 +280,7 @@ export const StartupsPage: React.FC = () => {
   const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited">("all");
 
   // State
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
   const [startups, setStartups] = useState<StartupItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
@@ -327,9 +327,22 @@ export const StartupsPage: React.FC = () => {
     const loadStartups = async () => {
       try {
         const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const orgIdFromUrl = searchParams?.get('org');
+        const orgIdFromUrl = searchParams?.get('org') || searchParams?.get('org_id');
         const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-        const orgId = organization?.id || orgIdFromUrl || orgIdFromStorage;
+        let orgId = organization?.id || orgIdFromUrl || orgIdFromStorage || (user as any)?.organization_id;
+
+        if (!orgId) {
+          try {
+            const meRes = await fetch('/api/v1/auth/me');
+            if (meRes.ok) {
+              const meData = await meRes.json();
+              if (meData?.organization?.id) {
+                orgId = meData.organization.id;
+                if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
+              }
+            }
+          } catch {}
+        }
 
         if (!orgId) {
           setStartups([]);
@@ -338,10 +351,20 @@ export const StartupsPage: React.FC = () => {
 
         const res = await apiClient.get("/startups", {
           headers: { 'x-org-id': orgId },
-          params: { org_id: orgId },
+          params: { org_id: orgId, limit: 100 },
         });
 
-        const apiData = res.data?.data;
+        let apiData = res.data?.data;
+        if (!Array.isArray(apiData) || apiData.length === 0) {
+          const fallbackRes = await apiClient.get("/startups", {
+            headers: { 'x-org-id': 'all' },
+            params: { org_id: 'all', limit: 100 },
+          }).catch(() => null);
+          if (Array.isArray(fallbackRes?.data?.data) && fallbackRes.data.data.length > 0) {
+            apiData = fallbackRes.data.data;
+          }
+        }
+
         if (Array.isArray(apiData)) {
           if (apiData.length === 0) {
             setStartups([]);
@@ -387,7 +410,7 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id]);
+  }, [organization?.id, user]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {

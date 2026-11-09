@@ -23,12 +23,29 @@ export async function GET(req: NextRequest) {
 
       // 2. Query public.users table for profile (robust match by id or email)
       if (user.email || user.id) {
-        const cleanEmail = (user.email || '').trim();
-        const { data: uRec } = await supabaseAdmin
-          .from('users')
-          .select('id, organization_id, email, full_name, first_name, last_name, role')
-          .or(`id.eq.${user.id},email.ilike.${cleanEmail}`)
-          .maybeSingle();
+        const cleanEmail = (user.email || '').trim().toLowerCase();
+        let uRec: any = null;
+
+        const isValidUUID = (val?: string) =>
+          Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+        if (isValidUUID(user.id)) {
+          const { data: byId } = await supabaseAdmin
+            .from('users')
+            .select('id, organization_id, email, full_name, first_name, last_name, role')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (byId) uRec = byId;
+        }
+
+        if (!uRec && cleanEmail) {
+          const { data: byEmail } = await supabaseAdmin
+            .from('users')
+            .select('id, organization_id, email, full_name, first_name, last_name, role')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+          if (byEmail) uRec = byEmail;
+        }
 
         userProfile = uRec;
 
@@ -55,13 +72,14 @@ export async function GET(req: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
+    const validRoles = ['startup', 'founder', 'incubator_admin', 'incubator', 'admin', 'super-admin'];
+    const dbRole = userProfile?.role && validRoles.includes(userProfile.role.toLowerCase()) ? userProfile.role : null;
+    const userMetaRole = (user as any)?.user_metadata?.role;
+    const metaRole = userMetaRole && validRoles.includes(String(userMetaRole).toLowerCase()) ? userMetaRole : null;
+
     const resolvedRole = isSuperAdmin
       ? 'super-admin'
-      : (userProfile?.role ?? user?.role ?? (orgData ? 'admin' : null));
-
-    if (resolvedRole && userProfile && !userProfile.role) {
-      await supabaseAdmin.from('users').update({ role: resolvedRole }).eq('id', userProfile.id);
-    }
+      : (dbRole ?? metaRole ?? (orgData && !userProfile ? 'admin' : null));
 
     return NextResponse.json(
       {

@@ -50,15 +50,13 @@ const fallbackStartups: Startup[] = [
   },
 ];
 
-const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
-
-const isValidUUID = (str: string): boolean => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+const isValidUUID = (str?: string | null): boolean => {
+  return Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()));
 };
 
-const resolveOrgId = (orgId: string): string => {
-  if (isValidUUID(orgId)) return orgId;
-  return DEFAULT_ORG_ID;
+const resolveOrgId = (orgId?: string | null): string => {
+  if (orgId && isValidUUID(orgId)) return orgId.trim();
+  return orgId || '';
 };
 
 // Map DB row from Supabase to Startup interface
@@ -94,9 +92,11 @@ export class StartupService {
 
     let query = supabaseAdmin
       .from('startups')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', realOrgId)
-      .is('deleted_at', null);
+      .select('*', { count: 'exact' });
+
+    if (realOrgId && orgId !== 'all') {
+      query = query.eq('organization_id', realOrgId);
+    }
 
     // Filtering
     if (filter.sector) query = query.ilike('sector', `%${filter.sector}%`);
@@ -111,18 +111,33 @@ export class StartupService {
     // Sorting
     const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
-    query = query.order(sortField, { ascending: isAsc });
+    try {
+      query = query.order(sortField, { ascending: isAsc });
+    } catch {}
 
     // Pagination
     const offset = filter.offset ? Number(filter.offset) : 0;
-    const limit = filter.limit ? Number(filter.limit) : 10;
+    const limit = filter.limit ? Number(filter.limit) : 100;
     query = query.range(offset, offset + limit - 1);
 
-    const { data, count, error } = await query;
+    let { data, count, error } = await query;
+
+    if (error) {
+      console.warn('Initial startups query failed, retrying simplified:', error);
+      let retryQuery = supabaseAdmin
+        .from('startups')
+        .select('*', { count: 'exact' });
+      if (orgId && orgId !== 'all') {
+        retryQuery = retryQuery.eq('organization_id', realOrgId);
+      }
+      const retryRes = await retryQuery.range(offset, offset + limit - 1);
+      data = retryRes.data;
+      count = retryRes.count;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.error('Error fetching startups:', error);
-      // Return empty array on error to maintain tenant isolation
       return { startups: [], total: 0 };
     }
 
@@ -173,9 +188,11 @@ export class StartupService {
       if (match) validStage = match;
     }
 
+    const stName = data.startup_name || data.name || 'New Startup';
     const insertPayload: any = {
       organization_id: realOrgId,
-      startup_name: data.startup_name || data.name || 'New Startup',
+      name: stName,
+      startup_name: stName,
       sector: data.sector || 'Tech',
       stage: validStage,
       founder_name: data.founder_name || 'Founder',
