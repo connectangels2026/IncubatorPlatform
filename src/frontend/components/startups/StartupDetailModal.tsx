@@ -36,9 +36,10 @@ interface StartupDetailModalProps {
   onAllocateInvestorClick: (startup: StartupItem) => void;
   onUpdateInvestorInterest: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
   onRemoveInvestor: (startupId: string, investorId: string) => void;
-  onAddCoIncubatorClick: (startup: StartupItem) => void;
+  onAddCoIncubatorClick: (startup: StartupItem, prefill?: any) => void;
   onSignMOUClick: (startup: StartupItem, partner: CoIncubatorItem) => void;
   onRemoveCoIncubator: (startupId: string, partnerId: string) => void;
+  onEndCoIncubation?: (startupId: string, coincId: string) => void;
   onUpdateStartup?: (updated: StartupItem) => void;
 }
 
@@ -68,6 +69,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   onAddCoIncubatorClick,
   onSignMOUClick,
   onRemoveCoIncubator,
+  onEndCoIncubation,
   onUpdateStartup,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'network' | 'activity'>('overview');
@@ -581,6 +583,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
               mentors={liveMentors}
               investors={liveInvestors}
               coIncubators={liveCoIncubators}
+              isLoading={isLoadingDetails}
               onAllocateMentorClick={onAllocateMentorClick}
               onRemoveMentor={onRemoveMentor}
               onAllocateInvestorClick={onAllocateInvestorClick}
@@ -588,7 +591,32 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
               onRemoveInvestor={onRemoveInvestor}
               onAddCoIncubatorClick={onAddCoIncubatorClick}
               onSignMOUClick={onSignMOUClick}
-              onRemoveCoIncubator={onRemoveCoIncubator}
+              onRemoveCoIncubator={async (startupId, coincId) => {
+                try {
+                  const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+                  await apiClient.delete(`/co-incubations/${coincId}`, {
+                    headers: orgId ? { 'x-org-id': orgId } : undefined,
+                  });
+                  setLiveCoIncubators((prev) => prev.filter((c) => c.id !== coincId));
+                  if (onRemoveCoIncubator) onRemoveCoIncubator(startupId, coincId);
+                } catch (err) {
+                  console.error('Failed to remove co-incubation:', err);
+                }
+              }}
+              onEndCoIncubation={async (startupId, coincId) => {
+                try {
+                  const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+                  await apiClient.put(`/co-incubations/${coincId}/status`, { status: 'ended' }, {
+                    headers: orgId ? { 'x-org-id': orgId } : undefined,
+                  });
+                  setLiveCoIncubators((prev) =>
+                    prev.map((c) => (c.id === coincId ? { ...c, status: 'ended' } : c))
+                  );
+                  if (onEndCoIncubation) onEndCoIncubation(startupId, coincId);
+                } catch (err) {
+                  console.error('Failed to end co-incubation:', err);
+                }
+              }}
             />
           )}
 

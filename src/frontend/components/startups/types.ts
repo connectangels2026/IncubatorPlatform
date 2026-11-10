@@ -22,16 +22,47 @@ export interface AllocatedInvestor {
 export interface CoIncubatorItem {
   id: string;
   name: string;
-  mouStatus: 'Pending' | 'Signed';
-  type: 'Full' | 'Partial' | 'Knowledge Sharing';
+  partner_name?: string;
+  mouStatus?: 'Pending' | 'Signed' | string;
+  mou_signed?: boolean;
+  mou_signed_date?: string;
+  type?: 'Full' | 'Partial' | 'Knowledge Sharing' | string;
   durationMonths?: number;
+  duration_months?: number;
   duration?: string;
-  status: 'Active' | 'Completed' | 'Terminated';
+  status:
+    | 'Active'
+    | 'Completed'
+    | 'Terminated'
+    | 'Pending'
+    | 'Declined'
+    | 'Ended'
+    | 'pending'
+    | 'active'
+    | 'rejected'
+    | 'ended'
+    | string;
+  reject_reason?: string | null;
+  rejectReason?: string | null;
+  shared_scope?: string[] | null;
+  sharedScope?: string[] | null;
+  message?: string | null;
+  co_incubator?: {
+    id: string;
+    name: string;
+    logo_url?: string | null;
+  };
+  primary_incubator?: {
+    id: string;
+    name: string;
+    logo_url?: string | null;
+  };
   equitySplit?: string;
   equityShare?: string;
   mouType?: string;
   responsibilities?: string;
   startDate?: string;
+  start_date?: string;
   documentUrl?: string;
   documentName?: string;
 }

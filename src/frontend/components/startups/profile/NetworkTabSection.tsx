@@ -20,15 +20,17 @@ interface NetworkTabSectionProps {
   startup: StartupItem;
   mentors: AllocatedMentor[];
   investors: AllocatedInvestor[];
-  coIncubators: CoIncubatorItem[];
+  coIncubators: any[];
+  isLoading?: boolean;
   onAllocateMentorClick: (startup: StartupItem) => void;
   onRemoveMentor: (startupId: string, mentorId: string) => void;
   onAllocateInvestorClick: (startup: StartupItem) => void;
   onUpdateInvestorInterest: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
   onRemoveInvestor: (startupId: string, investorId: string) => void;
-  onAddCoIncubatorClick: (startup: StartupItem) => void;
-  onSignMOUClick: (startup: StartupItem, partner: CoIncubatorItem) => void;
+  onAddCoIncubatorClick: (startup: StartupItem, prefillPartner?: any) => void;
+  onSignMOUClick: (startup: StartupItem, partner: any) => void;
   onRemoveCoIncubator: (startupId: string, partnerId: string) => void;
+  onEndCoIncubation?: (startupId: string, coincId: string) => void;
 }
 
 export function NetworkTabSection({
@@ -36,6 +38,7 @@ export function NetworkTabSection({
   mentors = [],
   investors = [],
   coIncubators = [],
+  isLoading = false,
   onAllocateMentorClick,
   onRemoveMentor,
   onAllocateInvestorClick,
@@ -44,6 +47,7 @@ export function NetworkTabSection({
   onAddCoIncubatorClick,
   onSignMOUClick,
   onRemoveCoIncubator,
+  onEndCoIncubation,
 }: NetworkTabSectionProps) {
   const [filter, setFilter] = useState<'all' | 'mentors' | 'investors' | 'co-incubators'>('all');
   const [allocateDropdownOpen, setAllocateDropdownOpen] = useState(false);
@@ -310,77 +314,177 @@ export function NetworkTabSection({
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-slate-900 flex items-center gap-1.5">
-              <Handshake className="w-3.5 h-3.5 text-indigo-600" />
-              Co-incubations ({coIncubators.length})
+              <Handshake className="w-3.5 h-3.5 text-slate-700" />
+              Co-incubators ({coIncubators.length})
             </h4>
             {coIncubators.length > 0 && filter === 'all' && (
               <button
                 type="button"
                 onClick={() => onAddCoIncubatorClick(startup)}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                className="text-xs text-slate-900 hover:text-slate-700 font-medium cursor-pointer"
               >
                 + Add co-incubator
               </button>
             )}
           </div>
 
-          {coIncubators.length === 0 ? (
-            <div className="py-4 px-4 bg-slate-50/60 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
-              <span>No co-incubations established yet.</span>
+          {isLoading ? (
+            <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-xl overflow-hidden bg-white animate-pulse">
+              {[1, 2].map((i) => (
+                <div key={i} className="p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-slate-200" />
+                    <div className="space-y-1.5">
+                      <div className="w-32 h-3.5 bg-slate-200 rounded" />
+                      <div className="w-20 h-2.5 bg-slate-100 rounded" />
+                    </div>
+                  </div>
+                  <div className="w-16 h-5 bg-slate-100 rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : coIncubators.length === 0 ? (
+            <div className="py-6 px-4 bg-slate-50/70 rounded-xl border border-dashed border-slate-200 text-center space-y-2">
+              <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-400 flex items-center justify-center mx-auto shadow-2xs">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <p className="text-xs font-semibold text-slate-800">No co-incubators connected</p>
+              <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                Partner with another incubator to share facilities, mentor networks, and cohort resources.
+              </p>
               <button
                 type="button"
                 onClick={() => onAddCoIncubatorClick(startup)}
-                className="text-indigo-600 font-medium hover:underline inline-flex items-center gap-1"
+                className="mt-1 px-3 py-1.5 bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
                 <Plus className="w-3 h-3" />
-                Add co-incubator
+                <span>Add co-incubator</span>
               </button>
             </div>
           ) : (
             <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-xl overflow-hidden bg-white">
-              {coIncubators.map((co) => (
-                <div key={co.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-700 font-bold flex items-center justify-center text-xs">
-                      <Building2 className="w-4 h-4" />
+              {coIncubators.map((co) => {
+                const partnerName =
+                  co.co_incubator?.name || co.name || co.partner_name || 'Partner Incubator';
+                const partnerLogo = co.co_incubator?.logo_url;
+                const status = (co.status || 'pending').toLowerCase();
+                const isPending = status === 'pending';
+                const isActive = status === 'active';
+                const isDeclined = status === 'rejected' || status === 'declined';
+                const isEnded = status === 'ended' || status === 'terminated' || status === 'completed';
+                const rejectReason = co.reject_reason || co.rejectReason;
+                const sharedScope: string[] = Array.isArray(co.shared_scope)
+                  ? co.shared_scope
+                  : Array.isArray(co.sharedScope)
+                  ? co.sharedScope
+                  : [];
+
+                return (
+                  <div
+                    key={co.id}
+                    className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0 overflow-hidden border border-slate-200/80">
+                        {partnerLogo ? (
+                          <img
+                            src={partnerLogo}
+                            alt={partnerName}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <Building2 className="w-4 h-4 text-slate-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-semibold text-slate-900 truncate">{partnerName}</p>
+                          {co.mou_signed && (
+                            <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-0.5">
+                              • MOU signed
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Shared Scopes */}
+                        {sharedScope.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                            {sharedScope.map((s) => (
+                              <span
+                                key={s}
+                                className="px-1.5 py-0.2 rounded text-[10px] font-normal bg-slate-100 text-slate-600 capitalize"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Reject Reason on Declined */}
+                        {isDeclined && rejectReason && (
+                          <p className="text-[11px] text-rose-600 mt-1 font-normal italic">
+                            Reason: &ldquo;{rejectReason}&rdquo;
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900">{co.name}</p>
-                      <p className="text-[11px] text-slate-500">
-                        {co.type} model {co.duration ? `• ${co.duration}` : ''}
-                      </p>
+
+                    {/* Status Chip & Actions */}
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      {/* Status Chip */}
+                      {isPending && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          Pending
+                        </span>
+                      )}
+                      {isActive && (
+                        <>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                          {onEndCoIncubation && (
+                            <button
+                              type="button"
+                              onClick={() => onEndCoIncubation(startup.id, co.id)}
+                              className="px-2 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-pointer"
+                              title="End co-incubation"
+                            >
+                              End
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {isDeclined && (
+                        <>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                            Declined
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onAddCoIncubatorClick(startup, co)}
+                            className="px-2 py-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+                          >
+                            Request again
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRemoveCoIncubator(startup.id, co.id)}
+                            className="px-2 py-1 text-[11px] font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
+                            title="Remove from list"
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                      {isEnded && (
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          Ended
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                        co.mouStatus === 'Signed'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                      }`}
-                    >
-                      {co.mouStatus === 'Signed' ? 'MOU signed' : 'MOU pending'}
-                    </span>
-                    {co.mouStatus !== 'Signed' && (
-                      <button
-                        type="button"
-                        onClick={() => onSignMOUClick(startup, co)}
-                        className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-medium rounded-lg transition-colors"
-                      >
-                        Sign MOU
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => onRemoveCoIncubator(startup.id, co.id)}
-                      className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      title="Remove partner"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

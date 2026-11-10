@@ -72,11 +72,11 @@ export function CoIncubationSection({
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 font-bold flex items-center justify-center text-xs">
-                    {item.name.slice(0, 2).toUpperCase()}
+                    {(item.name || 'PI').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{item.name}</span>
+                      <span className="font-bold text-slate-900">{item.name || 'Partner Incubator'}</span>
                       {/* MOU Status Badge */}
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${

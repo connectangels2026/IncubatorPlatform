@@ -296,6 +296,7 @@ export const StartupsPage: React.FC = () => {
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const [isInvestorModalOpen, setIsInvestorModalOpen] = useState(false);
   const [isCoIncubatorModalOpen, setIsCoIncubatorModalOpen] = useState(false);
+  const [preselectedPartnerForAction, setPreselectedPartnerForAction] = useState<any>(null);
   const [isSignMOUModalOpen, setIsSignMOUModalOpen] = useState(false);
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
   const [activePartnerForMOU, setActivePartnerForMOU] = useState<CoIncubatorItem | null>(null);
@@ -694,8 +695,9 @@ export const StartupsPage: React.FC = () => {
   };
 
   // Handlers: Co-Incubation with Backend Integration
-  const handleTriggerAddCoIncubator = (startup: StartupItem) => {
+  const handleTriggerAddCoIncubator = (startup: StartupItem, prefill?: any) => {
     setTargetStartupForAction(startup);
+    setPreselectedPartnerForAction(prefill || null);
     setIsCoIncubatorModalOpen(true);
   };
 
@@ -1231,9 +1233,24 @@ export const StartupsPage: React.FC = () => {
 
       <AddCoIncubatorModal
         isOpen={isCoIncubatorModalOpen}
-        onClose={() => setIsCoIncubatorModalOpen(false)}
-        onAdd={handleConfirmAddCoIncubator}
+        onClose={() => {
+          setIsCoIncubatorModalOpen(false);
+          setPreselectedPartnerForAction(null);
+        }}
+        onAdd={(created) => {
+          if (targetStartupForAction) {
+            showToast(`Co-incubation request sent for ${targetStartupForAction.name}`);
+            if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+              setSelectedStartup({
+                ...selectedStartup,
+                coIncubators: [created, ...(selectedStartup.coIncubators || [])],
+              });
+            }
+          }
+        }}
         startupName={targetStartupForAction?.name || "Startup"}
+        startupId={targetStartupForAction?.id}
+        preselectedPartner={preselectedPartnerForAction}
       />
 
       <SignMOUModal
