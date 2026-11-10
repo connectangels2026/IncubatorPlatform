@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
-    const validRoles = ['startup', 'founder', 'incubator_admin', 'incubator', 'admin', 'super-admin'];
+    const validRoles = ['startup', 'founder', 'incubator_admin', 'incubator', 'admin', 'pending_incubator', 'super-admin'];
     const dbRole = userProfile?.role && validRoles.includes(userProfile.role.toLowerCase()) ? userProfile.role : null;
     const userMetaRole = (user as any)?.user_metadata?.role;
     const metaRole = userMetaRole && validRoles.includes(String(userMetaRole).toLowerCase()) ? userMetaRole : null;

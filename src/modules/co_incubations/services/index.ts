@@ -183,6 +183,12 @@ export class CoIncubationService {
         related_entity_id: created.id,
         send_email: true,
         send_in_app: true,
+        metadata: {
+          url: '/incubator/co-incubations?tab=requests',
+          action_url: '/incubator/co-incubations?tab=requests',
+          co_incubation_id: created.id,
+          startup_id: params.startup_id,
+        },
       });
     } catch (notifErr) {
       console.warn('Failed to dispatch co-incubation request notification:', notifErr);
@@ -296,6 +302,12 @@ export class CoIncubationService {
         related_entity_id: id,
         send_email: true,
         send_in_app: true,
+        metadata: {
+          url: `/incubator/startups?open=${coinc.startup_id}&tab=network`,
+          action_url: `/incubator/startups?open=${coinc.startup_id}&tab=network`,
+          co_incubation_id: id,
+          startup_id: coinc.startup_id,
+        },
       });
 
       // If accepted: Notification to startup founder
@@ -311,6 +323,12 @@ export class CoIncubationService {
           related_entity_id: id,
           send_email: true,
           send_in_app: true,
+          metadata: {
+            url: '/startup/dashboard',
+            action_url: '/startup/dashboard',
+            co_incubation_id: id,
+            startup_id: coinc.startup_id,
+          },
         });
       }
     } catch (notifErr) {
@@ -412,6 +430,12 @@ export class CoIncubationService {
         notification_type: 'general',
         related_entity_type: 'co_incubation',
         related_entity_id: id,
+        metadata: {
+          url: '/incubator/co-incubations',
+          action_url: '/incubator/co-incubations',
+          co_incubation_id: id,
+          startup_id: coinc.startup_id,
+        },
       });
 
       await supabaseAdmin.from('organization_activity_log').insert({
@@ -444,7 +468,7 @@ export class CoIncubationService {
       .from('co_incubations')
       .select(`
         *,
-        startup:startups(id, startup_name, name, sector, stage, logo_url, founder_id, founder_email),
+        startup:startups(id, startup_name, sector, stage, logo_url, logo_color, initials, founder_id, founder_email),
         primary_incubator:organizations!co_incubations_primary_incubator_id_fkey(id, name, slug, logo_url),
         co_incubator:organizations!co_incubations_co_incubator_id_fkey(id, name, slug, logo_url)
       `)
@@ -467,7 +491,17 @@ export class CoIncubationService {
       throw new Error(`Failed to list co-incubations: ${error.message}`);
     }
 
-    return data || [];
+    const formatted = (data || []).map((item: any) => ({
+      ...item,
+      startup: item.startup
+        ? {
+            ...item.startup,
+            name: item.startup.name || item.startup.startup_name,
+          }
+        : null,
+    }));
+
+    return formatted;
   }
 
   /**
@@ -612,7 +646,7 @@ export class CoIncubationService {
       .from('co_incubations')
       .select(`
         *,
-        startup:startups(id, startup_name, name, sector, stage, logo_url, founder_id, founder_email),
+        startup:startups(id, startup_name, sector, stage, logo_url, logo_color, initials, founder_id, founder_email),
         primary_incubator:organizations!co_incubations_primary_incubator_id_fkey(id, name, slug, logo_url),
         co_incubator:organizations!co_incubations_co_incubator_id_fkey(id, name, slug, logo_url)
       `)
@@ -624,7 +658,15 @@ export class CoIncubationService {
 
     const { data, error } = await query.maybeSingle();
     if (error || !data) return null;
-    return data;
+    return {
+      ...data,
+      startup: data.startup
+        ? {
+            ...data.startup,
+            name: data.startup.name || data.startup.startup_name,
+          }
+        : null,
+    };
   }
 
   /**

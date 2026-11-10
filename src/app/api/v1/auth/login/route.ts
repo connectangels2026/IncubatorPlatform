@@ -182,7 +182,7 @@ export async function POST(req: Request) {
     if (isSuperAdmin || userRole === 'super-admin' || userRole === 'super_admin') {
       redirectTo = '/super-admin/dashboard';
     } else if (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator') {
-      redirectTo = orgData?.id ? `/dashboard?org=${orgData.id}` : '/dashboard';
+      redirectTo = orgData?.id ? `/incubator?org=${orgData.id}` : '/incubator';
     } else if (userRole === 'pending_incubator') {
       redirectTo = '/auth/incubator-plans';
     } else {

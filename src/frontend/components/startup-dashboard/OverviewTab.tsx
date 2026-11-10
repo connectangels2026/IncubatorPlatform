@@ -19,9 +19,19 @@ import {
   Globe,
   Loader2,
   Eye,
+  GraduationCap,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
+import { apiClient } from '@/services/apiClient';
+
+const SCOPE_LABELS: Record<string, string> = {
+  lab: 'Lab & equipment',
+  mentors: 'Mentors',
+  funding: 'Funding',
+  profile: 'Profile',
+  financials: 'Financials',
+};
 
 function getDomainOnly(url?: string): string {
   if (!url) return '';
@@ -55,6 +65,8 @@ export function OverviewTab({
   });
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEventItem[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+  const [coIncubations, setCoIncubations] = useState<any[]>([]);
+  const [isLoadingCoIncubations, setIsLoadingCoIncubations] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
@@ -65,6 +77,32 @@ export function OverviewTab({
       setMilestones(startup.milestones);
     }
   }, [startup?.milestones]);
+
+  // Fetch active co-incubations for this startup
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCoIncubations() {
+      if (!startup?.id) {
+        setIsLoadingCoIncubations(false);
+        return;
+      }
+      try {
+        const res = await apiClient.get(`/startups/${startup.id}/co-incubations`);
+        if (isMounted && res.data?.success && Array.isArray(res.data.data)) {
+          const active = res.data.data.filter((item: any) => item.status?.toLowerCase() === 'active');
+          setCoIncubations(active);
+        }
+      } catch (err) {
+        console.warn('Failed to load co-incubations in OverviewTab:', err);
+      } finally {
+        if (isMounted) setIsLoadingCoIncubations(false);
+      }
+    }
+    loadCoIncubations();
+    return () => {
+      isMounted = false;
+    };
+  }, [startup?.id]);
 
   // Fetch upcoming schedule (events + mentor sessions merged by date)
   useEffect(() => {
@@ -350,8 +388,8 @@ export function OverviewTab({
         )}
       </div>
 
-      {/* Overview & KPIs: Company Snapshot & Team Cards (aligned to top, no stretched empty space) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      {/* Overview & KPIs: Company Snapshot, Team, and Co-incubation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         {/* Company Snapshot Card */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6">
           <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
@@ -473,6 +511,86 @@ export function OverviewTab({
             </div>
           )}
         </div>
+
+        {/* Co-incubation Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-base font-medium text-slate-900">Co-incubation</h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                {coIncubations.length > 0 ? `${coIncubations.length} Active` : 'None'}
+              </span>
+            </div>
+
+            {isLoadingCoIncubations ? (
+              <div className="py-8 text-center text-slate-400 space-y-2">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-indigo-600" />
+                <p className="text-xs">Loading co-incubation...</p>
+              </div>
+            ) : coIncubations.length === 0 ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No co-incubation yet</p>
+                <p className="text-xs text-slate-400 max-w-[220px] mx-auto">
+                  Active co-incubation partnerships with partner incubators will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3.5 divide-y divide-slate-100 max-h-[260px] overflow-y-auto pr-1">
+                {coIncubations.map((item) => {
+                  const partnerName = item.co_incubator?.name || item.co_incubator_name || 'Partner incubator';
+                  const scopes: string[] = Array.isArray(item.shared_scope) ? item.shared_scope : [];
+                  return (
+                    <div key={item.id} className="pt-3.5 first:pt-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {item.co_incubator?.logo_url ? (
+                            <img
+                              src={item.co_incubator.logo_url}
+                              alt={partnerName}
+                              className="w-6 h-6 rounded-md object-cover border border-slate-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 font-semibold text-[11px]">
+                              {partnerName.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <p className="text-sm font-semibold text-slate-900 truncate">{partnerName}</p>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                          Active
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] text-slate-500 font-medium block mb-1">What they provide</span>
+                        {scopes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {scopes.map((s) => (
+                              <span
+                                key={s}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                              >
+                                {SCOPE_LABELS[s] || s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Incubation support</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main Grid: Left Roadmap + Right Schedule */}
@@ -567,6 +685,86 @@ export function OverviewTab({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Co-incubation Card */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-base font-medium text-slate-900">Co-incubation</h3>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
+                {coIncubations.length > 0 ? `${coIncubations.length} Active` : 'None'}
+              </span>
+            </div>
+
+            {isLoadingCoIncubations ? (
+              <div className="py-8 text-center text-slate-400 space-y-2">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto text-indigo-600" />
+                <p className="text-xs">Loading co-incubation...</p>
+              </div>
+            ) : coIncubations.length === 0 ? (
+              <div className="py-8 text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-semibold text-slate-800">No co-incubation yet</p>
+                <p className="text-xs text-slate-400 max-w-[220px] mx-auto">
+                  Active co-incubation partnerships with partner incubators will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3.5 divide-y divide-slate-100 max-h-[260px] overflow-y-auto pr-1">
+                {coIncubations.map((item) => {
+                  const partnerName = item.co_incubator?.name || item.co_incubator_name || 'Partner incubator';
+                  const scopes: string[] = Array.isArray(item.shared_scope) ? item.shared_scope : [];
+                  return (
+                    <div key={item.id} className="pt-3.5 first:pt-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {item.co_incubator?.logo_url ? (
+                            <img
+                              src={item.co_incubator.logo_url}
+                              alt={partnerName}
+                              className="w-6 h-6 rounded-md object-cover border border-slate-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 font-semibold text-[11px]">
+                              {partnerName.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <p className="text-sm font-semibold text-slate-900 truncate">{partnerName}</p>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                          Active
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] text-slate-500 font-medium block mb-1">What they provide</span>
+                        {scopes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {scopes.map((s) => (
+                              <span
+                                key={s}
+                                className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                              >
+                                {SCOPE_LABELS[s] || s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Incubation support</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column (Upcoming Schedule): 4 cols */}

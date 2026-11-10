@@ -31,16 +31,17 @@ interface StartupDetailModalProps {
   startup: StartupItem | null;
   isOpen: boolean;
   onClose: () => void;
-  onAllocateMentorClick: (startup: StartupItem) => void;
-  onRemoveMentor: (startupId: string, mentorId: string) => void;
-  onAllocateInvestorClick: (startup: StartupItem) => void;
-  onUpdateInvestorInterest: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
-  onRemoveInvestor: (startupId: string, investorId: string) => void;
-  onAddCoIncubatorClick: (startup: StartupItem, prefill?: any) => void;
-  onSignMOUClick: (startup: StartupItem, partner: CoIncubatorItem) => void;
-  onRemoveCoIncubator: (startupId: string, partnerId: string) => void;
+  onAllocateMentorClick?: (startup: StartupItem) => void;
+  onRemoveMentor?: (startupId: string, mentorId: string) => void;
+  onAllocateInvestorClick?: (startup: StartupItem) => void;
+  onUpdateInvestorInterest?: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
+  onRemoveInvestor?: (startupId: string, investorId: string) => void;
+  onAddCoIncubatorClick?: (startup: StartupItem, prefill?: any) => void;
+  onSignMOUClick?: (startup: StartupItem, partner: CoIncubatorItem) => void;
+  onRemoveCoIncubator?: (startupId: string, partnerId: string) => void;
   onEndCoIncubation?: (startupId: string, coincId: string) => void;
   onUpdateStartup?: (updated: StartupItem) => void;
+  isReadOnly?: boolean;
 }
 
 const STAGES = ['Idea', 'MVP', 'Pre-revenue', 'Revenue', 'Growth', 'Scale'] as const;
@@ -71,6 +72,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   onRemoveCoIncubator,
   onEndCoIncubation,
   onUpdateStartup,
+  isReadOnly = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'network' | 'activity'>('overview');
   const [fullStartup, setFullStartup] = useState<StartupItem | null>(null);
@@ -104,6 +106,11 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
     setLiveMentors(startup.allocatedMentors || []);
     setLiveInvestors(startup.allocatedInvestors || []);
     setLiveCoIncubators(startup.coIncubators || []);
+
+    if (isReadOnly) {
+      setIsLoadingDetails(false);
+      return;
+    }
 
     const fetchDetailAllocationsAndProfile = async () => {
       setIsLoadingDetails(true);
@@ -346,41 +353,47 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                   {activeStartup.cohort || 'Cohort 2026'}
                 </span>
 
-                {/* Status Dropdown (Editable by incubator staff) */}
-                <div className="relative inline-block" ref={statusDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                    <span>{activeStartup.status || 'Active'}</span>
-                    <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
-                  </button>
+                {/* Status Badge / Dropdown */}
+                {isReadOnly ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-blue-50 text-blue-700 border-blue-200">
+                    <span>Read-only partner view</span>
+                  </span>
+                ) : (
+                  <div className="relative inline-block" ref={statusDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                      <span>{activeStartup.status || 'Active'}</span>
+                      <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
+                    </button>
 
-                  {statusDropdownOpen && (
-                    <div className="absolute left-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                      {STATUS_OPTIONS.map((st) => (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => {
-                            setStatusDropdownOpen(false);
-                            handleSaveStartup({ status: st });
-                          }}
-                          className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
-                            activeStartup.status === st
-                              ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                              : 'text-slate-700 hover:bg-slate-50'
-                          }`}
-                        >
-                          <span>{st}</span>
-                          {activeStartup.status === st && <Check className="w-3 h-3 text-indigo-600" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                    {statusDropdownOpen && (
+                      <div className="absolute left-0 mt-1 w-32 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                        {STATUS_OPTIONS.map((st) => (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => {
+                              setStatusDropdownOpen(false);
+                              handleSaveStartup({ status: st });
+                            }}
+                            className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                              activeStartup.status === st
+                                ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                                : 'text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>{st}</span>
+                            {activeStartup.status === st && <Check className="w-3 h-3 text-indigo-600" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <p className="text-xs text-slate-500 font-normal truncate mt-0.5">
                 {displayTagline}
@@ -439,7 +452,8 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                   <button
                     key={step}
                     type="button"
-                    onClick={() => handleSaveStartup({ stage: step })}
+                    disabled={isReadOnly}
+                    onClick={() => !isReadOnly && handleSaveStartup({ stage: step })}
                     className="flex flex-col items-center group cursor-pointer text-center"
                     title={`Set stage to ${step}`}
                   >
@@ -629,7 +643,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
         </div>
 
         {/* 5. Sticky Inline Edit Footer (Rendered ONLY while editing a section) */}
-        {editingSection ? (
+        {editingSection && !isReadOnly ? (
           <div className="px-6 py-3 border-t border-slate-200 bg-indigo-50/70 flex items-center justify-between text-xs shrink-0 animate-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center gap-2">
               <span className="text-slate-600 font-medium">

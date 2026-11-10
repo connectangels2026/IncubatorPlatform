@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidToken } from '@/backend/lib/session';
 
 // Setup supabase client for middleware
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -70,7 +69,32 @@ export async function middleware(req: NextRequest) {
     !isPublicApplicationAction;
 
   if (isProtectedApiRoute) {
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    let authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+
+    // If Authorization header is absent, check Supabase auth token cookie
+    if (!authHeader) {
+      const directCookie =
+        req.cookies.get('sb-access-token')?.value ||
+        req.cookies.get('access_token')?.value;
+      if (directCookie) {
+        authHeader = `Bearer ${directCookie}`;
+      } else {
+        const allCookies = req.cookies.getAll();
+        const sbCookie = allCookies.find(
+          (c) => c.name.startsWith('sb-') && (c.name.endsWith('-auth-token') || c.name.includes('access-token'))
+        );
+        if (sbCookie) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(sbCookie.value));
+            const tokenVal = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+            if (tokenVal) authHeader = `Bearer ${tokenVal}`;
+            else authHeader = `Bearer ${sbCookie.value}`;
+          } catch {
+            authHeader = `Bearer ${sbCookie.value}`;
+          }
+        }
+      }
+    }
 
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401 });
@@ -101,12 +125,6 @@ export async function middleware(req: NextRequest) {
     } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
-    }
-
-    // Check Token against Redis/Memory Active Sessions
-    const isSessionActive = await isValidToken(token);
-    if (!isSessionActive) {
       return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
     }
 

@@ -34,12 +34,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!startup) return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
 
     const body = await req.json();
-    if (!body.mentor_id) {
-      return NextResponse.json({ error: 'Validation Error: mentor_id is required' }, { status: 400 });
-    }
+    const mentorId = body.mentor_id || body.id || ('m_' + Date.now());
+    const mentorType = body.mentor_type || body.type || 'General';
 
-    const mentorType = body.mentor_type || 'Lead';
-    const alloc = await StartupService.allocateMentor(id, body.mentor_id, mentorType);
+    const alloc = await StartupService.allocateMentor(id, mentorId, mentorType, {
+      name: body.name || body.mentor_name,
+      domain: body.domain,
+      notes: body.notes || body.feedback,
+    });
     return NextResponse.json({ success: true, data: alloc }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

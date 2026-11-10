@@ -23,7 +23,19 @@ export default function ChooseRolePage() {
 
     const checkAuthAndRole = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user) {
+            session = (await supabase.auth.getSession()).data.session;
+          } else {
+            // Brief grace period for client auth state restoration
+            await new Promise((r) => setTimeout(r, 400));
+            const retry = await supabase.auth.getSession();
+            session = retry.data.session;
+          }
+        }
 
         if (!session?.user) {
           router.replace('/signup');
@@ -99,9 +111,9 @@ export default function ChooseRolePage() {
         setUser(session.user);
         // Extract user name from email or user metadata
         const displayName = session.user.user_metadata?.full_name ||
-                           session.user.user_metadata?.name ||
-                           session.user.email?.split('@')[0] ||
-                           'there';
+          session.user.user_metadata?.name ||
+          session.user.email?.split('@')[0] ||
+          'there';
         setUserName(displayName);
         setAuthChecked(true);
       } catch (err) {
@@ -230,11 +242,10 @@ export default function ChooseRolePage() {
           <button
             onClick={() => handleRoleSelection('startup')}
             disabled={isLoading}
-            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${
-              selectedRole === 'startup'
+            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${selectedRole === 'startup'
                 ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20'
                 : 'border-slate-200 bg-white hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10'
-            } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {/* Check Icon */}
             {selectedRole === 'startup' && (
@@ -277,11 +288,10 @@ export default function ChooseRolePage() {
           <button
             onClick={() => handleRoleSelection('incubator_admin')}
             disabled={isLoading}
-            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${
-              selectedRole === 'incubator_admin'
+            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${selectedRole === 'incubator_admin'
                 ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
                 : 'border-slate-200 bg-white hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/10'
-            } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {/* Check Icon */}
             {selectedRole === 'incubator_admin' && (

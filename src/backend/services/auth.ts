@@ -3,23 +3,47 @@ import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
 export const signUp = async (email: string, password?: string) => {
   if (password) {
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/verify-email`,
-      },
-    });
-
-    // If Supabase free tier email rate limit is hit, gracefully fall back to admin creation
-    if (result.error && (result.error.status === 429 || (result.error.message || '').toLowerCase().includes('rate limit'))) {
-      const adminResult = await supabaseAdmin.auth.admin.generateLink({
-        type: 'signup',
+    try {
+      const result = await supabase.auth.signUp({
         email,
         password,
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/verify-email`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/verify-email`,
         },
+      });
+
+      // If Supabase email rate limit or network fetch failure occurs, gracefully fall back to admin creation
+      if (result.error) {
+        const errMsg = (result.error.message || '').toLowerCase();
+        const isRateLimit = result.error.status === 429 || errMsg.includes('rate limit');
+        const isFetchFailed = result.error.status === 0 || errMsg.includes('fetch failed');
+
+        if (isRateLimit || isFetchFailed) {
+          const adminResult = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+          });
+
+          if (!adminResult.error && adminResult.data?.user) {
+            return {
+              data: {
+                user: adminResult.data.user,
+                session: null,
+              },
+              error: null,
+            };
+          }
+        }
+      }
+
+      return result;
+    } catch (err: any) {
+      // In case supabase.auth.signUp throws AuthRetryableFetchError
+      const adminResult = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
       });
 
       if (!adminResult.error && adminResult.data?.user) {
@@ -31,9 +55,11 @@ export const signUp = async (email: string, password?: string) => {
           error: null,
         };
       }
+      return {
+        data: { user: null, session: null },
+        error: err,
+      };
     }
-
-    return result;
   }
   // OTP based sign up if no password
   return supabase.auth.signInWithOtp({ email });

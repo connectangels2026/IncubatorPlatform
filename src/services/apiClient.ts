@@ -15,9 +15,41 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config: any) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        config.headers.Authorization = `Bearer ${session.access_token}`;
+      let token: string | null = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          token = session.access_token;
+        }
+      } catch {
+        // Ignore session read error
+      }
+
+      if (!token && typeof window !== 'undefined') {
+        token =
+          localStorage.getItem('access_token') ||
+          localStorage.getItem('token') ||
+          localStorage.getItem('sb-access-token');
+
+        if (!token) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && (key.endsWith('-auth-token') || key.includes('access-token'))) {
+              try {
+                const val = JSON.parse(localStorage.getItem(key) || '{}');
+                if (val.access_token) {
+                  token = val.access_token;
+                  break;
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+
+      if (token) {
+        if (!config.headers) config.headers = {};
+        config.headers.Authorization = `Bearer ${token}`;
       }
 
       // Extract org_id from URL or localStorage

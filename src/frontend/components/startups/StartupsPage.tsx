@@ -277,7 +277,8 @@ const INITIAL_STARTUPS: StartupItem[] = [
 export const StartupsPage: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited">("all");
+  const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited" | "co-incubated">("all");
+  const [coIncubatedStartups, setCoIncubatedStartups] = useState<StartupItem[]>([]);
 
   // State
   const { organization, user } = useAuth();
@@ -405,6 +406,53 @@ export const StartupsPage: React.FC = () => {
             setStartups(merged);
           }
         }
+
+        // Load partner co-incubated startups (separated from own cohort)
+        try {
+          const coincRes = await apiClient.get('/co-incubations', {
+            params: { view: 'partner', status: 'active' },
+            headers: { 'x-org-id': orgId },
+          });
+          const cData = coincRes.data?.data;
+          if (Array.isArray(cData)) {
+            const coMapped: StartupItem[] = cData.map((c: any, idx: number) => {
+              const st = c.startup || {};
+              const stName = st.startup_name || st.name || 'Co-incubated Startup';
+              return {
+                id: c.startup_id || ('coinc_st_' + idx),
+                name: stName,
+                startup_name: stName,
+                monogram: stName.slice(0, 2).toUpperCase(),
+                monogramBg: 'bg-purple-600',
+                sector: st.sector || 'Cross-hub',
+                industry: st.sector || 'Cross-hub',
+                stage: st.stage || 'MVP',
+                status: 'Active',
+                mrr: 0,
+                arr: 0,
+                customers: 0,
+                funding: '$0',
+                fundingRaised: '$0',
+                burn: '$0',
+                monthlyBurn: '$0',
+                cohort: c.primary_incubator?.name ? `Primary: ${c.primary_incubator.name}` : 'Co-incubated',
+                healthScore: '90',
+                tagline: `Co-incubated with ${c.primary_incubator?.name || 'partner'}`,
+                pitch: '',
+                founder: st.founder_email || 'Founder',
+                founderEmail: st.founder_email || '',
+                website: '',
+                location: 'Partner Hub',
+                is_active: true,
+                is_co_incubated: true,
+                co_incubation_id: c.id,
+              } as any;
+            });
+            setCoIncubatedStartups(coMapped);
+          }
+        } catch {
+          setCoIncubatedStartups([]);
+        }
       } catch (e) {
         console.warn("Error fetching startups", e);
         setStartups([]);
@@ -454,6 +502,12 @@ export const StartupsPage: React.FC = () => {
 
   const displayedStartups = useMemo(() => {
     switch (sectionFilter) {
+      case 'co-incubated':
+        return coIncubatedStartups.filter((s) => {
+          if (!searchQuery) return true;
+          return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (s.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
+        });
       case 'queue':
         return queueStartups;
       case 'active':
@@ -466,7 +520,7 @@ export const StartupsPage: React.FC = () => {
       default:
         return filteredStartups;
     }
-  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups]);
+  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups, coIncubatedStartups, searchQuery]);
 
   // Handler: Status Change with Database Persistence
   const handleStatusChange = async (
@@ -546,6 +600,7 @@ export const StartupsPage: React.FC = () => {
 
     try {
       const res = await apiClient.post(`/startups/${targetStartupForAction.id}/mentors`, {
+        mentor_id: tempId,
         name: mentorData.name,
         type: mentorData.type,
         domain: mentorData.domain,
@@ -1083,6 +1138,23 @@ export const StartupsPage: React.FC = () => {
                 {exitedStartups.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setSectionFilter('co-incubated')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'co-incubated'
+                  ? 'bg-purple-700 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span>Co-incubated</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'co-incubated' ? 'bg-purple-800 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {coIncubatedStartups.length}
+              </span>
+            </button>
           </div>
 
           {/* Filters, Search & View Controls */}
@@ -1214,6 +1286,7 @@ export const StartupsPage: React.FC = () => {
         onSignMOUClick={handleTriggerSignMOU}
         onRemoveCoIncubator={handleRemoveCoIncubator}
         onUpdateStartup={handleStartupUpdated}
+        isReadOnly={Boolean((selectedStartup as any)?.is_co_incubated)}
       />
 
       {/* Action Modals */}

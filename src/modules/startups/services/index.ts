@@ -424,7 +424,20 @@ export class StartupService {
 
   // Mentors and Investors stubs
   static async getMentors(startupId: string): Promise<MentorAllocation[]> { return []; }
-  static async allocateMentor(startupId: string, mentorId: string, mentorType: any): Promise<any> { return {}; }
+  static async allocateMentor(startupId: string, mentorId: string, mentorType: any, extraData: any = {}): Promise<any> {
+    const id = mentorId || `m_${Date.now()}`;
+    return {
+      id,
+      startup_id: startupId,
+      mentor_id: id,
+      name: extraData.name || 'Mentor',
+      type: mentorType || 'General',
+      domain: extraData.domain || 'Advisory',
+      feedback: extraData.notes || '',
+      allocatedDate: new Date().toISOString().split('T')[0],
+      assigned_at: new Date().toISOString(),
+    };
+  }
   static async updateMentorAllocation(startupId: string, mentorId: string, mentorType: 'Lead' | 'Domain' | 'Peer'): Promise<MentorAllocation | null> {
     return {
       id: 'mentor_alloc_' + Date.now(),

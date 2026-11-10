@@ -22,14 +22,14 @@ interface NetworkTabSectionProps {
   investors: AllocatedInvestor[];
   coIncubators: any[];
   isLoading?: boolean;
-  onAllocateMentorClick: (startup: StartupItem) => void;
-  onRemoveMentor: (startupId: string, mentorId: string) => void;
-  onAllocateInvestorClick: (startup: StartupItem) => void;
-  onUpdateInvestorInterest: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
-  onRemoveInvestor: (startupId: string, investorId: string) => void;
-  onAddCoIncubatorClick: (startup: StartupItem, prefillPartner?: any) => void;
-  onSignMOUClick: (startup: StartupItem, partner: any) => void;
-  onRemoveCoIncubator: (startupId: string, partnerId: string) => void;
+  onAllocateMentorClick?: (startup: StartupItem) => void;
+  onRemoveMentor?: (startupId: string, mentorId: string) => void;
+  onAllocateInvestorClick?: (startup: StartupItem) => void;
+  onUpdateInvestorInterest?: (startupId: string, investorId: string, level: AllocatedInvestor['interestLevel']) => void;
+  onRemoveInvestor?: (startupId: string, investorId: string) => void;
+  onAddCoIncubatorClick?: (startup: StartupItem, prefillPartner?: any) => void;
+  onSignMOUClick?: (startup: StartupItem, partner: any) => void;
+  onRemoveCoIncubator?: (startupId: string, partnerId: string) => void;
   onEndCoIncubation?: (startupId: string, coincId: string) => void;
 }
 
@@ -39,15 +39,15 @@ export function NetworkTabSection({
   investors = [],
   coIncubators = [],
   isLoading = false,
-  onAllocateMentorClick,
-  onRemoveMentor,
-  onAllocateInvestorClick,
-  onUpdateInvestorInterest,
-  onRemoveInvestor,
-  onAddCoIncubatorClick,
-  onSignMOUClick,
-  onRemoveCoIncubator,
-  onEndCoIncubation,
+  onAllocateMentorClick = () => {},
+  onRemoveMentor = () => {},
+  onAllocateInvestorClick = () => {},
+  onUpdateInvestorInterest = () => {},
+  onRemoveInvestor = () => {},
+  onAddCoIncubatorClick = () => {},
+  onSignMOUClick = () => {},
+  onRemoveCoIncubator = () => {},
+  onEndCoIncubation = () => {},
 }: NetworkTabSectionProps) {
   const [filter, setFilter] = useState<'all' | 'mentors' | 'investors' | 'co-incubators'>('all');
   const [allocateDropdownOpen, setAllocateDropdownOpen] = useState(false);

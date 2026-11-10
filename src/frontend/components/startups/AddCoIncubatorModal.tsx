@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Building2, Search, Check, Loader2, Share2, Layers } from 'lucide-react';
+import { apiClient } from '@/services/apiClient';
 
 interface OrganizationOption {
   id: string;
@@ -147,31 +148,19 @@ export const AddCoIncubatorModal: React.FC<AddCoIncubatorModalProps> = ({
     setErrorMessage(null);
 
     try {
-      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-      const res = await fetch('/api/v1/co-incubations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(orgId ? { 'x-org-id': orgId } : {}),
-        },
-        body: JSON.stringify({
-          startup_id: startupId,
-          co_incubator_id: selectedOrgId,
-          shared_scope: selectedScopes,
-          message: message.trim() || undefined,
-        }),
+      const res = await apiClient.post('/co-incubations', {
+        startup_id: startupId,
+        co_incubator_id: selectedOrgId,
+        shared_scope: selectedScopes,
+        message: message.trim() || undefined,
       });
 
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || 'Failed to submit co-incubation request');
-      }
-
-      if (onAdd) onAdd(json.data);
+      if (onAdd) onAdd(res.data?.data);
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
+      const msg = err.response?.data?.error || err.message || 'An unexpected error occurred. Please try again.';
+      setErrorMessage(msg);
     } finally {
       setSubmitting(false);
     }

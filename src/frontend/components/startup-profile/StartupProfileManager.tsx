@@ -42,6 +42,14 @@ import { mutate as globalMutate } from 'swr';
 import StartupLogo, { LOGO_SWATCH_COLORS, getDerivedColor, getDerivedInitials } from '@/frontend/components/ui/StartupLogo';
 import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
+const SCOPE_LABELS: Record<string, string> = {
+  lab: 'Lab & equipment',
+  mentors: 'Mentors',
+  funding: 'Funding',
+  profile: 'Profile',
+  financials: 'Financials',
+};
+
 interface StartupProfileManagerProps {
   initialStartup: any;
   organization?: any;
@@ -63,6 +71,8 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
   const [saveSuccessSection, setSaveSuccessSection] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
+  const [coIncubations, setCoIncubations] = useState<any[]>([]);
+  const [isLoadingCoIncubations, setIsLoadingCoIncubations] = useState(false);
 
   useEffect(() => {
     if (initialStartup) {
@@ -70,6 +80,27 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
       setFormData(initialStartup);
     }
   }, [initialStartup]);
+
+  useEffect(() => {
+    const sid = startup?.id || initialStartup?.id;
+    if (!sid) return;
+    let isMounted = true;
+    setIsLoadingCoIncubations(true);
+    apiClient.get(`/startups/${sid}/co-incubations`)
+      .then((res) => {
+        if (isMounted && res.data?.success && Array.isArray(res.data.data)) {
+          const active = res.data.data.filter((item: any) => item.status?.toLowerCase() === 'active');
+          setCoIncubations(active);
+        }
+      })
+      .catch((err) => console.warn('Failed to load co-incubations in StartupProfileManager:', err))
+      .finally(() => {
+        if (isMounted) setIsLoadingCoIncubations(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [startup?.id, initialStartup?.id]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ type, message });
@@ -1467,6 +1498,62 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                   {formatIncubationTenure(startup?.incubation_start_date, startup?.incubation_end_date)}
                 </span>
               </div>
+            </div>
+
+            {/* Read-only Co-incubators Row */}
+            <div className="pt-4 border-t border-slate-100">
+              <span className="text-xs text-slate-500 font-normal block mb-2">Co-incubators</span>
+              {isLoadingCoIncubations ? (
+                <div className="flex items-center gap-2 text-xs text-slate-400 py-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                  <span>Loading co-incubators...</span>
+                </div>
+              ) : coIncubations.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No co-incubation yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {coIncubations.map((ci) => {
+                    const partnerName = ci.co_incubator?.name || ci.co_incubator_name || 'Partner incubator';
+                    const scopes: string[] = Array.isArray(ci.shared_scope) ? ci.shared_scope : [];
+                    return (
+                      <div
+                        key={ci.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80 gap-2"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {ci.co_incubator?.logo_url ? (
+                            <img
+                              src={ci.co_incubator.logo_url}
+                              alt={partnerName}
+                              className="w-6 h-6 rounded-md object-cover border border-slate-200 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 font-semibold text-[11px]">
+                              {partnerName.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-xs font-semibold text-slate-900 truncate">{partnerName}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                        </div>
+                        {scopes.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {scopes.map((s) => (
+                              <span
+                                key={s}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-white text-slate-700 border border-slate-200"
+                              >
+                                {SCOPE_LABELS[s] || s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

@@ -89,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialUser as any);
 
         if (initialSession?.access_token) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', initialSession.access_token);
+          }
           await fetchUserOrg(initialSession.access_token);
         }
       } catch (err: any) {
@@ -110,6 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(currentSession);
         setUser(currentUser as any);
         if (currentSession?.access_token) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', currentSession.access_token);
+          }
           await fetchUserOrg(currentSession.access_token);
         }
         setIsLoading(false);
@@ -184,6 +190,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Keep the browser Supabase client in sync with the API session so
       // protected routes and client-side queries can authenticate.
       if (data.session?.access_token && data.session?.refresh_token) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('access_token', data.session.access_token);
+        }
         await supabase.auth.setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
@@ -291,6 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setOrganization(null);
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
         localStorage.removeItem('org_id');
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
