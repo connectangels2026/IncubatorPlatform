@@ -35,11 +35,11 @@ export async function POST(req: Request) {
     const cleanEmail = email.trim().toLowerCase();
     const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
 
-    // Query user profile by auth_user_id, id, or email (case-insensitive) to prevent duplicates
+    // Query user profile by id or email (case-insensitive) to prevent duplicates
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, email_verified, role, organization_id')
-      .or(`id.eq.${data.user.id},auth_user_id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+      .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
       .limit(1)
       .maybeSingle();
 
@@ -58,7 +58,6 @@ export async function POST(req: Request) {
 
       const insertPayload: Record<string, any> = {
         id: data.user.id,
-        auth_user_id: data.user.id,
         email: cleanEmail,
         full_name: fullName,
         first_name: fullName.split(' ')[0] || fullName,

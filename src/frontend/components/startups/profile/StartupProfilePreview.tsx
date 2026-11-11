@@ -391,6 +391,33 @@ export function StartupProfilePreview({
                 {startup.incubation_end_date ? startup.incubation_end_date.split('T')[0] : '2026-12-31'}
               </p>
             </div>
+            <div className="col-span-2 sm:col-span-4 pt-2 border-t border-slate-100">
+              <span className="block text-xs font-medium text-slate-500">Co-incubators</span>
+              {(() => {
+                const list = (startup.coIncubators || (startup as any).co_incubations || []).filter(
+                  (c: any) => (c.status || '').toLowerCase() === 'active'
+                );
+                if (list.length === 0) {
+                  return <p className="text-xs font-normal text-slate-400 mt-0.5">No co-incubation yet</p>;
+                }
+                return (
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    {list.map((c: any) => {
+                      const name = c.co_incubator?.name || c.name || c.partner_name || 'Partner Incubator';
+                      return (
+                        <span
+                          key={c.id || name}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200"
+                        >
+                          <Building2 className="w-3 h-3 text-purple-600" />
+                          <span>{name}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         )}
       </div>

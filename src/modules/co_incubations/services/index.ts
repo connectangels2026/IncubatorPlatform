@@ -82,7 +82,7 @@ export class CoIncubationService {
     // 1. Verify startup exists and primary_incubator_id matches startup.organization_id
     const { data: startup, error: stErr } = await supabaseAdmin
       .from('startups')
-      .select('id, organization_id, startup_name, name, founder_id, founder_email, email')
+      .select('id, organization_id, startup_name, founder_id, founder_email')
       .eq('id', params.startup_id)
       .maybeSingle();
 
@@ -141,6 +141,8 @@ export class CoIncubationService {
       ? params.shared_scope
       : DEFAULT_SHARED_SCOPE;
 
+    const validRequestedBy = await CoIncubationService.resolveValidUserId(user, params.primary_incubator_id);
+
     const payload: any = {
       startup_id: params.startup_id,
       primary_incubator_id: params.primary_incubator_id,
@@ -148,7 +150,7 @@ export class CoIncubationService {
       status: 'pending',
       message: params.message?.trim() || null,
       shared_scope: finalSharedScope,
-      requested_by: user.id || user.email || 'Primary Incubator Staff',
+      requested_by: validRequestedBy,
       requested_at: now,
       duration_months: params.duration_months ? Number(params.duration_months) : 12,
       mou_document_url: params.mou_document_url || null,
@@ -170,7 +172,7 @@ export class CoIncubationService {
     }
 
     // 6. Side effects: Notification to partner incubator
-    const startupTitle = startup.startup_name || startup.name || 'Startup';
+    const startupTitle = startup.startup_name || 'Startup';
     const primaryName = primaryOrg?.name || 'Primary Incubator';
     try {
       await NotificationService.createNotification({
@@ -237,7 +239,7 @@ export class CoIncubationService {
     // 1. Fetch current co-incubation
     const { data: coinc, error } = await supabaseAdmin
       .from('co_incubations')
-      .select('*, startups(id, startup_name, name, founder_id, founder_email, email), primary_org:organizations!co_incubations_primary_incubator_id_fkey(name), partner_org:organizations!co_incubations_co_incubator_id_fkey(name)')
+      .select('*, startups(id, startup_name, founder_id, founder_email), primary_org:organizations!co_incubations_primary_incubator_id_fkey(name), partner_org:organizations!co_incubations_co_incubator_id_fkey(name)')
       .eq('id', id)
       .maybeSingle();
 
@@ -256,8 +258,9 @@ export class CoIncubationService {
     }
 
     const now = new Date().toISOString();
+    const validDecidedBy = await CoIncubationService.resolveValidUserId(user, coinc.co_incubator_id);
     const updates: any = {
-      decided_by: user.id || user.email || 'Partner Incubator Staff',
+      decided_by: validDecidedBy,
       decided_at: now,
       updated_at: now,
     };
@@ -381,7 +384,7 @@ export class CoIncubationService {
 
     const { data: coinc, error } = await supabaseAdmin
       .from('co_incubations')
-      .select('*, startups(id, startup_name, name, founder_id, founder_email)')
+      .select('*, startups(id, startup_name, founder_id, founder_email)')
       .eq('id', id)
       .maybeSingle();
 
@@ -495,9 +498,9 @@ export class CoIncubationService {
       ...item,
       startup: item.startup
         ? {
-            ...item.startup,
-            name: item.startup.name || item.startup.startup_name,
-          }
+          ...item.startup,
+          name: item.startup.name || item.startup.startup_name,
+        }
         : null,
     }));
 
@@ -521,7 +524,7 @@ export class CoIncubationService {
     if (!isStaff) {
       const { data: startup } = await supabaseAdmin
         .from('startups')
-        .select('id, founder_id, founder_email, email')
+        .select('id, founder_id, founder_email')
         .eq('id', startupId)
         .maybeSingle();
 
@@ -529,8 +532,7 @@ export class CoIncubationService {
 
       const isOwner =
         (user.id && startup.founder_id && user.id === startup.founder_id) ||
-        (user.email && startup.founder_email && user.email.toLowerCase() === startup.founder_email.toLowerCase()) ||
-        (user.email && startup.email && user.email.toLowerCase() === startup.email.toLowerCase());
+        (user.email && startup.founder_email && user.email.toLowerCase() === startup.founder_email.toLowerCase());
 
       if (!isOwner) {
         throw new Error('Forbidden: Founders can only view co-incubations for their own startup');
@@ -662,9 +664,9 @@ export class CoIncubationService {
       ...data,
       startup: data.startup
         ? {
-            ...data.startup,
-            name: data.startup.name || data.startup.startup_name,
-          }
+          ...data.startup,
+          name: data.startup.name || data.startup.startup_name,
+        }
         : null,
     };
   }
@@ -739,5 +741,48 @@ export class CoIncubationService {
 
     if (error) throw new Error(`Failed to delete co-incubation: ${error.message}`);
     return true;
+  }
+
+  /**
+   * Safely resolves a valid user UUID from public.users to satisfy foreign key constraints.
+   */
+  private static async resolveValidUserId(
+    user: { id?: string; email?: string } | null | undefined,
+    orgId?: string
+  ): Promise<string | null> {
+    if (user?.id) {
+      const { data: uMatch } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (uMatch?.id) return uMatch.id;
+    }
+
+    if (user?.email) {
+      const { data: uEmail } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .ilike('email', user.email.trim())
+        .maybeSingle();
+      if (uEmail?.id) return uEmail.id;
+    }
+
+    if (orgId) {
+      const { data: uOrg } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('organization_id', orgId)
+        .limit(1)
+        .maybeSingle();
+      if (uOrg?.id) return uOrg.id;
+    }
+
+    const { data: anyUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    return anyUser?.id || null;
   }
 }

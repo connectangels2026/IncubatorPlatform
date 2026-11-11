@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { data: startup } = await supabaseAdmin
       .from('startups')
-      .select('id, organization_id, founder_id, founder_email, email')
+      .select('id, organization_id, founder_id, founder_email')
       .eq('id', id)
       .maybeSingle();
 
@@ -27,8 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const isOwner =
       Boolean(startup.founder_id && startup.founder_id === user?.id) ||
-      Boolean(startup.founder_email && startup.founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
-      Boolean(startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
+      Boolean(startup.founder_email && startup.founder_email.toLowerCase() === user?.email?.toLowerCase());
 
     if (!isStaff && !isOwner) {
       return NextResponse.json({ error: 'Forbidden: You do not have permission to view co-incubations for this startup' }, { status: 403 });

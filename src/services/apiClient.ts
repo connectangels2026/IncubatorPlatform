@@ -34,7 +34,7 @@ apiClient.interceptors.request.use(
         if (!token) {
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('sb-') && (key.endsWith('-auth-token') || key.includes('access-token'))) {
+            if (key && key.startsWith('sb-') && (key.includes('-auth-token') || key.includes('access-token'))) {
               try {
                 const val = JSON.parse(localStorage.getItem(key) || '{}');
                 if (val.access_token) {
@@ -45,11 +45,39 @@ apiClient.interceptors.request.use(
             }
           }
         }
+
+        // If still no token, try to refresh from refresh-token endpoint
+        if (!token) {
+          try {
+            const refreshRes = await fetch('/api/v1/auth/refresh-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            if (refreshRes.ok) {
+              const rData = await refreshRes.json();
+              if (rData?.session?.access_token) {
+                const refreshedAccess = String(rData.session.access_token);
+                token = refreshedAccess;
+                localStorage.setItem('access_token', refreshedAccess);
+                if (rData.session.refresh_token) {
+                  await supabase.auth.setSession({
+                    access_token: refreshedAccess,
+                    refresh_token: String(rData.session.refresh_token),
+                  }).catch(() => {});
+                }
+              }
+            }
+          } catch {}
+        }
       }
 
       if (token) {
         if (!config.headers) config.headers = {};
+        if (typeof config.headers.set === 'function') {
+          config.headers.set('Authorization', `Bearer ${token}`);
+        }
         config.headers.Authorization = `Bearer ${token}`;
+        config.headers['Authorization'] = `Bearer ${token}`;
       }
 
       // Extract org_id from URL or localStorage
@@ -128,13 +156,43 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data, error: refreshErr } = await supabase.auth.refreshSession();
-        const newSession = data?.session;
+        let newAccessToken: string | null = null;
+        try {
+          const { data, error: refreshErr } = await supabase.auth.refreshSession();
+          if (!refreshErr && data?.session?.access_token) {
+            newAccessToken = data.session.access_token;
+          }
+        } catch {}
 
-        if (!refreshErr && newSession?.access_token) {
+        if (!newAccessToken) {
+          const rRes = await fetch('/api/v1/auth/refresh-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          if (rRes.ok) {
+            const rData = await rRes.json();
+            if (rData?.session?.access_token) {
+              const refreshedAccess = String(rData.session.access_token);
+              newAccessToken = refreshedAccess;
+              localStorage.setItem('access_token', refreshedAccess);
+              if (rData.session.refresh_token) {
+                await supabase.auth.setSession({
+                  access_token: refreshedAccess,
+                  refresh_token: String(rData.session.refresh_token),
+                }).catch(() => {});
+              }
+            }
+          }
+        }
+
+        if (newAccessToken) {
           originalRequest.headers = originalRequest.headers || {};
-          originalRequest.headers['Authorization'] = `Bearer ${newSession.access_token}`;
-          processQueue(null, newSession.access_token);
+          if (typeof originalRequest.headers.set === 'function') {
+            originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
+          }
+          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          processQueue(null, newAccessToken);
           isRefreshing = false;
           return apiClient(originalRequest);
         }
