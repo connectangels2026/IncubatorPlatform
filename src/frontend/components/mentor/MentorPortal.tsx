@@ -44,13 +44,7 @@ interface MentorPortalProps {
   initialRoute?: MentorRouteKey;
 }
 
-const DEFAULT_GRID: Record<string, string[]> = {
-  Mon: ['09:00', '10:00', '14:00'],
-  Tue: ['10:00', '11:00'],
-  Wed: ['14:00', '15:00'],
-  Thu: ['09:00', '10:00'],
-  Fri: ['11:00'],
-};
+const EMPTY_GRID: Record<string, string[]> = {};
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] as const;
@@ -781,7 +775,7 @@ function DashboardView({
   const completeness = mentorData?.completeness ?? 85;
   const upcomingSessions = sessions.filter((s: any) => s.status === 'Confirmed' || s.status === 'Pending');
   const nextSession = upcomingSessions[0];
-  const weeklyGrid = mentorData?.availability_json?.weekly_grid || DEFAULT_GRID;
+  const weeklyGrid = mentorData?.availability_json?.weekly_grid || EMPTY_GRID;
 
   return (
     <div className="space-y-6">
@@ -1273,11 +1267,29 @@ function SessionsView({ sessions, startups, onOpenSchedule, onMutate, onRefresh 
     });
   }, [sessions, activeTab, selectedStartupFilter]);
 
-  const updateSessionStatus = async (id: string, status: 'confirmed' | 'completed' | 'declined') => {
-    await onMutate({ action: 'update_session', session_id: id, status }, `Session marked as ${status}`);
+  const updateSessionStatus = async (
+    id: string,
+    status: 'scheduled' | 'completed' | 'declined' | 'cancelled',
+    extra: Record<string, any> = {}
+  ) => {
+    await onMutate({ action: 'update_session', session_id: id, status, ...extra }, `Session ${status}`);
     setSelectedSessionDrawer(null);
     await onRefresh();
   };
+
+  const [drawerMeetingLink, setDrawerMeetingLink] = useState('');
+  const [drawerReschedule, setDrawerReschedule] = useState<{ date: string; start: string; end: string } | null>(null);
+  const [drawerDeclineOpen, setDrawerDeclineOpen] = useState(false);
+  const [drawerDeclineReason, setDrawerDeclineReason] = useState('');
+
+  useEffect(() => {
+    if (selectedSessionDrawer) {
+      setDrawerMeetingLink(selectedSessionDrawer.meetingLink || '');
+      setDrawerReschedule(null);
+      setDrawerDeclineOpen(false);
+      setDrawerDeclineReason('');
+    }
+  }, [selectedSessionDrawer]);
 
   return (
     <div className="space-y-6">
@@ -1432,7 +1444,7 @@ function SessionsView({ sessions, startups, onOpenSchedule, onMutate, onRefresh 
                         {session.status === 'Pending' && (
                           <button
                             type="button"
-                            onClick={() => updateSessionStatus(session.id, 'confirmed')}
+                            onClick={() => updateSessionStatus(session.id, 'scheduled')}
                             className="px-2.5 py-1 text-xs bg-emerald-600 text-white rounded hover:bg-emerald-700"
                           >
                             Confirm
@@ -1583,38 +1595,172 @@ function SessionsView({ sessions, startups, onOpenSchedule, onMutate, onRefresh 
               </div>
             </div>
 
-            <div className="border-t border-slate-200 pt-4 flex items-center justify-between">
-              {selectedSessionDrawer.status === 'Pending' ? (
-                <button
-                  type="button"
-                  onClick={() => updateSessionStatus(selectedSessionDrawer.id, 'declined')}
-                  className="px-3 py-1.5 text-xs text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg"
-                >
-                  Decline
-                </button>
-              ) : (
-                <span />
+            <div className="border-t border-slate-200 pt-4 space-y-3">
+              {selectedSessionDrawer.status === 'Pending' && (
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                    Meeting link (optional before confirm)
+                  </label>
+                  <input
+                    type="url"
+                    value={drawerMeetingLink}
+                    onChange={(e) => setDrawerMeetingLink(e.target.value)}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  />
+                </div>
               )}
 
-              <div className="flex items-center space-x-2">
-                {selectedSessionDrawer.status === 'Pending' && (
-                  <button
-                    type="button"
-                    onClick={() => updateSessionStatus(selectedSessionDrawer.id, 'confirmed')}
-                    className="px-4 py-2 text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg"
-                  >
-                    Confirm session
-                  </button>
-                )}
-                {selectedSessionDrawer.status === 'Confirmed' && (
-                  <button
-                    type="button"
-                    onClick={() => updateSessionStatus(selectedSessionDrawer.id, 'completed')}
-                    className="px-4 py-2 text-xs font-medium bg-[#2563EB] text-white hover:bg-blue-700 rounded-lg"
-                  >
-                    Mark as completed
-                  </button>
-                )}
+              {drawerReschedule && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+                  <p className="font-semibold text-slate-800">Reschedule Date &amp; Time</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="date"
+                      value={drawerReschedule.date}
+                      onChange={(e) => setDrawerReschedule({ ...drawerReschedule, date: e.target.value })}
+                      className="p-1.5 border border-slate-200 rounded bg-white"
+                    />
+                    <input
+                      type="time"
+                      value={drawerReschedule.start}
+                      onChange={(e) => setDrawerReschedule({ ...drawerReschedule, start: e.target.value })}
+                      className="p-1.5 border border-slate-200 rounded bg-white"
+                    />
+                    <input
+                      type="time"
+                      value={drawerReschedule.end}
+                      onChange={(e) => setDrawerReschedule({ ...drawerReschedule, end: e.target.value })}
+                      className="p-1.5 border border-slate-200 rounded bg-white"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDrawerReschedule(null)}
+                      className="px-2.5 py-1 text-slate-600 hover:bg-slate-200 rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onMutate(
+                          {
+                            action: 'update_session',
+                            session_id: selectedSessionDrawer.id,
+                            scheduled_date: drawerReschedule.date,
+                            start_time: drawerReschedule.start,
+                            end_time: drawerReschedule.end,
+                          },
+                          'Session rescheduled'
+                        );
+                        setSelectedSessionDrawer(null);
+                        await onRefresh();
+                      }}
+                      className="px-3 py-1 bg-[#2563EB] text-white rounded hover:bg-blue-700"
+                    >
+                      Save reschedule
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {drawerDeclineOpen && (
+                <div className="p-3 bg-rose-50/70 border border-rose-200 rounded-lg space-y-2 text-xs">
+                  <p className="font-semibold text-rose-800">Decline Reason (required)</p>
+                  <textarea
+                    rows={2}
+                    value={drawerDeclineReason}
+                    onChange={(e) => setDrawerDeclineReason(e.target.value)}
+                    placeholder="Reason for declining..."
+                    className="w-full p-2 border border-rose-200 rounded bg-white"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDrawerDeclineOpen(false)}
+                      className="px-2.5 py-1 text-slate-600"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!drawerDeclineReason.trim()}
+                      onClick={() =>
+                        updateSessionStatus(selectedSessionDrawer.id, 'declined', {
+                          decline_reason: drawerDeclineReason.trim(),
+                        })
+                      }
+                      className="px-3 py-1 bg-rose-600 disabled:bg-slate-200 text-white rounded"
+                    >
+                      Confirm decline
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  {selectedSessionDrawer.status === 'Pending' && !drawerDeclineOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setDrawerDeclineOpen(true)}
+                      className="px-3 py-1.5 text-xs text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg"
+                    >
+                      Decline
+                    </button>
+                  )}
+                  {(selectedSessionDrawer.status === 'Pending' || selectedSessionDrawer.status === 'Confirmed') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDrawerReschedule({
+                            date: selectedSessionDrawer.date,
+                            start: selectedSessionDrawer.startTime || '10:00',
+                            end: selectedSessionDrawer.endTime || '11:00',
+                          })
+                        }
+                        className="px-3 py-1.5 text-xs border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-700"
+                      >
+                        Reschedule
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateSessionStatus(selectedSessionDrawer.id, 'cancelled')}
+                        className="px-3 py-1.5 text-xs text-rose-600 border border-rose-200 hover:bg-rose-50 rounded-lg"
+                      >
+                        Cancel session
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  {selectedSessionDrawer.status === 'Pending' && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateSessionStatus(selectedSessionDrawer.id, 'scheduled', {
+                          meeting_link: drawerMeetingLink,
+                        })
+                      }
+                      className="px-4 py-2 text-xs font-medium bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg"
+                    >
+                      Confirm session
+                    </button>
+                  )}
+                  {selectedSessionDrawer.status === 'Confirmed' && (
+                    <button
+                      type="button"
+                      onClick={() => updateSessionStatus(selectedSessionDrawer.id, 'completed')}
+                      className="px-4 py-2 text-xs font-medium bg-[#2563EB] text-white hover:bg-blue-700 rounded-lg"
+                    >
+                      Mark as completed
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1822,8 +1968,9 @@ function StartupsView({ startups, sessions, onScheduleWithStartup }: any) {
    ========================================================================== */
 function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailable, onMutate, onRefresh }: any) {
   const [weeklyGrid, setWeeklyGrid] = useState<Record<string, string[]>>(
-    () => mentorData?.availability_json?.weekly_grid || DEFAULT_GRID
+    () => mentorData?.availability_json?.weekly_grid || EMPTY_GRID
   );
+  const [hoursPerMonth, setHoursPerMonth] = useState<number>(mentorData?.availability_hours_per_month || 10);
   const [timezone, setTimezone] = useState(mentorData?.timezone || 'Asia/Kolkata');
   const [meetingMode, setMeetingMode] = useState(mentorData?.preferred_meeting_mode || 'video');
   const [meetingLink, setMeetingLink] = useState(
@@ -1861,6 +2008,7 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
         {
           action: 'save_availability',
           weekly_grid: weeklyGrid,
+          availability_hours_per_month: hoursPerMonth,
           timezone,
           preferred_meeting_mode: meetingMode,
           default_meeting_link: meetingLink,
@@ -1874,7 +2022,7 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
     }
   };
 
-  const capacity = mentorData?.availability_hours_per_month || 10;
+  const capacity = hoursPerMonth || mentorData?.availability_hours_per_month || 10;
   const pct = Math.min(100, Math.round((sessionsCount / capacity) * 100));
   const activeDays = DAYS.filter((d) => (weeklyGrid[d] || []).length > 0);
   const previewSlots = DAYS.flatMap((d) =>
@@ -1995,6 +2143,18 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
                   value={meetingLink}
                   onChange={(e) => setMeetingLink(e.target.value)}
                   placeholder="https://meet.google.com/..."
+                  className="w-full p-2 border border-slate-200 rounded-lg text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-700 mb-1">Hours per Month Cap</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={60}
+                  value={hoursPerMonth}
+                  onChange={(e) => setHoursPerMonth(Math.min(60, Math.max(1, Number(e.target.value) || 2)))}
                   className="w-full p-2 border border-slate-200 rounded-lg text-xs"
                 />
               </div>

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const expertise = searchParams.get('expertise')?.trim().toLowerCase();
     const isAvailableParam = searchParams.get('is_available');
+    const statusParam = searchParams.get('status')?.trim().toLowerCase();
     const search = searchParams.get('search')?.trim().toLowerCase();
     const typeParam = searchParams.get('type')?.trim().toLowerCase();
 
@@ -30,14 +31,20 @@ export async function GET(req: NextRequest) {
           id,
           first_name,
           last_name,
+          full_name,
           email,
           phone,
           profile_picture_url
         )
       `)
       .eq('organization_id', realOrgId)
-      .eq('is_active', true)
       .order('created_at', { ascending: false });
+
+    if (statusParam) {
+      if (statusParam === 'active') query = query.eq('is_active', true);
+    } else {
+      query = query.eq('is_active', true);
+    }
 
     if (isAvailableParam !== null) {
       query = query.eq('is_available', isAvailableParam === 'true');
@@ -56,6 +63,13 @@ export async function GET(req: NextRequest) {
     if (error) throw error;
 
     let mentors = data || [];
+
+    if (statusParam) {
+      mentors = mentors.filter((m: any) => {
+        const effectiveStatus = (m.status || (m.is_active ? 'active' : 'pending')).toLowerCase();
+        return effectiveStatus === statusParam;
+      });
+    }
 
     // Filter by expertise (checks JSON array expertise_areas and primary_expertise)
     if (expertise) {

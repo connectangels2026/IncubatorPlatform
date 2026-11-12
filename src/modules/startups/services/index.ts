@@ -1,5 +1,6 @@
 import { Startup, TeamMember, MentorAllocation, InvestorAllocation } from '../models/startup';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 export interface GetStartupsFilter {
   sector?: string;
@@ -422,32 +423,228 @@ export class StartupService {
     return filtered.length < initialLen;
   }
 
-  // Mentors and Investors stubs
-  static async getMentors(startupId: string): Promise<MentorAllocation[]> { return []; }
-  static async allocateMentor(startupId: string, mentorId: string, mentorType: any, extraData: any = {}): Promise<any> {
-    const id = mentorId || `m_${Date.now()}`;
-    return {
-      id,
-      startup_id: startupId,
-      mentor_id: id,
-      name: extraData.name || 'Mentor',
-      type: mentorType || 'General',
-      domain: extraData.domain || 'Advisory',
-      feedback: extraData.notes || '',
-      allocatedDate: new Date().toISOString().split('T')[0],
-      assigned_at: new Date().toISOString(),
-    };
+  // Real startup_mentors allocation helpers
+  static async getMentors(startupId: string): Promise<any[]> {
+    if (!isValidUUID(startupId)) return [];
+    const { data, error } = await supabaseAdmin
+      .from('startup_mentors')
+      .select(`
+        *,
+        mentor:mentors (
+          id,
+          user_id,
+          expertise_areas,
+          industry_experience,
+          company_background,
+          is_available,
+          is_active,
+          availability_hours_per_month,
+          preferred_meeting_mode,
+          timezone,
+          calendar_url,
+          availability_json,
+          user:users (
+            id,
+            first_name,
+            last_name,
+            full_name,
+            email
+          )
+        )
+      `)
+      .eq('startup_id', startupId)
+      .neq('status', 'ended')
+      .order('created_at', { ascending: false });
+
+    if (error || !data) return [];
+
+    return data.map((row: any) => {
+      const m = row.mentor || {};
+      const u = Array.isArray(m.user) ? m.user[0] : m.user;
+      const fullName =
+        u?.full_name ||
+        [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim() ||
+        u?.email?.split('@')[0] ||
+        'Mentor';
+      return {
+        id: row.id,
+        allocation_id: row.id,
+        startup_id: row.startup_id,
+        mentor_id: row.mentor_id,
+        name: fullName,
+        email: u?.email || '',
+        type: row.mentor_type || 'General',
+        domain: row.domain || (Array.isArray(m.expertise_areas) ? m.expertise_areas[0] : '') || 'Advisory',
+        status: row.status || 'pending',
+        decline_reason: row.decline_reason || null,
+        feedback: row.notes || '',
+        allocatedDate: (row.created_at || new Date().toISOString()).split('T')[0],
+        assigned_at: row.created_at,
+        decided_at: row.decided_at || null,
+        is_available: Boolean(m.is_available),
+        availability_hours_per_month: m.availability_hours_per_month ?? 10,
+        preferred_meeting_mode: m.preferred_meeting_mode || 'video',
+        timezone: m.timezone || 'Asia/Kolkata',
+        calendar_url: m.calendar_url || '',
+        availability_json: m.availability_json || {},
+      };
+    });
   }
-  static async updateMentorAllocation(startupId: string, mentorId: string, mentorType: 'Lead' | 'Domain' | 'Peer'): Promise<MentorAllocation | null> {
+
+  static async allocateMentor(
+    startupId: string,
+    mentorId: string,
+    mentorType: any,
+    extraData: any = {}
+  ): Promise<any> {
+    if (!isValidUUID(startupId) || !isValidUUID(mentorId)) {
+      throw new Error('Valid startup_id and mentor_id are required');
+    }
+
+    const { data: startup, error: stErr } = await supabaseAdmin
+      .from('startups')
+      .select('*')
+      .eq('id', startupId)
+      .maybeSingle();
+    if (stErr || !startup) {
+      throw new Error('Startup not found');
+    }
+
+    const { data: mentor, error: mErr } = await supabaseAdmin
+      .from('mentors')
+      .select(`
+        *,
+        user:users (
+          id,
+          first_name,
+          last_name,
+          full_name,
+          email
+        )
+      `)
+      .eq('id', mentorId)
+      .maybeSingle();
+    if (mErr || !mentor) {
+      throw new Error('Mentor not found');
+    }
+
+    const mentorStatus = (mentor.status || (mentor.is_active ? 'active' : 'pending')).toLowerCase();
+    if (!mentor.is_active || mentorStatus !== 'active' || !mentor.is_available) {
+      throw new Error('Only active mentors accepting startups can be allocated');
+    }
+
+    const { data: existingOpen } = await supabaseAdmin
+      .from('startup_mentors')
+      .select('id, status')
+      .eq('startup_id', startupId)
+      .eq('mentor_id', mentorId)
+      .in('status', ['pending', 'active'])
+      .maybeSingle();
+    if (existingOpen) {
+      throw new Error(`Mentor allocation already ${existingOpen.status} for this startup`);
+    }
+
+    let validAllocatedBy: string | null = null;
+    if (extraData.allocatedBy && isValidUUID(extraData.allocatedBy)) {
+      const { data: uCheck } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', extraData.allocatedBy)
+        .maybeSingle();
+      if (uCheck?.id) validAllocatedBy = uCheck.id;
+    }
+
+    const domainVal =
+      extraData.domain ||
+      (Array.isArray(mentor.expertise_areas) ? mentor.expertise_areas[0] : '') ||
+      'Advisory';
+
+    const { data: created, error: insErr } = await supabaseAdmin
+      .from('startup_mentors')
+      .insert({
+        startup_id: startupId,
+        mentor_id: mentorId,
+        organization_id: startup.organization_id,
+        mentor_type: mentorType || 'General',
+        domain: domainVal,
+        notes: extraData.notes || null,
+        status: 'pending',
+        allocated_by: validAllocatedBy,
+      })
+      .select()
+      .single();
+
+    if (insErr) throw insErr;
+
+    const u = Array.isArray(mentor.user) ? mentor.user[0] : mentor.user;
+    const mentorName =
+      u?.full_name ||
+      [u?.first_name, u?.last_name].filter(Boolean).join(' ').trim() ||
+      extraData.name ||
+      'Mentor';
+    const startupTitle = startup.startup_name || startup.name || 'Startup';
+
+    if (u?.id && isValidUUID(u.id)) {
+      try {
+        await NotificationService.createNotification({
+          organization_id: startup.organization_id,
+          recipient_id: u.id,
+          recipient_name: mentorName,
+          recipient_email: u.email,
+          title: `New Startup Allocation: ${startupTitle}`,
+          message: `You have been assigned to mentor ${startupTitle} (${domainVal}). Please review and accept or decline from your Mentor Dashboard.`,
+          notification_type: 'mentor_allocation',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'startup',
+          related_entity_id: startupId,
+        });
+      } catch (nErr) {
+        console.warn('Mentor allocation notification warning:', nErr);
+      }
+    }
+
     return {
-      id: 'mentor_alloc_' + Date.now(),
+      id: created.id,
+      allocation_id: created.id,
       startup_id: startupId,
       mentor_id: mentorId,
-      mentor_type: mentorType,
-      assigned_at: new Date().toISOString(),
+      name: mentorName,
+      type: created.mentor_type,
+      domain: created.domain,
+      status: created.status,
+      decline_reason: null,
+      feedback: created.notes || '',
+      allocatedDate: (created.created_at || new Date().toISOString()).split('T')[0],
+      assigned_at: created.created_at,
     };
   }
-  static async deallocateMentor(startupId: string, mentorId: string): Promise<boolean> { return true; }
+
+  static async updateMentorAllocation(
+    startupId: string,
+    mentorId: string,
+    mentorType: 'Lead' | 'Domain' | 'Peer'
+  ): Promise<MentorAllocation | null> {
+    if (!isValidUUID(startupId) || !isValidUUID(mentorId)) return null;
+    const { data } = await supabaseAdmin
+      .from('startup_mentors')
+      .update({ mentor_type: mentorType, updated_at: new Date().toISOString() })
+      .eq('startup_id', startupId)
+      .or(`id.eq.${mentorId},mentor_id.eq.${mentorId}`)
+      .select()
+      .maybeSingle();
+    return data || null;
+  }
+
+  static async deallocateMentor(startupId: string, mentorOrAllocId: string): Promise<boolean> {
+    if (!isValidUUID(startupId) || !isValidUUID(mentorOrAllocId)) return false;
+    const { error } = await supabaseAdmin
+      .from('startup_mentors')
+      .update({ status: 'ended', updated_at: new Date().toISOString() })
+      .eq('startup_id', startupId)
+      .or(`id.eq.${mentorOrAllocId},mentor_id.eq.${mentorOrAllocId}`);
+    return !error;
+  }
   static async getInvestors(startupId: string): Promise<InvestorAllocation[]> { return []; }
   static async allocateInvestor(startupId: string, investorId: string, interestLevel: any): Promise<any> { return {}; }
   static async updateInvestorAllocation(startupId: string, investorId: string, interestLevel: 'High' | 'Medium' | 'Low'): Promise<InvestorAllocation | null> {

@@ -23,13 +23,13 @@ async function getMentorAndSessionCount(mentorId: string, orgId: string) {
   if (mentorError || !mentor) return { mentor: null, bookedCount: 0 };
 
   // Calculate sessions booked for current month
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const { count } = await supabaseAdmin
     .from('mentorship_sessions')
     .select('id', { count: 'exact', head: true })
     .eq('mentor_id', mentorId)
-    .neq('status', 'cancelled')
-    .gte('scheduled_at', startOfMonth);
+    .not('status', 'in', '("cancelled","declined")')
+    .gte('scheduled_date', startOfMonth);
 
   return { mentor, bookedCount: count || 0 };
 }

@@ -20,6 +20,7 @@ import {
   Loader2,
   Eye,
   GraduationCap,
+  X,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
@@ -68,6 +69,16 @@ export function OverviewTab({
   const [coIncubations, setCoIncubations] = useState<any[]>([]);
   const [isLoadingCoIncubations, setIsLoadingCoIncubations] = useState(true);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [availableMentors, setAvailableMentors] = useState<any[]>([]);
+  const [loadingMentorSlots, setLoadingMentorSlots] = useState(false);
+  const [selectedMentorId, setSelectedMentorId] = useState('');
+  const [selectedSlotIdx, setSelectedSlotIdx] = useState(0);
+  const [bookingTopic, setBookingTopic] = useState('');
+  const [bookingAgenda, setBookingAgenda] = useState('');
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [submittingBooking, setSubmittingBooking] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<ScheduleEventItem | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ date: '', start: '', end: '' });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
@@ -104,16 +115,27 @@ export function OverviewTab({
     };
   }, [startup?.id]);
 
+  const reloadSchedule = async () => {
+    if (!startup?.id) return;
+    try {
+      const res = await apiClient.get(`/startups/${startup.id}/schedule`);
+      if (res.data?.success && Array.isArray(res.data.schedule)) {
+        setScheduleEvents(res.data.schedule);
+      }
+    } catch (err) {
+      console.warn('Failed to reload schedule events:', err);
+    }
+  };
+
   // Fetch upcoming schedule (events + mentor sessions merged by date)
   useEffect(() => {
     let isMounted = true;
     async function loadSchedule() {
       if (!startup?.id) return;
       try {
-        const res = await fetch(`/api/v1/startups/${startup.id}/schedule`);
-        const json = await res.json();
-        if (isMounted && json.success && Array.isArray(json.schedule)) {
-          setScheduleEvents(json.schedule);
+        const res = await apiClient.get(`/startups/${startup.id}/schedule`);
+        if (isMounted && res.data?.success && Array.isArray(res.data.schedule)) {
+          setScheduleEvents(res.data.schedule);
         }
       } catch (err) {
         console.warn('Failed to load schedule events:', err);
@@ -126,6 +148,37 @@ export function OverviewTab({
       isMounted = false;
     };
   }, [startup?.id, startup?.organization_id]);
+
+  // Fetch active mentors & open slots when Request Mentor Session modal opens
+  useEffect(() => {
+    if (!isRequestModalOpen || !startup?.id) return;
+    let active = true;
+    async function loadMentorSlots() {
+      try {
+        setLoadingMentorSlots(true);
+        setBookingError(null);
+        const res = await apiClient.get(`/startups/${startup.id}/mentor-slots`);
+        const list = Array.isArray(res.data?.mentors) ? res.data.mentors : [];
+        if (active) {
+          setAvailableMentors(list);
+          if (list.length > 0) {
+            setSelectedMentorId(list[0].mentor_id);
+            setSelectedSlotIdx(0);
+          } else {
+            setSelectedMentorId('');
+          }
+        }
+      } catch (err: any) {
+        if (active) setBookingError(err?.response?.data?.error || 'Could not load mentor availability.');
+      } finally {
+        if (active) setLoadingMentorSlots(false);
+      }
+    }
+    loadMentorSlots();
+    return () => {
+      active = false;
+    };
+  }, [isRequestModalOpen, startup?.id]);
 
   const completedCount = milestones.filter((m) => m.completed).length;
   const totalCount = milestones.length;
@@ -803,39 +856,91 @@ export function OverviewTab({
                     key={ev.id}
                     className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-slate-50 transition-all space-y-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${ev.type === 'Workshop'
-                          ? 'bg-purple-100 text-purple-800'
-                          : ev.type === '1-on-1 Session'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                          }`}
-                      >
-                        {ev.type}
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-[11px] font-medium px-2 py-0.5 rounded-md ${ev.type === 'Workshop'
+                            ? 'bg-purple-100 text-purple-800'
+                            : ev.type === '1-on-1 Session'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                        >
+                          {ev.type}
+                        </span>
+                        {ev.status && ev.source === 'mentorship_session' && (
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                              ev.status === 'scheduled'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {ev.status}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[11px] text-slate-500 font-semibold">{ev.timing}</span>
                     </div>
 
                     <h4 className="text-xs font-bold text-[#1A2151] leading-snug">{ev.title}</h4>
 
-                    <div className="flex items-center justify-between pt-1 text-[11px]">
-                      <span className="text-slate-500 font-medium truncate max-w-[180px]">
+                    <div className="flex items-center justify-between pt-1 text-[11px] gap-2">
+                      <span className="text-slate-500 font-medium truncate max-w-[150px]">
                         {ev.speaker || 'Host Incubator'}
                       </span>
-                      {ev.link && ev.link !== '#' ? (
-                        <a
-                          href={ev.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
-                        >
-                          <span>Join</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-400 font-medium text-[11px]">Online</span>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {!readOnly && ev.source === 'mentorship_session' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRescheduleTarget(ev);
+                                setRescheduleForm({
+                                  date: ev.scheduled_date || '',
+                                  start: ev.start_time || '10:00',
+                                  end: ev.end_time || '11:00',
+                                });
+                              }}
+                              className="text-slate-600 hover:text-blue-600 font-semibold cursor-pointer"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await apiClient.delete(`/mentorship-sessions/${ev.id}`);
+                                  setToastMessage('Session cancelled');
+                                  setTimeout(() => setToastMessage(null), 2500);
+                                  await reloadSchedule();
+                                } catch (err: any) {
+                                  setToastMessage(err?.response?.data?.error || 'Could not cancel session');
+                                  setTimeout(() => setToastMessage(null), 3000);
+                                }
+                              }}
+                              className="text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {ev.link && ev.link !== '#' ? (
+                          <a
+                            href={ev.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
+                          >
+                            <span>Join</span>
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                          </a>
+                        ) : (
+                          ev.source !== 'mentorship_session' && (
+                            <span className="text-slate-400 font-medium text-[11px]">Online</span>
+                          )
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -874,6 +979,239 @@ export function OverviewTab({
         title={viewerFile?.title}
         type={viewerFile?.type || 'auto'}
       />
+
+      {/* Request Mentor 1-on-1 Session Modal */}
+      {isRequestModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-[#1A2151]">Request Mentor 1-on-1 Session</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Book an open slot from your active mentors</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRequestModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {bookingError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700">
+                {bookingError}
+              </div>
+            )}
+
+            {loadingMentorSlots ? (
+              <div className="py-8 flex items-center justify-center gap-2 text-xs text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin text-[#2563EB]" />
+                <span>Checking mentor open slots...</span>
+              </div>
+            ) : availableMentors.length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-500 space-y-2">
+                <p className="font-semibold text-slate-700">No active mentors available yet</p>
+                <p>Once an allocated mentor accepts your assignment and enables slots, you can book here.</p>
+              </div>
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const chosenMentor = availableMentors.find((m) => m.mentor_id === selectedMentorId);
+                  const chosenSlot = chosenMentor?.open_slots?.[selectedSlotIdx];
+                  if (!chosenMentor || !chosenSlot) {
+                    setBookingError('Please select an available slot.');
+                    return;
+                  }
+                  setSubmittingBooking(true);
+                  setBookingError(null);
+                  try {
+                    await apiClient.post('/mentorship-sessions', {
+                      startup_id: startup.id,
+                      mentor_id: chosenMentor.mentor_id,
+                      scheduled_date: chosenSlot.date,
+                      start_time: chosenSlot.start_time,
+                      end_time: chosenSlot.end_time,
+                      session_title: bookingTopic.trim() || `1-on-1 Session with ${chosenMentor.name}`,
+                      agenda: bookingAgenda.trim() || undefined,
+                      meeting_mode: chosenMentor.preferred_meeting_mode || 'video',
+                    });
+                    setIsRequestModalOpen(false);
+                    setBookingTopic('');
+                    setBookingAgenda('');
+                    setToastMessage('Session requested! Waiting for mentor confirmation.');
+                    setTimeout(() => setToastMessage(null), 3200);
+                    await reloadSchedule();
+                  } catch (err: any) {
+                    setBookingError(err?.response?.data?.error || 'Could not request session.');
+                  } finally {
+                    setSubmittingBooking(false);
+                  }
+                }}
+                className="space-y-3 text-xs"
+              >
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Active Mentor</label>
+                  <select
+                    value={selectedMentorId}
+                    onChange={(e) => {
+                      setSelectedMentorId(e.target.value);
+                      setSelectedSlotIdx(0);
+                    }}
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white"
+                  >
+                    {availableMentors.map((m) => (
+                      <option key={m.mentor_id} value={m.mentor_id}>
+                        {m.name} ({m.domain}) — {m.remaining_slots_this_month} slots left this month
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Open Time Slot</label>
+                  {(() => {
+                    const activeM = availableMentors.find((m) => m.mentor_id === selectedMentorId);
+                    const slots = activeM?.open_slots || [];
+                    if (slots.length === 0) {
+                      return (
+                        <p className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
+                          This mentor has no open slots in the next 14 days.
+                        </p>
+                      );
+                    }
+                    return (
+                      <select
+                        value={selectedSlotIdx}
+                        onChange={(e) => setSelectedSlotIdx(Number(e.target.value))}
+                        className="w-full p-2 border border-slate-200 rounded-lg bg-white"
+                      >
+                        {slots.map((slot: any, idx: number) => (
+                          <option key={`${slot.date}-${slot.start_time}`} value={idx}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Topic</label>
+                  <input
+                    type="text"
+                    required
+                    value={bookingTopic}
+                    onChange={(e) => setBookingTopic(e.target.value)}
+                    placeholder="e.g. GTM Pricing & Pilot Conversion"
+                    className="w-full p-2 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Agenda / Notes (optional)</label>
+                  <textarea
+                    rows={2}
+                    value={bookingAgenda}
+                    onChange={(e) => setBookingAgenda(e.target.value)}
+                    placeholder="Questions or metrics to discuss..."
+                    className="w-full p-2 border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsRequestModalOpen(false)}
+                    className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      submittingBooking ||
+                      !(availableMentors.find((m) => m.mentor_id === selectedMentorId)?.open_slots?.length > 0)
+                    }
+                    className="px-4 py-2 bg-[#2563EB] hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold rounded-lg inline-flex items-center gap-1.5"
+                  >
+                    {submittingBooking && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>Request Session</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal for Startup Schedule */}
+      {rescheduleTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await apiClient.put(`/mentorship-sessions/${rescheduleTarget.id}`, {
+                  scheduled_date: rescheduleForm.date,
+                  start_time: rescheduleForm.start,
+                  end_time: rescheduleForm.end,
+                });
+                setRescheduleTarget(null);
+                setToastMessage('Session rescheduled & mentor notified');
+                setTimeout(() => setToastMessage(null), 3000);
+                await reloadSchedule();
+              } catch (err: any) {
+                setToastMessage(err?.response?.data?.error || 'Could not reschedule session');
+                setTimeout(() => setToastMessage(null), 3200);
+              }
+            }}
+            className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-sm w-full p-5 space-y-3 text-xs"
+          >
+            <h3 className="text-sm font-bold text-[#1A2151]">Reschedule Session</h3>
+            <p className="text-slate-500">{rescheduleTarget.title}</p>
+            <input
+              type="date"
+              required
+              value={rescheduleForm.date}
+              onChange={(e) => setRescheduleForm((p) => ({ ...p, date: e.target.value }))}
+              className="w-full p-2 border border-slate-200 rounded-lg"
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="time"
+                required
+                value={rescheduleForm.start}
+                onChange={(e) => setRescheduleForm((p) => ({ ...p, start: e.target.value }))}
+                className="w-full p-2 border border-slate-200 rounded-lg"
+              />
+              <input
+                type="time"
+                required
+                value={rescheduleForm.end}
+                onChange={(e) => setRescheduleForm((p) => ({ ...p, end: e.target.value }))}
+                className="w-full p-2 border border-slate-200 rounded-lg"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRescheduleTarget(null)}
+                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-blue-700"
+              >
+                Save Reschedule
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

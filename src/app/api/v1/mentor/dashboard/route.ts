@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { handleApiError } from '@/backend/middleware/errorHandler';
+import { NotificationService } from '@/backend/services/notificationService';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const [sessionsRes, orgStartupsRes, notificationsRes] = await Promise.all([
+    const [sessionsRes, allocationsRes, notificationsRes] = await Promise.all([
       supabaseAdmin
         .from('mentorship_sessions')
         .select('*')
@@ -108,12 +109,11 @@ export async function GET(req: NextRequest) {
         .order('scheduled_date', { ascending: true })
         .order('start_time', { ascending: true }),
       supabaseAdmin
-        .from('startups')
-        .select('*')
-        .eq('organization_id', mentor.organization_id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(50),
+        .from('startup_mentors')
+        .select('*, startup:startups (*)')
+        .eq('mentor_id', mentor.id)
+        .in('status', ['pending', 'active'])
+        .order('created_at', { ascending: false }),
       dbUser?.id
         ? supabaseAdmin
             .from('notifications')
@@ -126,13 +126,22 @@ export async function GET(req: NextRequest) {
     ]);
 
     const rawSessions = sessionsRes.data || [];
+    const allocations = allocationsRes.data || [];
     const startupMap = new Map<string, any>();
-    for (const s of orgStartupsRes.data || []) {
-      const normalized = normalizeStartup(s);
-      if (normalized) startupMap.set(normalized.id, normalized);
+    const activeStartupMap = new Map<string, any>();
+
+    for (const alloc of allocations) {
+      const sRow = Array.isArray(alloc.startup) ? alloc.startup[0] : alloc.startup;
+      const normalized = normalizeStartup(sRow);
+      if (normalized) {
+        startupMap.set(normalized.id, normalized);
+        if (alloc.status === 'active') {
+          activeStartupMap.set(normalized.id, normalized);
+        }
+      }
     }
 
-    // Also include any session-linked startups missing from orgStartupsRes
+    // Include any session-linked startups for session display names
     const missingIds = Array.from(
       new Set(rawSessions.map((r: any) => r.startup_id).filter((id: string) => id && !startupMap.has(id)))
     );
@@ -197,7 +206,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const startups = Array.from(startupMap.values()).map((st) => {
+    const startups = Array.from(activeStartupMap.values()).map((st) => {
       const stSessions = sessions.filter((s: any) => s.startupId === st.id);
       const upcoming = stSessions.find((s: any) => s.status === 'Confirmed' && s.timestamp >= now);
       const completed = stSessions.filter((s: any) => s.status === 'Completed');
@@ -239,6 +248,22 @@ export async function GET(req: NextRequest) {
         : 0;
 
     const actionQueue: any[] = [];
+    for (const alloc of allocations) {
+      if (alloc.status === 'pending') {
+        const sRow = Array.isArray(alloc.startup) ? alloc.startup[0] : alloc.startup;
+        const stName = sRow?.startup_name || sRow?.name || 'Startup';
+        actionQueue.push({
+          id: `alloc-${alloc.id}`,
+          allocationId: alloc.id,
+          startupId: alloc.startup_id,
+          type: 'allocation',
+          title: 'New Startup Allocation Request',
+          subtitle: `${stName} (${alloc.domain || 'Advisory'}) was allocated to your mentorship portfolio.`,
+          startupName: stName,
+          date: new Date(alloc.created_at || Date.now()).toLocaleDateString(),
+        });
+      }
+    }
     for (const s of sessions) {
       if (s.status === 'Pending') {
         actionQueue.push({
@@ -437,21 +462,165 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, data });
     }
 
+    if (action === 'decide_allocation') {
+      const { allocation_id, decision, decline_reason } = body;
+      if (!allocation_id || !['active', 'declined'].includes(decision)) {
+        return NextResponse.json({ error: 'allocation_id and valid decision (active | declined) are required' }, { status: 400 });
+      }
+      if (decision === 'declined' && !String(decline_reason || '').trim()) {
+        return NextResponse.json({ error: 'Decline reason is required when declining an allocation' }, { status: 400 });
+      }
+
+      const { data: allocRow, error: fetchAllocErr } = await supabaseAdmin
+        .from('startup_mentors')
+        .select('*, startup:startups (*)')
+        .eq('id', allocation_id)
+        .eq('mentor_id', mentor.id)
+        .maybeSingle();
+
+      if (fetchAllocErr || !allocRow) {
+        return NextResponse.json({ error: 'Allocation not found' }, { status: 404 });
+      }
+
+      const { data: updatedAlloc, error: updAllocErr } = await supabaseAdmin
+        .from('startup_mentors')
+        .update({
+          status: decision,
+          decline_reason: decision === 'declined' ? String(decline_reason).trim() : null,
+          decided_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq('id', allocation_id)
+        .eq('mentor_id', mentor.id)
+        .select()
+        .single();
+      if (updAllocErr) throw updAllocErr;
+
+      // Notify incubator admins (and allocator) about mentor decision
+      try {
+        const sRow = Array.isArray(allocRow.startup) ? allocRow.startup[0] : allocRow.startup;
+        const stName = sRow?.startup_name || sRow?.name || 'Startup';
+        const mentorDisplayName =
+          dbUser?.full_name ||
+          [dbUser?.first_name, dbUser?.last_name].filter(Boolean).join(' ').trim() ||
+          dbUser?.email ||
+          'Mentor';
+        const title =
+          decision === 'active'
+            ? `Mentor Accepted Allocation: ${stName}`
+            : `Mentor Declined Allocation: ${stName}`;
+        const message =
+          decision === 'active'
+            ? `${mentorDisplayName} accepted the mentor allocation for ${stName}.`
+            : `${mentorDisplayName} declined the mentor allocation for ${stName}. Reason: ${String(decline_reason).trim()}`;
+
+        const { data: admins } = await supabaseAdmin
+          .from('users')
+          .select('id, email')
+          .eq('organization_id', allocRow.organization_id)
+          .in('role', ['admin', 'incubator_admin', 'incubator'])
+          .limit(5);
+
+        const recipientMap = new Map<string, string>();
+        for (const a of admins || []) {
+          if (a.id && isValidUUID(a.id)) recipientMap.set(a.id, a.email || '');
+        }
+        if (allocRow.allocated_by && isValidUUID(allocRow.allocated_by) && !recipientMap.has(allocRow.allocated_by)) {
+          recipientMap.set(allocRow.allocated_by, '');
+        }
+
+        await Promise.allSettled(
+          Array.from(recipientMap.entries()).map(([recId, recEmail]) =>
+            NotificationService.createNotification({
+              organization_id: allocRow.organization_id,
+              recipient_id: recId,
+              recipient_email: recEmail || undefined,
+              title,
+              message,
+              notification_type: 'mentor_allocation',
+              send_email: true,
+              send_in_app: true,
+              related_entity_type: 'startup',
+              related_entity_id: allocRow.startup_id,
+            })
+          )
+        );
+      } catch (nErr) {
+        console.warn('Allocation decision notification error:', nErr);
+      }
+
+      return NextResponse.json({ success: true, data: updatedAlloc });
+    }
+
     if (action === 'update_session') {
-      const { session_id, status, meeting_link, session_notes, action_points, mentor_feedback } = body;
+      const {
+        session_id,
+        status,
+        meeting_link,
+        session_notes,
+        action_points,
+        mentor_feedback,
+        decline_reason,
+        scheduled_date,
+        start_time,
+        end_time,
+      } = body;
       if (!session_id) return NextResponse.json({ error: 'session_id is required' }, { status: 400 });
 
+      const { data: existingSess } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .select('*, startup:startups (*)')
+        .eq('id', session_id)
+        .eq('mentor_id', mentor.id)
+        .maybeSingle();
+
+      if (!existingSess) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+
       const updates: Record<string, any> = { updated_at: nowIso };
+      let mappedStatus: string | null = null;
       if (status) {
         const s = String(status).toLowerCase();
-        updates.status =
-          s === 'confirmed' ? 'scheduled' : s === 'declined' ? 'cancelled' : s;
-        if (s === 'completed') updates.attended = true;
+        mappedStatus = s === 'confirmed' ? 'scheduled' : s === 'pending' ? 'requested' : s;
+        if (mappedStatus === 'declined' && !String(decline_reason || '').trim()) {
+          return NextResponse.json({ error: 'Decline reason is required when declining a session' }, { status: 400 });
+        }
+        updates.status = mappedStatus;
+        if (mappedStatus === 'completed') updates.attended = true;
       }
+      if (decline_reason !== undefined) updates.decline_reason = String(decline_reason).trim() || null;
       if (meeting_link !== undefined) updates.meeting_link = meeting_link;
       if (session_notes !== undefined) updates.session_notes = session_notes;
       if (action_points !== undefined) updates.action_points = action_points;
       if (mentor_feedback !== undefined) updates.mentor_feedback = mentor_feedback;
+
+      if (scheduled_date || start_time || end_time) {
+        const nextDate = scheduled_date || existingSess.scheduled_date;
+        const nextStart = start_time || existingSess.start_time;
+        const nextEnd = end_time || existingSess.end_time;
+        const { data: conflicts } = await supabaseAdmin
+          .from('mentorship_sessions')
+          .select('id, start_time, end_time')
+          .eq('mentor_id', mentor.id)
+          .eq('scheduled_date', nextDate)
+          .neq('id', session_id)
+          .not('status', 'in', '("cancelled","declined")');
+
+        const toMin = (t: string) => {
+          const [h, m] = String(t || '0:0').split(':');
+          return (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+        };
+        const reqS = toMin(nextStart);
+        const reqE = toMin(nextEnd);
+        if ((conflicts || []).some((c: any) => reqS < toMin(c.end_time) && reqE > toMin(c.start_time))) {
+          return NextResponse.json(
+            { error: 'Overlapping session already exists at this date and time' },
+            { status: 409 }
+          );
+        }
+        updates.scheduled_date = nextDate;
+        updates.start_time = nextStart;
+        updates.end_time = nextEnd;
+      }
 
       const { data, error } = await supabaseAdmin
         .from('mentorship_sessions')
@@ -460,7 +629,38 @@ export async function PATCH(req: NextRequest) {
         .eq('mentor_id', mentor.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if ((error as any).code === '23505') {
+          return NextResponse.json({ error: 'Selected time slot is already booked' }, { status: 409 });
+        }
+        throw error;
+      }
+
+      // Notify startup when confirmed, declined, rescheduled, or cancelled
+      if (mappedStatus || scheduled_date || start_time) {
+        try {
+          const stRow = Array.isArray(existingSess.startup) ? existingSess.startup[0] : existingSess.startup;
+          if (stRow?.founder_id && isValidUUID(stRow.founder_id)) {
+            const label = mappedStatus || 'rescheduled';
+            await NotificationService.createNotification({
+              organization_id: existingSess.organization_id,
+              recipient_id: stRow.founder_id,
+              recipient_email: stRow.founder_email || undefined,
+              title: `Session ${label}: ${existingSess.session_title}`,
+              message:
+                mappedStatus === 'declined'
+                  ? `Your session "${existingSess.session_title}" was declined. Reason: ${updates.decline_reason}`
+                  : `Your session "${existingSess.session_title}" on ${updates.scheduled_date || existingSess.scheduled_date} is now ${label}.`,
+              notification_type: 'mentorship_booking',
+              send_email: true,
+              send_in_app: true,
+              related_entity_type: 'mentorship_session',
+              related_entity_id: session_id,
+            });
+          }
+        } catch {}
+      }
+
       return NextResponse.json({ success: true, data });
     }
 
@@ -472,19 +672,42 @@ export async function PATCH(req: NextRequest) {
       }
       const computedEnd = end_time || `${String(Math.min(23, Number(start_time.split(':')[0] || 9) + 1)).padStart(2, '0')}:${start_time.split(':')[1] || '00'}`;
 
+      const { data: conflicts } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .select('id, start_time, end_time')
+        .eq('mentor_id', mentor.id)
+        .eq('scheduled_date', scheduled_date)
+        .not('status', 'in', '("cancelled","declined")');
+
+      const toMin = (t: string) => {
+        const [h, m] = String(t || '0:0').split(':');
+        return (parseInt(h, 10) || 0) * 60 + (parseInt(m, 10) || 0);
+      };
+      const reqS = toMin(start_time);
+      const reqE = toMin(computedEnd);
+      if ((conflicts || []).some((c: any) => reqS < toMin(c.end_time) && reqE > toMin(c.start_time))) {
+        return NextResponse.json({ error: 'Cannot double-book: overlapping session exists on this slot' }, { status: 409 });
+      }
+
+      const mentorDisplayName =
+        dbUser?.full_name ||
+        [dbUser?.first_name, dbUser?.last_name].filter(Boolean).join(' ').trim() ||
+        'Mentor';
+
       const { data, error } = await supabaseAdmin
         .from('mentorship_sessions')
         .insert({
           organization_id: mentor.organization_id,
           startup_id,
           mentor_id: mentor.id,
+          mentor_name: mentorDisplayName,
           session_title: session_title?.trim() || 'Mentorship Session',
           scheduled_date,
           start_time,
           end_time: computedEnd,
-          duration_minutes: 45,
+          duration_minutes: Math.max(15, reqE - reqS),
           timezone: mentor.timezone || 'Asia/Kolkata',
-          meeting_mode: meeting_mode || 'Google Meet',
+          meeting_mode: meeting_mode || mentor.preferred_meeting_mode || 'video',
           meeting_link: meeting_link || mentor.calendar_url || '',
           agenda: agenda || '',
           status: 'scheduled',
@@ -492,7 +715,12 @@ export async function PATCH(req: NextRequest) {
         })
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if ((error as any).code === '23505') {
+          return NextResponse.json({ error: 'Cannot double-book: slot already occupied' }, { status: 409 });
+        }
+        throw error;
+      }
       return NextResponse.json({ success: true, data }, { status: 201 });
     }
 

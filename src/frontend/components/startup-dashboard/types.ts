@@ -33,6 +33,12 @@ export interface ScheduleEventItem {
   speaker: string;
   timing: string;
   link?: string;
+  source?: string;
+  status?: string;
+  scheduled_date?: string;
+  start_time?: string;
+  end_time?: string;
+  mentor_id?: string;
 }
 
 export interface DeckRevision {
