@@ -13,15 +13,25 @@ export interface AuthenticatedUser {
 export async function verifyAuth(req: NextRequest): Promise<{ user: AuthenticatedUser | null; errorResponse?: NextResponse }> {
   let authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
   if (!authHeader) {
-    const allCookies = req.cookies.getAll();
-    const sbCookie = allCookies.find((c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
-    if (sbCookie) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(sbCookie.value));
-        const tokenVal = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
-        if (tokenVal) authHeader = `Bearer ${tokenVal}`;
-      } catch {
-        // Continue if cookie cannot be parsed
+    const directCookie =
+      req.cookies.get('sb-access-token')?.value ||
+      req.cookies.get('access_token')?.value;
+    if (directCookie) {
+      authHeader = `Bearer ${directCookie}`;
+    } else {
+      const allCookies = req.cookies.getAll();
+      const sbCookie = allCookies.find(
+        (c) => c.name.startsWith('sb-') && (c.name.endsWith('-auth-token') || c.name.includes('access-token'))
+      );
+      if (sbCookie) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(sbCookie.value));
+          const tokenVal = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+          if (tokenVal) authHeader = `Bearer ${tokenVal}`;
+          else authHeader = `Bearer ${sbCookie.value}`;
+        } catch {
+          authHeader = `Bearer ${sbCookie.value}`;
+        }
       }
     }
   }

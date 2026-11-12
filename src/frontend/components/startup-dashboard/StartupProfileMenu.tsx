@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   User,
   Rocket,
+  Pencil,
   Settings,
   LogOut,
   ChevronDown,
@@ -19,21 +20,51 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { mutate as globalMutate } from 'swr';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface StartupProfileMenuProps {
   user: any;
   startup: any;
   onStartupUpdate?: (updated: any) => void;
+  onNavigateTab?: (tab: string) => void;
+  onOpenStartupModal?: () => void;
   onLogout: () => void;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  onClose?: () => void;
 }
 
 export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
   user,
   startup,
   onStartupUpdate,
+  onNavigateTab,
+  onOpenStartupModal,
   onLogout,
+  isOpen,
+  onToggle,
+  onClose,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isDropdownOpen = isOpen !== undefined ? isOpen : internalOpen;
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setInternalOpen(false);
+    }
+  };
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalOpen((prev) => !prev);
+    }
+  };
+
   const [activeModal, setActiveModal] = useState<'profile' | 'startup' | 'settings' | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -93,16 +124,29 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
     }
   }, [startup]);
 
-  // Click Outside Detection
+  // Click Outside & Esc Key Detection
   useEffect(() => {
+    if (!isDropdownOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+        handleClose();
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        handleClose();
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
 
   // Save Personal Profile
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -140,7 +184,6 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
         {
           name: startupForm.name,
           sector: startupForm.sector,
-          stage: startupForm.stage,
           website: startupForm.website,
           description: startupForm.description,
           solution_description: startupForm.pitch,
@@ -148,15 +191,21 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
         { headers: orgId ? { 'x-org-id': orgId } : undefined }
       );
 
-      const updated = res.data?.data || {
+      const updated = res.data?.data || res.data?.startup || {
         ...startup,
         name: startupForm.name,
+        startup_name: startupForm.name,
         sector: startupForm.sector,
         stage: startupForm.stage,
         website: startupForm.website,
         description: startupForm.description,
         solution_description: startupForm.pitch,
       };
+
+      if (startup?.id) {
+        globalMutate(`/startups/${startup.id}`, updated, false);
+      }
+      globalMutate('/startups/me', updated, false);
 
       if (onStartupUpdate) {
         onStartupUpdate(updated);
@@ -201,46 +250,35 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
 
       {/* Profile Trigger Button */}
       <button
-        onClick={() => setDropdownOpen((prev) => !prev)}
-        className="flex items-center gap-2.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 cursor-pointer focus:outline-none"
-        aria-expanded={dropdownOpen}
+        onClick={handleToggle}
+        className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200 cursor-pointer focus:outline-none"
+        aria-expanded={isDropdownOpen}
         aria-haspopup="true"
+        title={user?.email || 'Account'}
       >
         <div className="relative">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#1A2151] to-blue-600 flex items-center justify-center text-white text-xs font-black shadow-xs ring-2 ring-white">
-            {userInitial}
-          </div>
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+          <StartupLogo
+            name={startup?.startup_name || startup?.name || ''}
+            logoUrl={startup?.logo_url}
+            logoColor={startup?.logo_color}
+            initials={startup?.initials}
+            className="w-9 h-9 rounded-full text-xs shadow-xs ring-2 ring-white"
+          />
         </div>
-
-        <div className="hidden lg:block text-left">
-          <p className="text-xs font-bold text-slate-800 leading-none truncate max-w-[130px]">
-            {profileForm.fullName || startupForm.name || 'Startup Founder'}
-          </p>
-          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[130px] mt-0.5">
-            {user?.email}
-          </p>
-        </div>
-
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
-            dropdownOpen ? 'rotate-180 text-blue-600' : ''
-          }`}
-        />
       </button>
 
       {/* Dropdown Menu */}
-      {dropdownOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+      {isDropdownOpen && (
+        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header Info */}
           <div className="px-4 py-3 border-b border-slate-100">
-            <p className="text-xs font-bold text-slate-800 truncate">
+            <p className="text-xs font-semibold text-slate-900 truncate">
               {profileForm.fullName || startupForm.name || 'Founder'}
             </p>
-            <p className="text-[11px] text-slate-400 truncate mt-0.5">{user?.email}</p>
+            <p className="text-[11px] text-slate-500 truncate mt-0.5">{user?.email}</p>
             <div className="mt-2 flex items-center gap-1.5">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                Admitted Startup
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                Admitted startup
               </span>
             </div>
           </div>
@@ -248,35 +286,29 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
           {/* Menu Items */}
           <div className="py-1">
             <button
+              type="button"
               onClick={() => {
-                setDropdownOpen(false);
-                setActiveModal('profile');
+                handleClose();
+                if (onOpenStartupModal) {
+                  onOpenStartupModal();
+                } else {
+                  setActiveModal('startup');
+                }
               }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-4 py-2 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
             >
-              <User className="w-4 h-4 text-slate-400" />
-              <span>My Profile</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setDropdownOpen(false);
-                setActiveModal('startup');
-              }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
-            >
-              <Rocket className="w-4 h-4 text-slate-400" />
+              <Pencil className="w-4 h-4 text-slate-500" />
               <span>Startup Details</span>
             </button>
 
             <button
               onClick={() => {
-                setDropdownOpen(false);
+                handleClose();
                 setActiveModal('settings');
               }}
-              className="w-full px-4 py-2.5 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-4 py-2 text-xs text-left font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition cursor-pointer"
             >
-              <Settings className="w-4 h-4 text-slate-400" />
+              <Settings className="w-4 h-4 text-slate-500" />
               <span>Account Settings</span>
             </button>
           </div>
@@ -284,16 +316,16 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
           <div className="border-t border-slate-100 my-1" />
 
           {/* Logout */}
-          <div className="px-1.5 pb-1">
+          <div className="px-1.5 pb-0.5">
             <button
               onClick={() => {
-                setDropdownOpen(false);
+                handleClose();
                 onLogout();
               }}
-              className="w-full px-3 py-2 text-xs text-left font-semibold text-rose-600 hover:bg-rose-50 rounded-xl flex items-center gap-2.5 transition cursor-pointer"
+              className="w-full px-3 py-2 text-xs text-left font-normal text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2.5 transition cursor-pointer"
             >
-              <LogOut className="w-4 h-4 text-rose-500" />
-              <span>Sign Out</span>
+              <LogOut className="w-4 h-4 text-slate-500" />
+              <span>Sign out</span>
             </button>
           </div>
         </div>

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const { data: startups, error } = await supabaseAdmin
       .from('startups')
-      .select('id, name, sector, stage, funding_raised, monthly_revenue, annual_revenue')
+      .select('id, startup_name, sector, stage, funding_raised, monthly_revenue, annual_revenue')
       .eq('organization_id', realOrgId)
       .order('funding_raised', { ascending: false });
 
@@ -51,9 +51,10 @@ export async function GET(req: NextRequest) {
           sector,
           total_amount,
         })),
-        top_funded_startups: fundedStartups.slice(0, 10).map((s) => ({
+        top_funded_startups: (fundedStartups as any[]).slice(0, 10).map((s) => ({
           id: s.id,
-          name: s.name,
+          name: s.startup_name,
+          startup_name: s.startup_name,
           sector: s.sector,
           stage: s.stage,
           funding_raised: Number(s.funding_raised),

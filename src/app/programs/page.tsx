@@ -128,7 +128,7 @@ export default function ProgramsPage() {
               Arba Incubator
             </span>
           </Link>
-          <Link href="/dashboard">
+          <Link href="/incubator">
             <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold">
               Dashboard
             </Button>

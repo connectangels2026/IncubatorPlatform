@@ -277,10 +277,11 @@ const INITIAL_STARTUPS: StartupItem[] = [
 export const StartupsPage: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited">("all");
+  const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited" | "co-incubated">("all");
+  const [coIncubatedStartups, setCoIncubatedStartups] = useState<StartupItem[]>([]);
 
   // State
-  const { organization } = useAuth();
+  const { organization, user } = useAuth();
   const [startups, setStartups] = useState<StartupItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
@@ -296,6 +297,7 @@ export const StartupsPage: React.FC = () => {
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const [isInvestorModalOpen, setIsInvestorModalOpen] = useState(false);
   const [isCoIncubatorModalOpen, setIsCoIncubatorModalOpen] = useState(false);
+  const [preselectedPartnerForAction, setPreselectedPartnerForAction] = useState<any>(null);
   const [isSignMOUModalOpen, setIsSignMOUModalOpen] = useState(false);
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
   const [activePartnerForMOU, setActivePartnerForMOU] = useState<CoIncubatorItem | null>(null);
@@ -327,9 +329,22 @@ export const StartupsPage: React.FC = () => {
     const loadStartups = async () => {
       try {
         const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const orgIdFromUrl = searchParams?.get('org');
+        const orgIdFromUrl = searchParams?.get('org') || searchParams?.get('org_id');
         const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-        const orgId = organization?.id || orgIdFromUrl || orgIdFromStorage;
+        let orgId = organization?.id || orgIdFromUrl || orgIdFromStorage || (user as any)?.organization_id;
+
+        if (!orgId) {
+          try {
+            const meRes = await fetch('/api/v1/auth/me');
+            if (meRes.ok) {
+              const meData = await meRes.json();
+              if (meData?.organization?.id) {
+                orgId = meData.organization.id;
+                if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
+              }
+            }
+          } catch {}
+        }
 
         if (!orgId) {
           setStartups([]);
@@ -338,44 +353,105 @@ export const StartupsPage: React.FC = () => {
 
         const res = await apiClient.get("/startups", {
           headers: { 'x-org-id': orgId },
-          params: { org_id: orgId },
+          params: { org_id: orgId, limit: 100 },
         });
 
-        const apiData = res.data?.data;
+        let apiData = res.data?.data;
+        if (!Array.isArray(apiData) || apiData.length === 0) {
+          const fallbackRes = await apiClient.get("/startups", {
+            headers: { 'x-org-id': 'all' },
+            params: { org_id: 'all', limit: 100 },
+          }).catch(() => null);
+          if (Array.isArray(fallbackRes?.data?.data) && fallbackRes.data.data.length > 0) {
+            apiData = fallbackRes.data.data;
+          }
+        }
+
         if (Array.isArray(apiData)) {
-          const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
-            return {
-              id: item.id || String(idx + 1),
-              name: item.name || 'Startup',
-              monogram: item.name ? item.name.slice(0, 2).toUpperCase() : 'ST',
-              monogramBg: 'bg-blue-600',
-              sector: item.sector || 'General',
-              industry: item.sector || 'General',
-              stage: item.stage || 'Idea',
-              status: item.status || 'Active',
-              mrr: typeof item.revenue === "number" ? item.revenue : (item.monthly_revenue || 0),
-              arr: typeof item.revenue === "number" ? item.revenue * 12 : (item.annual_revenue || 0),
-              customers: item.customer_count || 0,
-              funding: item.funding_raised ? `${item.funding_raised}` : '$0',
-              fundingRaised: item.funding_raised ? `${item.funding_raised}` : '$0',
-              burn: '$0',
-              monthlyBurn: '$0',
-              cohort: item.cohort || 'Cohort 2026',
-              healthScore: '85',
-              tagline: item.description || '',
-              pitch: item.description || '',
-              founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
-              founderEmail: item.email || item.founder_email || '',
-              founderPhone: item.founder_phone || '',
-              website: item.website || '',
-              location: 'Remote',
-              teamMembers: [],
-              allocatedMentors: item.allocatedMentors || [],
-              allocatedInvestors: item.allocatedInvestors || [],
-              coIncubators: item.coIncubators || [],
-            };
+          if (apiData.length === 0) {
+            setStartups([]);
+          } else {
+            const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
+              return {
+                id: item.id || String(idx + 1),
+                name: item.startup_name || item.name || 'Startup',
+                startup_name: item.startup_name || item.name || 'Startup',
+                monogram: (item.startup_name || item.name) ? (item.startup_name || item.name).slice(0, 2).toUpperCase() : 'ST',
+                monogramBg: 'bg-blue-600',
+                sector: item.sector || 'General',
+                industry: item.sector || 'General',
+                stage: item.stage || 'Idea',
+                status: item.status || 'active',
+                mrr: typeof item.revenue === "number" ? item.revenue : 0,
+                arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
+                customers: item.customer_count || 0,
+                funding: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                fundingRaised: item.funding_raised ? `$${item.funding_raised}` : '$0',
+                burn: '$0',
+                monthlyBurn: '$0',
+                cohort: item.cohort || 'Cohort 2026',
+                healthScore: '85',
+                tagline: item.description || '',
+                pitch: item.description || '',
+                founder: item.founder_name || (item.founder_email ? item.founder_email.split('@')[0] : 'Founder'),
+                founderEmail: item.email || item.founder_email || '',
+                website: item.website || '',
+                location: 'Remote',
+                teamMembers: [],
+                allocatedMentors: item.allocatedMentors || [],
+                allocatedInvestors: item.allocatedInvestors || [],
+                coIncubators: item.coIncubators || [],
+              };
+            });
+            setStartups(merged);
+          }
+        }
+
+        // Load partner co-incubated startups (separated from own cohort)
+        try {
+          const coincRes = await apiClient.get('/co-incubations', {
+            params: { view: 'partner', status: 'active' },
+            headers: { 'x-org-id': orgId },
           });
-          setStartups(merged);
+          const cData = coincRes.data?.data;
+          if (Array.isArray(cData)) {
+            const coMapped: StartupItem[] = cData.map((c: any, idx: number) => {
+              const st = c.startup || {};
+              const stName = st.startup_name || st.name || 'Co-incubated Startup';
+              return {
+                id: c.startup_id || ('coinc_st_' + idx),
+                name: stName,
+                startup_name: stName,
+                monogram: stName.slice(0, 2).toUpperCase(),
+                monogramBg: 'bg-purple-600',
+                sector: st.sector || 'Cross-hub',
+                industry: st.sector || 'Cross-hub',
+                stage: st.stage || 'MVP',
+                status: 'Active',
+                mrr: 0,
+                arr: 0,
+                customers: 0,
+                funding: '$0',
+                fundingRaised: '$0',
+                burn: '$0',
+                monthlyBurn: '$0',
+                cohort: c.primary_incubator?.name ? `Primary: ${c.primary_incubator.name}` : 'Co-incubated',
+                healthScore: '90',
+                tagline: `Co-incubated with ${c.primary_incubator?.name || 'partner'}`,
+                pitch: '',
+                founder: st.founder_email || 'Founder',
+                founderEmail: st.founder_email || '',
+                website: '',
+                location: 'Partner Hub',
+                is_active: true,
+                is_co_incubated: true,
+                co_incubation_id: c.id,
+              } as any;
+            });
+            setCoIncubatedStartups(coMapped);
+          }
+        } catch {
+          setCoIncubatedStartups([]);
         }
       } catch (e) {
         console.warn("Error fetching startups", e);
@@ -383,7 +459,7 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id]);
+  }, [organization?.id, user]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -426,6 +502,12 @@ export const StartupsPage: React.FC = () => {
 
   const displayedStartups = useMemo(() => {
     switch (sectionFilter) {
+      case 'co-incubated':
+        return coIncubatedStartups.filter((s) => {
+          if (!searchQuery) return true;
+          return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (s.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
+        });
       case 'queue':
         return queueStartups;
       case 'active':
@@ -438,7 +520,7 @@ export const StartupsPage: React.FC = () => {
       default:
         return filteredStartups;
     }
-  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups]);
+  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups, coIncubatedStartups, searchQuery]);
 
   // Handler: Status Change with Database Persistence
   const handleStatusChange = async (
@@ -476,6 +558,14 @@ export const StartupsPage: React.FC = () => {
     setIsDetailOpen(true);
   };
 
+  const handleStartupUpdated = (updatedStartup: StartupItem) => {
+    setStartups((prev) =>
+      prev.map((s) => (s.id === updatedStartup.id ? { ...s, ...updatedStartup } : s))
+    );
+    setSelectedStartup((prev) => (prev?.id === updatedStartup.id ? { ...prev, ...updatedStartup } : prev));
+    showToast(`Saved updates for ${updatedStartup.name}`);
+  };
+
   // Handlers: Mentors with Backend Integration
   const handleTriggerAllocateMentor = (startup: StartupItem) => {
     setTargetStartupForAction(startup);
@@ -484,42 +574,37 @@ export const StartupsPage: React.FC = () => {
 
   const handleConfirmAllocateMentor = async (mentorData: Omit<AllocatedMentor, "id">) => {
     if (!targetStartupForAction) return;
-    const tempId = "m_" + Date.now();
-    const newMentor: AllocatedMentor = { ...mentorData, id: tempId };
-
-    // Optimistic UI update
-    const updateLocal = (mId: string) => {
-      const createdMentor = { ...newMentor, id: mId };
-      const updated = startups.map((s) => {
-        if (s.id === targetStartupForAction.id) {
-          return { ...s, allocatedMentors: [...(s.allocatedMentors || []), createdMentor] };
-        }
-        return s;
-      });
-      setStartups(updated);
-      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
-        setSelectedStartup({
-          ...selectedStartup,
-          allocatedMentors: [...(selectedStartup.allocatedMentors || []), createdMentor],
-        });
-      }
-    };
-
-    updateLocal(tempId);
-    showToast(`Mentor allocated to ${targetStartupForAction.name}`);
-
     try {
       const res = await apiClient.post(`/startups/${targetStartupForAction.id}/mentors`, {
+        mentor_id: mentorData.mentor_id,
         name: mentorData.name,
         type: mentorData.type,
         domain: mentorData.domain,
         notes: mentorData.feedback,
       });
-      if (res.data?.data?.id) {
-        updateLocal(res.data.data.id);
+      const createdMentor: AllocatedMentor = res.data?.data || {
+        ...mentorData,
+        id: "m_" + Date.now(),
+        status: "pending",
+      };
+      setStartups((prev) =>
+        prev.map((s) =>
+          s.id === targetStartupForAction.id
+            ? { ...s, allocatedMentors: [createdMentor, ...(s.allocatedMentors || [])] }
+            : s
+        )
+      );
+      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+        setSelectedStartup((prev) =>
+          prev
+            ? { ...prev, allocatedMentors: [createdMentor, ...(prev.allocatedMentors || [])] }
+            : prev
+        );
       }
+      showToast(`Mentor invitation sent to ${mentorData.name} for ${targetStartupForAction.name}`);
     } catch (err: any) {
-      console.warn("API mentor post notification (using optimistic):", err?.message);
+      showToast(err?.response?.data?.error || "Failed to allocate mentor");
+      throw err;
     }
   };
 
@@ -659,8 +744,9 @@ export const StartupsPage: React.FC = () => {
   };
 
   // Handlers: Co-Incubation with Backend Integration
-  const handleTriggerAddCoIncubator = (startup: StartupItem) => {
+  const handleTriggerAddCoIncubator = (startup: StartupItem, prefill?: any) => {
     setTargetStartupForAction(startup);
+    setPreselectedPartnerForAction(prefill || null);
     setIsCoIncubatorModalOpen(true);
   };
 
@@ -890,19 +976,7 @@ export const StartupsPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout
-      title="Startups Directory"
-      fluid={true}
-      headerActions={
-        <button
-          onClick={() => setIsOnboardOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>+ Add Startup</span>
-        </button>
-      }
-    >
+    <DashboardLayout breadcrumbs={[{ label: 'Startups' }]}>
       <div className="space-y-6">
         {/* Toast Notification */}
         {toast && (
@@ -912,205 +986,80 @@ export const StartupsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
-                Portfolio Hub
-              </span>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Startups Directory</h1>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Startups
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
               Manage cohort startups, track growth milestones, allocate mentors, investors, and MOUs.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={handleExportPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export PDF</span>
-            </button>
-            <button
               onClick={() => setIsOnboardOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Add Startup</span>
-            </button>
-            <button
-              onClick={() => {
-                if (startups.length > 0) handleTriggerAllocateMentor(startups[0]);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Allocate Mentor</span>
-            </button>
-            <button
-              onClick={() => {
-                if (startups.length > 0) handleTriggerAllocateInvestor(startups[0]);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-teal-600 border border-teal-200 rounded-lg hover:bg-teal-50 shadow-xs transition-colors cursor-pointer"
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Allocate Investor</span>
+              <Plus className="w-4 h-4" />
+              <span>Add startup</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* Main Content Area */}
-        <div className="p-6 space-y-5 flex-1">
-          {/* KPI Stats Bar (6 Cards) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Total Startups</span>
-                <Rocket className="w-4 h-4 text-indigo-500" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCount}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-1">
-                {activeCount} active in program
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Total Capital Raised</span>
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCapitalRaisedFormatted}</div>
-              <div className="text-[10px] text-emerald-600 font-medium mt-1">Across portfolio</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Graduation Rate</span>
-                <GraduationCap className="w-4 h-4 text-purple-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{graduationRate || 85}%</div>
-              <div className="text-[10px] text-purple-600 font-medium mt-1">Alumni completed</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Allocated Mentors</span>
-                <UserCheck className="w-4 h-4 text-indigo-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalMentorsAllocated}</div>
-              <div className="text-[10px] text-indigo-600 font-medium mt-1">General & SME pool</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Investor Allocated</span>
-                <TrendingUp className="w-4 h-4 text-teal-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalInvestorsAllocated}</div>
-              <div className="text-[10px] text-teal-600 font-medium mt-1">Warm to term sheets</div>
-            </div>
-
-            <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center justify-between text-slate-500 text-xs mb-1">
-                <span>Co-Incubator MOUs</span>
-                <Handshake className="w-4 h-4 text-amber-600" />
-              </div>
-              <div className="text-xl font-bold text-slate-900">{totalCoIncubations}</div>
-              <div className="text-[10px] text-amber-600 font-medium mt-1">Cross-hub alliances</div>
-            </div>
+        {/* KPI Stats Bar (6 Cards) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Total startups</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCount}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{activeCount} active</div>
           </div>
 
-          {/* Search & Filter Toolbar */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search startups by name, founder, industry..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full text-xs pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              <select
-                value={selectedIndustry}
-                onChange={(e) => setSelectedIndustry(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">All Industries</option>
-                <option value="HealthTech">HealthTech / AI</option>
-                <option value="FinTech">FinTech</option>
-                <option value="CleanTech">CleanTech</option>
-                <option value="AgriTech">AgriTech</option>
-                <option value="Cybersecurity">Cybersecurity</option>
-              </select>
-
-              <select
-                value={selectedStage}
-                onChange={(e) => setSelectedStage(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">All Stages</option>
-                <option value="Idea">Idea</option>
-                <option value="MVP">MVP</option>
-                <option value="Revenue">Revenue</option>
-                <option value="Growth">Growth</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="text-xs px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="name-asc">Sort: Name (A-Z)</option>
-                <option value="name-desc">Sort: Name (Z-A)</option>
-              </select>
-
-              <div className="border-l border-slate-200 pl-2 flex items-center gap-1">
-                <button
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                    viewMode === "grid"
-                      ? "bg-indigo-50 text-indigo-600 font-semibold"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  title="Grid View"
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                    viewMode === "list"
-                      ? "bg-indigo-50 text-indigo-600 font-semibold"
-                      : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                  title="List View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Capital raised</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCapitalRaisedFormatted}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Across portfolio</div>
           </div>
 
-          {/* Section Navigation Tabs */}
-          <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Graduation rate</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{graduationRate || 85}%</div>
+            <div className="text-xs text-slate-500 mt-0.5">Alumni completed</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Allocated mentors</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalMentorsAllocated}</div>
+            <div className="text-xs text-slate-500 mt-0.5">General & SME pool</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Investor allocated</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalInvestorsAllocated}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Warm to term sheets</div>
+          </div>
+
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <div className="text-xs font-normal text-slate-500">Co-incubator MOUs</div>
+            <div className="text-xl font-semibold text-slate-900 mt-1">{totalCoIncubations}</div>
+            <div className="text-xs text-slate-500 mt-0.5">Cross-hub alliances</div>
+          </div>
+        </div>
+
+        {/* Merged Filter & Status Tabs Row */}
+        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          {/* Status Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => setSectionFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'all'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span>All Startups</span>
+              <span>All</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
@@ -1120,16 +1069,16 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('queue')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'queue'
                   ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50/50'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <span>Queue (Pending)</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              <span>Pending</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
+                sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {queueStartups.length}
               </span>
@@ -1137,16 +1086,16 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('active')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'active'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50/50'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>Active</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'active' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'
+                sectionFilter === 'active' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
                 {activeStartups.length}
               </span>
@@ -1154,16 +1103,15 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('inactive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'inactive'
-                  ? 'bg-slate-600 text-white shadow-xs'
+                  ? 'bg-slate-700 text-white shadow-xs'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
               <span>Inactive</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'inactive' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600'
+                sectionFilter === 'inactive' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
                 {inactiveStartups.length}
               </span>
@@ -1171,42 +1119,111 @@ export const StartupsPage: React.FC = () => {
 
             <button
               onClick={() => setSectionFilter('exited')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'exited'
-                  ? 'bg-purple-600 text-white shadow-xs'
-                  : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-50/50'
+                  ? 'bg-slate-700 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-purple-500" />
               <span>Exited</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
-                sectionFilter === 'exited' ? 'bg-purple-700 text-white' : 'bg-purple-100 text-purple-800'
+                sectionFilter === 'exited' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
                 {exitedStartups.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setSectionFilter('co-incubated')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
+                sectionFilter === 'co-incubated'
+                  ? 'bg-purple-700 text-white shadow-xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span>Co-incubated</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
+                sectionFilter === 'co-incubated' ? 'bg-purple-800 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {coIncubatedStartups.length}
+              </span>
+            </button>
           </div>
 
-          {/* Section Content Display */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {sectionFilter === 'all' && <span className="w-2.5 h-2.5 rounded-full bg-slate-800" />}
-                {sectionFilter === 'queue' && <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />}
-                {sectionFilter === 'active' && <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />}
-                {sectionFilter === 'inactive' && <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />}
-                {sectionFilter === 'exited' && <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />}
-                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
-                  {sectionFilter === 'all' && 'All Startups'}
-                  {sectionFilter === 'queue' && 'Queue / Pending Assignment'}
-                  {sectionFilter === 'active' && 'Active Startups'}
-                  {sectionFilter === 'inactive' && 'Inactive Startups'}
-                  {sectionFilter === 'exited' && 'Exited Startups'}
-                </h2>
-                <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200">
-                  {displayedStartups.length}
-                </span>
-              </div>
+          {/* Filters, Search & View Controls */}
+          <div className="flex items-center gap-2 flex-1 justify-end min-w-[280px]">
+            <div className="relative max-w-xs flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search startups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full text-xs pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <select
+              value={selectedIndustry}
+              onChange={(e) => setSelectedIndustry(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">All industries</option>
+              <option value="HealthTech">HealthTech / AI</option>
+              <option value="FinTech">FinTech</option>
+              <option value="CleanTech">CleanTech</option>
+              <option value="AgriTech">AgriTech</option>
+              <option value="Cybersecurity">Cybersecurity</option>
+            </select>
+
+            <select
+              value={selectedStage}
+              onChange={(e) => setSelectedStage(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="ALL">All stages</option>
+              <option value="Idea">Idea</option>
+              <option value="MVP">MVP</option>
+              <option value="Revenue">Revenue</option>
+              <option value="Growth">Growth</option>
+            </select>
+
+            <div className="border-l border-slate-200 pl-2 flex items-center gap-1">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-slate-100 text-blue-600 font-semibold"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+                title="Grid view"
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-slate-100 text-blue-600 font-semibold"
+                    : "text-slate-500 hover:bg-slate-100"
+                }`}
+                title="List view"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Content Display */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-medium text-slate-900">
+                {displayedStartups.length} {displayedStartups.length === 1 ? 'startup' : 'startups'}
+              </h2>
+            </div>
               <p className="text-xs text-slate-400 hidden sm:block">
                 {sectionFilter === 'all' && 'All portfolio and applicant startups across all statuses'}
                 {sectionFilter === 'queue' && 'Startups with pending status assigned dashboard or awaiting cohort onboarding'}
@@ -1219,7 +1236,7 @@ export const StartupsPage: React.FC = () => {
             {displayedStartups.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
                 <Rocket className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <h3 className="text-xs font-semibold text-slate-700">No Startups Found</h3>
+                <h3 className="text-xs font-semibold text-slate-700">No startups found</h3>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-sm mx-auto">
                   {sectionFilter === 'queue' && 'The queue is currently empty. Newly assigned dashboards appear here with Pending status.'}
                   {sectionFilter === 'active' && 'No active startups found. Set a startup status to Active to display it here.'}
@@ -1248,7 +1265,6 @@ export const StartupsPage: React.FC = () => {
               />
             )}
           </div>
-        </div>
 
       {/* Startup Profile Modal (Drawer) */}
       <StartupDetailModal
@@ -1263,6 +1279,8 @@ export const StartupsPage: React.FC = () => {
         onAddCoIncubatorClick={handleTriggerAddCoIncubator}
         onSignMOUClick={handleTriggerSignMOU}
         onRemoveCoIncubator={handleRemoveCoIncubator}
+        onUpdateStartup={handleStartupUpdated}
+        isReadOnly={Boolean((selectedStartup as any)?.is_co_incubated)}
       />
 
       {/* Action Modals */}
@@ -1282,9 +1300,24 @@ export const StartupsPage: React.FC = () => {
 
       <AddCoIncubatorModal
         isOpen={isCoIncubatorModalOpen}
-        onClose={() => setIsCoIncubatorModalOpen(false)}
-        onAdd={handleConfirmAddCoIncubator}
+        onClose={() => {
+          setIsCoIncubatorModalOpen(false);
+          setPreselectedPartnerForAction(null);
+        }}
+        onAdd={(created) => {
+          if (targetStartupForAction) {
+            showToast(`Co-incubation request sent for ${targetStartupForAction.name}`);
+            if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+              setSelectedStartup({
+                ...selectedStartup,
+                coIncubators: [created, ...(selectedStartup.coIncubators || [])],
+              });
+            }
+          }
+        }}
         startupName={targetStartupForAction?.name || "Startup"}
+        startupId={targetStartupForAction?.id}
+        preselectedPartner={preselectedPartnerForAction}
       />
 
       <SignMOUModal
@@ -1301,7 +1334,7 @@ export const StartupsPage: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
-                <h3 className="font-semibold text-slate-800 text-base">Onboard New Startup</h3>
+                <h3 className="font-semibold text-slate-900 text-base">Onboard new startup</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Register a startup into the incubator cohort</p>
               </div>
               <button
@@ -1315,22 +1348,22 @@ export const StartupsPage: React.FC = () => {
             <form onSubmit={handleOnboardSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Startup Name *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Startup name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. HealthSync AI"
                     value={onboardForm.name}
                     onChange={(e) => setOnboardForm({ ...onboardForm, name: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Industry Sector</label>
+                  <label className="block text-xs text-slate-500 mb-1">Industry sector</label>
                   <select
                     value={onboardForm.industry}
                     onChange={(e) => setOnboardForm({ ...onboardForm, industry: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Tech">Technology / AI</option>
                     <option value="FinTech">FinTech</option>
@@ -1344,46 +1377,46 @@ export const StartupsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Full Name *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Founder full name *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. Priya Sharma"
                     value={onboardForm.founder}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founder: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Founder Email *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Founder email *</label>
                   <input
                     type="email"
                     required
                     placeholder="founder@startup.com"
                     value={onboardForm.founderEmail}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founderEmail: e.target.value })}
-                    className="w-full text-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Contact / Phone</label>
+                  <label className="block text-xs text-slate-500 mb-1">Contact / phone</label>
                   <input
                     type="tel"
                     placeholder="+1 (555) 000-0000"
                     value={onboardForm.founderPhone}
                     onChange={(e) => setOnboardForm({ ...onboardForm, founderPhone: e.target.value })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Stage</label>
+                  <label className="block text-xs text-slate-500 mb-1">Stage</label>
                   <select
                     value={onboardForm.stage}
                     onChange={(e) => setOnboardForm({ ...onboardForm, stage: e.target.value })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Idea">Idea</option>
                     <option value="MVP">MVP</option>
@@ -1394,11 +1427,11 @@ export const StartupsPage: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-indigo-700 mb-1">Status *</label>
+                  <label className="block text-xs text-slate-500 mb-1">Status *</label>
                   <select
                     value={onboardForm.status}
                     onChange={(e) => setOnboardForm({ ...onboardForm, status: e.target.value as 'Active' | 'Inactive' | 'Exited' })}
-                    className="w-full text-xs px-2.5 py-2 rounded-lg border-2 border-indigo-400 bg-indigo-50/50 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-10 text-xs px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Active">Active</option>
                     <option value="Pending">Pending (Queue)</option>
@@ -1409,7 +1442,7 @@ export const StartupsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Elevator Pitch / Tagline</label>
+                <label className="block text-xs text-slate-500 mb-1">Elevator pitch / tagline</label>
                 <textarea
                   rows={2}
                   value={onboardForm.pitch}
@@ -1431,7 +1464,7 @@ export const StartupsPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
-                  Add Startup
+                  Add startup
                 </button>
               </div>
             </form>

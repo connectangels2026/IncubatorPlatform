@@ -27,7 +27,7 @@ export const StartupList: React.FC<StartupListProps> = ({
         <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
           <Rocket className="w-6 h-6" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-800 mb-1">No Startups Found</h3>
+        <h3 className="text-sm font-semibold text-slate-800 mb-1">No startups found</h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
           No startups matched your search query or filter selection. Try clearing filters.
         </p>
@@ -81,7 +81,7 @@ export const StartupList: React.FC<StartupListProps> = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium text-xs">
               <th className="py-3 px-4">Startup</th>
               <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4">Stage</th>
@@ -89,7 +89,7 @@ export const StartupList: React.FC<StartupListProps> = ({
               <th className="py-3 px-4">Funding</th>
               <th className="py-3 px-4 text-center">Mentors</th>
               <th className="py-3 px-4 text-center">Investors</th>
-              <th className="py-3 px-4 text-center">Co-Incubators</th>
+              <th className="py-3 px-4 text-center">Co-incubators</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>

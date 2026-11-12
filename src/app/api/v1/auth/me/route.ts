@@ -23,17 +23,35 @@ export async function GET(req: NextRequest) {
 
       // 2. Query public.users table for profile (robust match by id or email)
       if (user.email || user.id) {
-        const cleanEmail = (user.email || '').trim();
-        const { data: uRec } = await supabaseAdmin
-          .from('users')
-          .select('id, organization_id, email, full_name, first_name, last_name, role')
-          .or(`id.eq.${user.id},email.ilike.${cleanEmail}`)
-          .maybeSingle();
+        const cleanEmail = (user.email || '').trim().toLowerCase();
+        let uRec: any = null;
+
+        const isValidUUID = (val?: string) =>
+          Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+        if (isValidUUID(user.id)) {
+          const { data: byId } = await supabaseAdmin
+            .from('users')
+            .select('id, organization_id, email, full_name, first_name, last_name, role')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (byId) uRec = byId;
+        }
+
+        if (!uRec && cleanEmail) {
+          const { data: byEmail } = await supabaseAdmin
+            .from('users')
+            .select('id, organization_id, email, full_name, first_name, last_name, role')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+          if (byEmail) uRec = byEmail;
+        }
 
         userProfile = uRec;
 
-        // 3. Fallback to org linked via public.users if not found by auth_user_id
-        if (!orgData && uRec?.organization_id) {
+        // 3. Fallback to org linked via public.users for incubator staff only (not startups or mentors)
+        const recRole = (uRec?.role || '').toLowerCase();
+        if (!orgData && uRec?.organization_id && !['startup', 'founder', 'mentor'].includes(recRole)) {
           const { data: org2 } = await supabaseAdmin
             .from('organizations')
             .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
@@ -55,10 +73,14 @@ export async function GET(req: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
-    const resolvedRole = isSuperAdmin ? 'super-admin' : (userProfile?.role ?? user?.role ?? null);
-    const isStartupUser = resolvedRole === 'startup' || resolvedRole === 'founder';
-    // Startups do not own an incubator organization
-    const effectiveOrgData = isStartupUser ? null : orgData;
+    const validRoles = ['startup', 'founder', 'mentor', 'incubator_admin', 'incubator', 'admin', 'pending_incubator', 'super-admin'];
+    const dbRole = userProfile?.role && validRoles.includes(userProfile.role.toLowerCase()) ? userProfile.role : null;
+    const userMetaRole = (user as any)?.user_metadata?.role;
+    const metaRole = userMetaRole && validRoles.includes(String(userMetaRole).toLowerCase()) ? userMetaRole : null;
+
+    const resolvedRole = isSuperAdmin
+      ? 'super-admin'
+      : (dbRole ?? metaRole ?? (orgData && !userProfile ? 'admin' : null));
 
     return NextResponse.json(
       {
@@ -67,11 +89,11 @@ export async function GET(req: NextRequest) {
           ...user,
           role: resolvedRole,
           is_super_admin: isSuperAdmin,
-          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || effectiveOrgData?.founder_name,
+          full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || orgData?.founder_name,
           user_table_full_name: userProfile?.full_name || [userProfile?.first_name, userProfile?.last_name].filter(Boolean).join(' ') || null,
-          founder_name: effectiveOrgData?.founder_name || userProfile?.full_name,
+          founder_name: orgData?.founder_name || userProfile?.full_name,
         },
-        organization: effectiveOrgData,
+        organization: orgData,
       },
       { status: 200 }
     );

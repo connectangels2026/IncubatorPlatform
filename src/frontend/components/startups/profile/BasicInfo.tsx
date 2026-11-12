@@ -1,18 +1,21 @@
-import React from 'react';
-import { Lightbulb, FileCheck, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lightbulb, FileCheck, Eye } from 'lucide-react';
 import { StartupItem } from '../types';
+import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 
 interface BasicInfoProps {
   startup: StartupItem;
-  onDownloadDeck?: () => void;
+  onViewDeck?: () => void;
 }
 
-export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
-  const handleDownload = () => {
-    if (onDownloadDeck) {
-      onDownloadDeck();
+export function BasicInfo({ startup, onViewDeck }: BasicInfoProps) {
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
+  const handleView = () => {
+    if (onViewDeck) {
+      onViewDeck();
     } else {
-      alert(`Downloading pitch deck for ${startup.name}`);
+      setIsViewerOpen(true);
     }
   };
 
@@ -20,20 +23,20 @@ export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
     <div className="p-5 space-y-4 text-xs text-slate-600 border-t border-slate-100">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-          <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+          <span className="text-xs font-medium text-slate-500 block mb-1">
             Problem Statement
           </span>
           <p>{startup.problem || 'Standard problem statement under incubation review.'}</p>
         </div>
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-          <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+          <span className="text-xs font-medium text-slate-500 block mb-1">
             Proposed Solution
           </span>
           <p>{startup.solution || startup.pitch || 'Modular software architecture and algorithms.'}</p>
         </div>
       </div>
       <div>
-        <span className="font-bold text-slate-900 uppercase text-[10px] tracking-wider block mb-1">
+        <span className="text-xs font-medium text-slate-500 block mb-1">
           Target Market & TAM
         </span>
         <p>{startup.market || 'Global Enterprise Technology ($25B TAM).'}</p>
@@ -45,13 +48,21 @@ export function BasicInfo({ startup, onDownloadDeck }: BasicInfoProps) {
         </div>
         <button
           type="button"
-          onClick={handleDownload}
+          onClick={handleView}
           className="text-blue-600 font-bold hover:underline cursor-pointer flex items-center gap-1"
         >
-          <Download className="w-3.5 h-3.5" />
-          Download PDF
+          <Eye className="w-3.5 h-3.5" />
+          View PDF
         </button>
       </div>
+
+      <FileViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => setIsViewerOpen(false)}
+        url={startup.pitch_deck_url}
+        title={`${startup.name} - Pitch Deck`}
+        type="pdf"
+      />
     </div>
   );
 }

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       if (error) {
         return NextResponse.redirect(new URL('/login?error=OAuthCallbackError', req.url));
       }
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+      return NextResponse.redirect(new URL('/incubator', req.url));
     }
 
     return NextResponse.json({ error: 'No code provided' }, { status: 400 });

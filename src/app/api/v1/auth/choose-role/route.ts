@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
-const VALID_ROLES = ['startup', 'incubator_admin', 'incubator'];
+const VALID_ROLES = ['startup', 'incubator_admin', 'incubator', 'mentor'];
 
 interface JwtPayload {
   sub: string;
@@ -123,11 +123,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user already has a role selected - smoothly redirect instead of blocking with 400 error
-    if (userData.role && userData.role !== null) {
-      const redirect_to = (userData.role === 'startup' || role === 'startup')
-        ? '/startup/application'
-        : '/auth/incubator-plans';
+    // If user already has the exact role selected, return cleanly
+    if (userData.role && userData.role === role) {
+      let redirect_to = '/auth/incubator-plans';
+      if (userData.role === 'startup' || role === 'startup') {
+        redirect_to = '/startup/application';
+      } else if (userData.role === 'mentor' || role === 'mentor') {
+        const { data: existingMentor } = await supabaseAdmin
+          .from('mentors')
+          .select('id')
+          .eq('user_id', userData.id)
+          .is('deleted_at', null)
+          .maybeSingle();
+        redirect_to = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
+      }
       return NextResponse.json(
         {
           success: true,
@@ -140,7 +149,12 @@ export async function POST(req: Request) {
     }
 
     const isStartupRole = role === 'startup';
-    const dbRoleToAssign = isStartupRole ? 'startup' : 'pending_incubator';
+    const isMentorRole = role === 'mentor';
+    const dbRoleToAssign = isStartupRole
+      ? 'startup'
+      : isMentorRole
+      ? 'mentor'
+      : 'pending_incubator';
 
     // Update user role in database - use the user's DB id (from lookup) not JWT sub
     const dbUserId = userData.id;
@@ -164,25 +178,51 @@ export async function POST(req: Request) {
     // If startup role, immediately create corresponding startup record if it does not exist
     if (isStartupRole) {
       const cleanEmail = (userEmail || userData.email || '').trim().toLowerCase();
-      const { data: existingStartup } = await supabaseAdmin
-        .from('startups')
-        .select('id')
-        .or(`founder_id.eq.${dbUserId},founder_email.ilike.${cleanEmail}`)
-        .limit(1)
-        .maybeSingle();
+      let existingStartup: any = null;
+      if (dbUserId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dbUserId)) {
+        const { data: sById } = await supabaseAdmin
+          .from('startups')
+          .select('id')
+          .eq('founder_id', dbUserId)
+          .limit(1)
+          .maybeSingle();
+        if (sById) existingStartup = sById;
+      }
+      if (!existingStartup && cleanEmail) {
+        const { data: sByEmail } = await supabaseAdmin
+          .from('startups')
+          .select('id')
+          .ilike('founder_email', cleanEmail)
+          .limit(1)
+          .maybeSingle();
+        if (sByEmail) existingStartup = sByEmail;
+      }
 
       if (!existingStartup) {
         const startupName = `${userData.full_name || userData.founder_name || userData.first_name || cleanEmail.split('@')[0] || 'My'}'s Startup`;
-        await supabaseAdmin.from('startups').insert({
+        const startupPayload: Record<string, any> = {
           founder_id: dbUserId,
           founder_email: cleanEmail,
           founder_name: userData.full_name || userData.founder_name || userData.first_name || 'Founder',
-          name: startupName,
+          startup_name: startupName,
           stage: 'Idea',
           status: 'active',
           is_active: true,
           created_by: dbUserId,
-        });
+        };
+
+        let { error: insErr } = await supabaseAdmin.from('startups').insert(startupPayload);
+        if (insErr && (insErr.message?.includes("'startup_name'") || (insErr as any).code === 'PGRST204')) {
+          delete startupPayload.startup_name;
+          startupPayload.name = startupName;
+          const retryRes = await supabaseAdmin.from('startups').insert(startupPayload);
+          insErr = retryRes.error;
+        }
+        if (insErr && ((insErr as any).code === '23503' || insErr.message?.includes('foreign key constraint'))) {
+          startupPayload.created_by = null;
+          startupPayload.founder_id = null;
+          await supabaseAdmin.from('startups').insert(startupPayload);
+        }
       }
     }
 
@@ -199,7 +239,11 @@ export async function POST(req: Request) {
     }
 
     // Determine redirect URL based on role
-    const redirect_to = isStartupRole ? '/startup/application' : '/auth/incubator-plans';
+    const redirect_to = isStartupRole
+      ? '/startup/application'
+      : isMentorRole
+      ? '/mentor/application-form'
+      : '/auth/incubator-plans';
 
     // Return success response
     return NextResponse.json(

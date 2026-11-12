@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       search: url.searchParams.get('search') || undefined,
       sort: (url.searchParams.get('sort') as any) || 'created_at',
       order: (url.searchParams.get('order') as any) || 'desc',
-      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 10,
+      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 100,
       offset: url.searchParams.get('offset') ? parseInt(url.searchParams.get('offset')!, 10) : 0,
     };
 
@@ -53,12 +53,15 @@ export async function POST(req: NextRequest) {
     if (tenantError) return tenantError;
 
     const body = await req.json();
-    if (!body.name || !body.founder_name) {
-      return NextResponse.json({ error: 'Validation Error: name and founder_name are required' }, { status: 400 });
+    const resolvedName = body.startup_name || body.name;
+    if (!resolvedName || !body.founder_name) {
+      return NextResponse.json({ error: 'Validation Error: startup_name and founder_name are required' }, { status: 400 });
     }
 
     const created = await StartupService.createStartup({
       ...body,
+      startup_name: resolvedName,
+      name: resolvedName,
       founder_id: role === 'founder' ? user?.id : (body.founder_id || user?.id),
       organization_id: orgId!,
     });

@@ -339,7 +339,7 @@ Arba Incubator Platform`
                     <div className="text-xs space-y-3">
                       <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 overflow-x-auto">
                         <div className="min-w-[360px] space-y-1.5">
-                          <div className="grid grid-cols-12 gap-2 text-[11px] text-slate-400 font-semibold uppercase">
+                          <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 font-medium">
                             <span className="col-span-4">Label</span>
                             <span className="col-span-5">Key</span>
                             <span className="col-span-3 text-right">Created</span>
@@ -635,7 +635,7 @@ Arba Incubator Platform`
                     </div>
 
                     <div className="space-y-3 text-xs">
-                      <div className="text-[11px] text-slate-400 font-semibold uppercase">
+                      <div className="text-xs text-slate-500 font-medium">
                         Device
                       </div>
 

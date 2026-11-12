@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
+import { StartupService as UnifiedStartupService } from '@/backend/services/startupService';
 import { StartupService } from '@/modules/startups/services';
+import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,28 +12,59 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
 
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
+    const { orgId } = requireOrg(req);
 
-    const startup = await StartupService.getStartupById(id, orgId!);
+    const startup = await UnifiedStartupService.getStartup(id, user);
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
     }
 
-    // Ownership check: non-staff can only view their own startup
+    // Ownership & Tenant check
     const role = user?.role?.toLowerCase() || '';
-    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
-    if (!isStaff && user?.email) {
-      const isOwner =
-        Boolean(startup.founder_id && startup.founder_id === user?.id) ||
-        Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user.email.toLowerCase()) ||
-        Boolean(startup.email && startup.email.toLowerCase() === user.email.toLowerCase());
-      if (!isOwner) {
+    const isSuperAdmin = role === 'super-admin' || role === 'super_admin';
+    const isStaff = isSuperAdmin || role === 'admin' || role === 'incubator_admin' || role === 'incubator';
+    const isOwner =
+      Boolean(startup.founder_id && startup.founder_id === user?.id) ||
+      Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
+      Boolean(startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
+
+    if (!isSuperAdmin && !isOwner) {
+      if (isStaff && orgId && startup.organization_id !== orgId) {
+        return NextResponse.json({ error: 'Forbidden: Startup does not belong to this organization' }, { status: 403 });
+      }
+
+      if (!isStaff) {
         return NextResponse.json({ error: 'Forbidden: Founders can only view their own startup' }, { status: 403 });
       }
     }
 
-    return NextResponse.json({ success: true, data: startup });
+    // Query organization_activity_log for startup-related logs
+    let activityLogs: any[] = [];
+    try {
+      const { data: logs } = await supabaseAdmin
+        .from('organization_activity_log')
+        .select('*')
+        .eq('organization_id', startup.organization_id || orgId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (logs) {
+        activityLogs = logs.filter((l: any) =>
+          l.metadata?.startup_id === id ||
+          (l.description && (startup.startup_name || startup.name) && l.description.toLowerCase().includes((startup.startup_name || startup.name).toLowerCase()))
+        );
+      }
+    } catch {
+      // Activity log query error ignored gracefully
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...startup,
+        activity_logs: activityLogs,
+      },
+    });
   } catch (error) {
     return handleApiError(error);
   }
@@ -43,36 +76,73 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
 
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
-
-    const startup = await StartupService.getStartupById(id, orgId!);
+    const { orgId } = requireOrg(req);
+    const startup = await UnifiedStartupService.getStartup(id, user);
     if (!startup) {
       return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
     }
 
     const role = user?.role?.toLowerCase() || '';
-    const isStaff = role === 'admin' || role === 'super-admin' || role === 'super_admin' || role === 'incubator_admin' || role === 'incubator';
-    if (!isStaff) {
-      const isOwner =
-        (startup.founder_id && startup.founder_id === user?.id) ||
-        ((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
-        (startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
-      if (!isOwner) {
+    const isSuperAdmin = role === 'super-admin' || role === 'super_admin';
+    const isStaff = isSuperAdmin || role === 'admin' || role === 'incubator_admin' || role === 'incubator';
+    const isOwner =
+      Boolean(startup.founder_id && startup.founder_id === user?.id) ||
+      Boolean(((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase())) ||
+      Boolean(startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
+
+    if (!isSuperAdmin && !isOwner) {
+      if (!isStaff) {
         return NextResponse.json({ error: 'Forbidden: Founders can only update their own startup' }, { status: 403 });
+      }
+      if (!orgId) {
+        return NextResponse.json({ error: 'Organization ID is required for staff updates' }, { status: 400 });
+      }
+      if (startup.organization_id && startup.organization_id !== orgId) {
+        return NextResponse.json({ error: 'Forbidden: Startup does not belong to your organization' }, { status: 403 });
       }
     }
 
     const body = await req.json();
-    const updated = await StartupService.updateStartup(id, orgId!, body);
-    if (!updated) {
-      return NextResponse.json({ error: 'Startup not found or update failed' }, { status: 404 });
+
+    // Support "request_change" action for incubator staff
+    if (body.action === 'request_change') {
+      const changeNote = body.note || body.description || 'Change request submitted by incubator';
+      const targetField = body.field || 'General';
+
+      try {
+        await supabaseAdmin.from('organization_activity_log').insert({
+          organization_id: orgId!,
+          action: 'startup_change_requested',
+          description: `Change requested for ${startup.startup_name || startup.name}: [${targetField}] ${changeNote}`,
+          triggered_by: user?.email || 'Incubator Staff',
+          triggered_by_id: user?.id || null,
+          metadata: {
+            startup_id: id,
+            startup_name: startup.startup_name || startup.name,
+            field: targetField,
+            note: changeNote,
+          },
+        });
+      } catch (logErr) {
+        console.warn('Failed to log change request:', logErr);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Change request logged successfully',
+        data: { id, action: 'request_change', note: changeNote, field: targetField },
+      });
     }
 
-    return NextResponse.json({ success: true, data: updated });
+    const updated = await UnifiedStartupService.updateStartup(id, body, user);
+    return NextResponse.json({ success: true, data: updated, startup: updated });
   } catch (error) {
     return handleApiError(error);
   }
+}
+
+export async function PATCH(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  return PUT(req, context);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

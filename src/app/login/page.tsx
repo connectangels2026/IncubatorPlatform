@@ -100,6 +100,8 @@ function LoginForm() {
         role === 'incubator_admin' ||
         role === 'incubator';
 
+      let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
       if (isIncubatorRole) {
         if (!effectiveOrgId) {
           const meData = await fetchMeWithAuth();
@@ -108,14 +110,39 @@ function LoginForm() {
             if (typeof window !== 'undefined' && effectiveOrgId) localStorage.setItem('org_id', effectiveOrgId);
           }
         }
-        router.push(effectiveOrgId ? `/dashboard?org=${effectiveOrgId}` : '/dashboard');
+        router.push(effectiveOrgId ? `/incubator?org=${effectiveOrgId}` : '/incubator');
         return;
       }
 
-      // 3. Pending incubator routing
-      if (role === 'pending_incubator') {
-        router.push('/auth/incubator-plans');
+      if (role === 'mentor') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const mRes = await fetch('/api/v1/mentors/apply', {
+            headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          });
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            router.push(mData?.existingApplication ? '/mentor/dashboard' : '/mentor/application-form');
+            return;
+          }
+        } catch {
+          // fallback below
+        }
+        router.push('/mentor/dashboard');
         return;
+      }
+
+      // 3. Check if user owns an incubator organization in database
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        const meData = await meRes.json();
+        if (meData?.organization?.id) {
+          if (typeof window !== 'undefined') localStorage.setItem('org_id', meData.organization.id);
+          router.push(`/incubator?org=${meData.organization.id}`);
+          return;
+        }
+      } catch (e) {
+        // Fallback to startup application checks
       }
 
       // 4. Startup routing: check if user has an active startup record
@@ -132,6 +159,19 @@ function LoginForm() {
           if (typeof window !== 'undefined' && data.startup.organization_id) {
             localStorage.setItem('org_id', data.startup.organization_id);
           }
+
+          // Check if startup track (software, hardware, or both) has been selected
+          const existingTrack =
+            data.startup.track ||
+            data.application?.form_data?.startup_track ||
+            (session?.user as any)?.user_metadata?.startup_track ||
+            (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null);
+
+          if (!existingTrack) {
+            router.push('/choose-role');
+            return;
+          }
+
           router.push('/startup/dashboard');
           return;
         }

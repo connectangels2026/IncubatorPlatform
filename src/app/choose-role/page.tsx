@@ -25,6 +25,13 @@ export default function ChooseRolePage() {
         return;
       }
 
+      // If user hasn't selected an account role yet, send to role selector
+      const userRole = (user as any)?.role || (user as any)?.user_metadata?.role || (typeof window !== 'undefined' ? localStorage.getItem('user_role') : null);
+      if (user && !userRole) {
+        router.replace('/auth/choose-role');
+        return;
+      }
+
       if (user?.email) {
         try {
           const res = await fetch(`/api/v1/applications/status?email=${encodeURIComponent(user.email)}`);
@@ -73,6 +80,11 @@ export default function ChooseRolePage() {
           { headers }
         );
       }
+
+      // Also persist directly to startups table if startup record exists
+      try {
+        await apiClient.put('/startups/me', { track }, { headers });
+      } catch {}
 
       // Also persist to localStorage for fast local routing
       if (typeof window !== 'undefined') {

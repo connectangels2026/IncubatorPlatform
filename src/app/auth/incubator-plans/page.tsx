@@ -231,7 +231,7 @@ export default function IncubatorPlansPage() {
 
         {/* Header Section */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-semibold uppercase tracking-wider mb-5 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-blue-700 text-xs font-medium mb-5 shadow-xs">
             <Sparkles className="w-3.5 h-3.5 text-blue-600" />
             <span>Incubator Operating Infrastructure</span>
           </div>
@@ -265,7 +265,7 @@ export default function IncubatorPlansPage() {
               }`}
             >
               <span>Annual Billing</span>
-              <span className="bg-cyan-400 text-[#1A2151] text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+              <span className="bg-cyan-400 text-[#1A2151] text-[10px] font-bold px-2 py-0.5 rounded-full">
                 Save 20%
               </span>
             </button>
@@ -290,7 +290,7 @@ export default function IncubatorPlansPage() {
                 {/* Badge for Featured Plan */}
                 {plan.badge && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-white text-[11px] font-black uppercase tracking-wider shadow-md shadow-blue-500/30">
+                    <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#0066ff] to-[#00d4ff] text-white text-[11px] font-semibold shadow-md shadow-blue-500/30">
                       {plan.badge}
                     </span>
                   </div>
@@ -349,8 +349,8 @@ export default function IncubatorPlansPage() {
 
                   {/* Features */}
                   <div className="space-y-3 mb-8">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      Included Capabilities
+                    <p className="text-xs font-medium text-slate-500">
+                      Included capabilities
                     </p>
                     {plan.features.map((feature, idx) => (
                       <div key={idx} className="flex items-start gap-2.5">

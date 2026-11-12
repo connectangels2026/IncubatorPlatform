@@ -492,8 +492,8 @@ export default function SuperAdminApplicationsPage() {
         {/* Top Executive 64px Navbar */}
         <header className="h-16 bg-white border-b border-slate-200/90 px-6 sm:px-8 flex items-center justify-between shrink-0 shadow-2xs z-20">
           <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded-lg bg-[#1A2151] text-white font-mono text-[11px] font-extrabold tracking-wider">
-              SUPER ADMIN GOVERNANCE
+            <span className="px-2.5 py-1 rounded-lg bg-[#1A2151] text-white text-xs font-semibold">
+              Super Admin Governance
             </span>
             <span className="text-slate-300">|</span>
             <span className="text-xs text-slate-500 font-medium hidden md:inline">
@@ -684,7 +684,7 @@ export default function SuperAdminApplicationsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  <tr className="bg-slate-50/90 border-b border-slate-200/80 text-xs font-medium text-slate-500">
                     <th className="py-3.5 px-5">Applicant & Startup</th>
                     <th className="py-3.5 px-4">Program & Fee Status</th>
                     <th className="py-3.5 px-4">Stage & Traction</th>
@@ -899,7 +899,7 @@ export default function SuperAdminApplicationsPage() {
                   <Building2 className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div className="text-left">
-                  <span className="text-[10px] uppercase tracking-wider font-extrabold text-cyan-300 block">
+                  <span className="text-xs font-medium text-cyan-300 block">
                     Target Incubator
                   </span>
                   <span className="text-sm sm:text-base font-black text-white tracking-tight">
@@ -961,16 +961,16 @@ export default function SuperAdminApplicationsPage() {
                   )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">Phone & WhatsApp</span>
+                      <span className="text-xs text-slate-500">Phone & WhatsApp</span>
                       <p className="font-bold text-[#1A2151] text-sm">{activeApp.dossier.phone}</p>
                     </div>
                     <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-1">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">Primary Location</span>
+                      <span className="text-xs text-slate-500">Primary Location</span>
                       <p className="font-bold text-[#1A2151] text-sm">{activeApp.dossier.location}</p>
                     </div>
                   </div>
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase">Founder Experience & Bio</span>
+                    <span className="text-xs text-slate-500">Founder Experience & Bio</span>
                     <p className="text-slate-700 leading-relaxed font-medium">{activeApp.dossier.experience}</p>
                   </div>
                 </div>
@@ -979,11 +979,11 @@ export default function SuperAdminApplicationsPage() {
               {dossierTab === 2 && (
                 <div className="space-y-4">
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase">The Core Problem Addressed</span>
+                    <span className="text-xs text-slate-500">The Core Problem Addressed</span>
                     <p className="text-slate-700 leading-relaxed font-medium">{activeApp.dossier.problem}</p>
                   </div>
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase">Product Solution & Differentiation</span>
+                    <span className="text-xs text-slate-500">Product Solution & Differentiation</span>
                     <p className="text-slate-700 leading-relaxed font-medium">{activeApp.dossier.solution}</p>
                   </div>
                 </div>
@@ -993,20 +993,20 @@ export default function SuperAdminApplicationsPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div className="p-3 bg-white rounded-xl border border-slate-200">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">TAM Estimate</span>
+                      <span className="text-xs text-slate-500">TAM Estimate</span>
                       <p className="font-extrabold text-[#1A2151] mt-1">{activeApp.dossier.tam}</p>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-slate-200">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">Monthly Burn</span>
+                      <span className="text-xs text-slate-500">Monthly Burn</span>
                       <p className="font-extrabold text-[#1A2151] mt-1">{activeApp.dossier.burn}</p>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-slate-200">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">Traction</span>
+                      <span className="text-xs text-slate-500">Traction</span>
                       <p className="font-extrabold text-emerald-600 mt-1">{activeApp.traction}</p>
                     </div>
                   </div>
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2 text-xs">
-                    <span className="text-[10px] font-extrabold text-slate-400 uppercase">Business Model & Revenue</span>
+                    <span className="text-xs text-slate-500">Business Model & Revenue</span>
                     <p className="text-slate-700 leading-relaxed font-medium">{activeApp.dossier.revenueModel}</p>
                   </div>
                 </div>
@@ -1016,7 +1016,7 @@ export default function SuperAdminApplicationsPage() {
                 <div className="space-y-4">
                   <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase">Weekly Hours Dedicated</span>
+                      <span className="text-xs text-slate-500">Weekly Hours Dedicated</span>
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-extrabold">
                         {activeApp.dossier.weeklyHours}
                       </span>
