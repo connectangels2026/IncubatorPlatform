@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,14 +15,18 @@ import { useAuth } from '@/frontend/context/AuthContext';
 
 export default function Home() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { user, logout, organization } = useAuth();
 
-  // Read cached role synchronously so there is zero delay/flicker
-  const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-  const cachedToken = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
-  const isLoggedIn = Boolean(user || cachedRole || cachedToken);
+  // Read cached role only after mount so SSR HTML matches initial client render (prevents hydration mismatch)
+  const cachedRole = mounted ? localStorage.getItem('user_role') : null;
+  const cachedToken = mounted ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
+  const isLoggedIn = mounted && Boolean(user || cachedRole || cachedToken);
   const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
   const emailLower = (user?.email || '').toLowerCase().trim();
   const isSuperAdmin = (user as any)?.is_super_admin === true || userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';

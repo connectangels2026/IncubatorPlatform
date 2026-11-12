@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { signUp } from '@/backend/services/auth';
 import { logAuthEvent } from '@/backend/lib/session';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
@@ -113,7 +114,7 @@ export async function POST(req: Request) {
     const trimmedEmail = email.trim().toLowerCase();
 
     // Check for duplicate email in auth and public tables
-    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const duplicateAuthUser = usersData?.users?.some(
       (u) => u.email?.toLowerCase() === trimmedEmail
     );
@@ -121,7 +122,8 @@ export async function POST(req: Request) {
     const { data: existingPublicUser } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('email', trimmedEmail)
+      .ilike('email', trimmedEmail)
+      .limit(1)
       .maybeSingle();
 
     if (duplicateAuthUser || existingPublicUser) {
@@ -178,9 +180,10 @@ export async function POST(req: Request) {
     const firstName = nameArray[0] || 'User';
     const lastName = nameArray.slice(1).join(' ') || '';
 
-    const { data: userData, error: userError } = await supabaseAdmin
+    let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
+        id: data.user.id,
         organization_id: null, // No organization created here
         email: trimmedEmail,
         first_name: firstName,
@@ -192,6 +195,25 @@ export async function POST(req: Request) {
       })
       .select()
       .single();
+
+    if (userError) {
+      const retry = await supabaseAdmin
+        .from('users')
+        .insert({
+          organization_id: null,
+          email: trimmedEmail,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: founder_name.trim(),
+          is_active: true,
+          email_verified: true,
+          role: null,
+        })
+        .select()
+        .single();
+      userData = retry.data;
+      userError = retry.error;
+    }
 
     // Auto-confirm user in Supabase Auth and ensure role is explicitly null until user chooses a role
     if (data?.user?.id) {
@@ -232,18 +254,61 @@ export async function POST(req: Request) {
       );
     }
 
-    // Return success response matching criteria
-    return NextResponse.json(
+    // Establish authenticated session + auth cookies immediately for protected routes
+    let activeSession = (data as any)?.session || null;
+    if (!activeSession) {
+      try {
+        const anonClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        const { data: signInData } = await anonClient.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+        if (signInData?.session) {
+          activeSession = signInData.session;
+        }
+      } catch {}
+    }
+
+    const response = NextResponse.json(
       {
         success: true,
-        message: 'Signup successful. Please verify your email to continue.',
+        message: 'Signup successful.',
         user_id: userData.id,
         email: trimmedEmail,
         founder_name: founder_name.trim(),
         auth_user_id: data.user.id,
+        session: activeSession
+          ? {
+              access_token: activeSession.access_token,
+              refresh_token: activeSession.refresh_token,
+            }
+          : null,
       },
       { status: 201 }
     );
+
+    if (activeSession?.access_token && activeSession?.refresh_token) {
+      response.cookies.set('refresh_token', activeSession.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+      response.cookies.set('sb-access-token', activeSession.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+    }
+
+    return response;
   } catch (err: any) {
     console.error('Signup error:', err);
     return NextResponse.json(
