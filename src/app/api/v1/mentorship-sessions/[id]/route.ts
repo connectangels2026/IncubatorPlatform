@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { NotificationService } from '@/backend/services/notificationService';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -70,9 +71,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const { data: existing, error: fetchErr } = await supabaseAdmin
       .from('mentorship_sessions')
-      .select('*')
+      .select(`
+        *,
+        mentor:mentors (id, user_id, user:users(id, first_name, last_name, full_name, email)),
+        startup:startups (*)
+      `)
       .eq('id', id)
-      .eq('organization_id', realOrgId)
       .single();
 
     if (fetchErr || !existing) {
@@ -89,6 +93,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (body.meeting_mode !== undefined) updates.meeting_mode = body.meeting_mode;
     if (body.agenda !== undefined) updates.agenda = body.agenda;
     if (body.status !== undefined) updates.status = body.status;
+    if (body.decline_reason !== undefined) updates.decline_reason = body.decline_reason;
     if (body.attended !== undefined) updates.attended = Boolean(body.attended);
     if (body.session_notes !== undefined) updates.session_notes = body.session_notes;
     if (body.action_points !== undefined) updates.action_points = body.action_points;
@@ -97,8 +102,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const newDate = body.scheduled_date || existing.scheduled_date;
     const newStart = body.start_time || existing.start_time;
     const newEnd = body.end_time || existing.end_time;
+    const isRescheduling = Boolean(body.scheduled_date || body.start_time || body.end_time);
 
-    if (body.scheduled_date || body.start_time || body.end_time) {
+    if (isRescheduling) {
       const newStartMin = timeToMinutes(newStart);
       const newEndMin = timeToMinutes(newEnd);
 
@@ -112,7 +118,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         .eq('mentor_id', existing.mentor_id)
         .eq('scheduled_date', newDate)
         .neq('id', id)
-        .neq('status', 'cancelled');
+        .not('status', 'in', '("cancelled","declined")');
 
       const hasConflict = (conflicts || []).some((s) => {
         const sStartMin = timeToMinutes(s.start_time);
@@ -137,17 +143,60 @@ export async function PUT(req: NextRequest, { params }: Params) {
       .from('mentorship_sessions')
       .update(updates)
       .eq('id', id)
-      .select(`
-        *,
-        mentor:mentors (
-          id,
-          user:users (first_name, last_name, email)
-        ),
-        startup:startups (id, name, founder_email)
-      `)
+      .select('*')
       .single();
 
-    if (updateErr) throw updateErr;
+    if (updateErr) {
+      if ((updateErr as any).code === '23505') {
+        return NextResponse.json(
+          { error: 'Cannot reschedule: This mentor slot is already booked' },
+          { status: 409 }
+        );
+      }
+      throw updateErr;
+    }
+
+    // Notify counterparty on status change or reschedule
+    try {
+      const { user: caller } = await verifyAuth(req);
+      const mentorUser = Array.isArray(existing.mentor?.user) ? existing.mentor.user[0] : existing.mentor?.user;
+      const startupRow = existing.startup;
+      const isMentorActor = caller?.id && mentorUser?.id && caller.id === mentorUser.id;
+      const statusChanged = Boolean(body.status && body.status !== existing.status);
+
+      if (isRescheduling || statusChanged) {
+        const startupName = startupRow?.startup_name || startupRow?.name || 'Startup';
+        const mentorName =
+          mentorUser?.full_name ||
+          [mentorUser?.first_name, mentorUser?.last_name].filter(Boolean).join(' ').trim() ||
+          'Mentor';
+        const title = statusChanged
+          ? `Session ${updates.status}: ${existing.session_title}`
+          : `Session Rescheduled: ${existing.session_title}`;
+        const message = isMentorActor
+          ? `${mentorName} updated session "${existing.session_title}" to ${updates.status || 'rescheduled'} (${newDate} ${String(newStart).slice(0, 5)}).`
+          : `${startupName} updated session "${existing.session_title}" (${updates.status || `moved to ${newDate} ${String(newStart).slice(0, 5)}`}).`;
+
+        const targetId = isMentorActor ? startupRow?.founder_id : mentorUser?.id;
+        const targetEmail = isMentorActor ? startupRow?.founder_email : mentorUser?.email;
+        if (targetId && isValidUUID(targetId)) {
+          await NotificationService.createNotification({
+            organization_id: existing.organization_id,
+            recipient_id: targetId,
+            recipient_email: targetEmail || undefined,
+            title,
+            message,
+            notification_type: 'mentorship_booking',
+            send_email: true,
+            send_in_app: true,
+            related_entity_type: 'mentorship_session',
+            related_entity_id: id,
+          });
+        }
+      }
+    } catch (nErr) {
+      console.warn('Session update notification skipped:', nErr);
+    }
 
     return NextResponse.json({
       success: true,
@@ -161,15 +210,23 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user: caller, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
-    const { orgId, errorResponse: tenantError } = requireOrg(req);
-    if (tenantError) return tenantError;
 
     const { id } = await params;
-    const realOrgId = resolveOrg(orgId);
 
-    // Cancel session (sets status = 'cancelled')
+    const { data: existing } = await supabaseAdmin
+      .from('mentorship_sessions')
+      .select(`
+        *,
+        mentor:mentors (id, user_id, user:users(id, email)),
+        startup:startups (*)
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!existing) return NextResponse.json({ error: 'Mentorship session not found' }, { status: 404 });
+
     const { data: session, error } = await supabaseAdmin
       .from('mentorship_sessions')
       .update({
@@ -177,12 +234,31 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('organization_id', realOrgId)
-      .select()
+      .select('*')
       .single();
 
     if (error) throw error;
-    if (!session) return NextResponse.json({ error: 'Mentorship session not found' }, { status: 404 });
+
+    try {
+      const mentorUser = Array.isArray(existing.mentor?.user) ? existing.mentor.user[0] : existing.mentor?.user;
+      const isMentorActor = caller?.id && mentorUser?.id && caller.id === mentorUser.id;
+      const targetId = isMentorActor ? existing.startup?.founder_id : mentorUser?.id;
+      const targetEmail = isMentorActor ? existing.startup?.founder_email : mentorUser?.email;
+      if (targetId && isValidUUID(targetId)) {
+        await NotificationService.createNotification({
+          organization_id: existing.organization_id,
+          recipient_id: targetId,
+          recipient_email: targetEmail || undefined,
+          title: `Session Cancelled: ${existing.session_title}`,
+          message: `The mentorship session on ${existing.scheduled_date} (${String(existing.start_time || '').slice(0, 5)}) was cancelled.`,
+          notification_type: 'mentorship_booking',
+          send_email: true,
+          send_in_app: true,
+          related_entity_type: 'mentorship_session',
+          related_entity_id: id,
+        });
+      }
+    } catch {}
 
     return NextResponse.json({
       success: true,

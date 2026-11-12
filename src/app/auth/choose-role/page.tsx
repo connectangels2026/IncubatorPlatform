@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Rocket, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Building2, Rocket, ArrowRight, CheckCircle2, GraduationCap } from 'lucide-react';
 import { supabase } from '@/backend/lib/supabase';
 import { useAuth } from '@/frontend/context/AuthContext';
 import Logo from '@/frontend/components/ui/Logo';
@@ -11,7 +11,7 @@ export default function ChooseRolePage() {
   const router = useRouter();
   const { refreshOrg } = useAuth();
   const [user, setUser] = useState<any>(null);
-  const [selectedRole, setSelectedRole] = useState<'startup' | 'incubator_admin' | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'startup' | 'incubator_admin' | 'mentor' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -23,7 +23,19 @@ export default function ChooseRolePage() {
 
     const checkAuthAndRole = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
+
+        if (!session?.user) {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user) {
+            session = (await supabase.auth.getSession()).data.session;
+          } else {
+            // Brief grace period for client auth state restoration
+            await new Promise((r) => setTimeout(r, 400));
+            const retry = await supabase.auth.getSession();
+            session = retry.data.session;
+          }
+        }
 
         if (!session?.user) {
           router.replace('/signup');
@@ -51,8 +63,8 @@ export default function ChooseRolePage() {
             if (data?.user?.role) {
               existingRole = data.user.role;
             }
-            if (data?.organization?.id) {
-              router.replace(`/dashboard?org=${data.organization.id}`);
+            if (data?.organization?.id && (data?.user?.role === 'incubator_admin' || data?.user?.role === 'admin' || data?.user?.role === 'incubator')) {
+              router.replace(`/incubator?org=${data.organization.id}`);
               return;
             }
           }
@@ -90,7 +102,11 @@ export default function ChooseRolePage() {
             router.replace('/auth/incubator-plans');
             return;
           }
-          router.replace('/dashboard');
+          if (existingRole === 'mentor') {
+            router.replace('/mentor/dashboard');
+            return;
+          }
+          router.replace('/incubator');
           return;
         }
 
@@ -99,9 +115,9 @@ export default function ChooseRolePage() {
         setUser(session.user);
         // Extract user name from email or user metadata
         const displayName = session.user.user_metadata?.full_name ||
-                           session.user.user_metadata?.name ||
-                           session.user.email?.split('@')[0] ||
-                           'there';
+          session.user.user_metadata?.name ||
+          session.user.email?.split('@')[0] ||
+          'there';
         setUserName(displayName);
         setAuthChecked(true);
       } catch (err) {
@@ -117,7 +133,7 @@ export default function ChooseRolePage() {
     };
   }, [router]);
 
-  const handleRoleSelection = async (role: 'startup' | 'incubator_admin') => {
+  const handleRoleSelection = async (role: 'startup' | 'incubator_admin' | 'mentor') => {
     if (!user?.id) {
       setError('User ID not found');
       return;
@@ -164,7 +180,13 @@ export default function ChooseRolePage() {
         // Refresh the profile so the new role is available to protected routes.
         await refreshOrg();
         // Redirect based on role or backend suggestion
-        const destination = data.redirect_to || (assignedRole === 'startup' ? '/startup/application' : '/auth/incubator-plans');
+        const destination =
+          data.redirect_to ||
+          (assignedRole === 'startup'
+            ? '/startup/application'
+            : assignedRole === 'mentor'
+            ? '/mentor/application-form'
+            : '/auth/incubator-plans');
         router.push(destination);
       } else {
         setError(data.error || data.message || 'Failed to select role');
@@ -206,7 +228,7 @@ export default function ChooseRolePage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 w-full max-w-2xl mx-auto my-auto">
+      <div className="relative z-10 w-full max-w-4xl mx-auto my-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-[40px] sm:text-[48px] font-extrabold tracking-tight text-slate-900 leading-tight mb-3">
@@ -225,16 +247,15 @@ export default function ChooseRolePage() {
         )}
 
         {/* Role Selection Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Startup Card */}
           <button
             onClick={() => handleRoleSelection('startup')}
             disabled={isLoading}
-            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${
-              selectedRole === 'startup'
+            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${selectedRole === 'startup'
                 ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-500/20'
                 : 'border-slate-200 bg-white hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10'
-            } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {/* Check Icon */}
             {selectedRole === 'startup' && (
@@ -277,11 +298,10 @@ export default function ChooseRolePage() {
           <button
             onClick={() => handleRoleSelection('incubator_admin')}
             disabled={isLoading}
-            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${
-              selectedRole === 'incubator_admin'
+            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${selectedRole === 'incubator_admin'
                 ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-500/20'
                 : 'border-slate-200 bg-white hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/10'
-            } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             {/* Check Icon */}
             {selectedRole === 'incubator_admin' && (
@@ -317,6 +337,52 @@ export default function ChooseRolePage() {
                 {selectedRole === 'incubator_admin' ? 'Selected' : 'Select'}
               </span>
               <ArrowRight className={`w-4 h-4 transition-transform ${selectedRole === 'incubator_admin' ? 'translate-x-1 text-cyan-600' : 'text-slate-400 group-hover:translate-x-1'}`} />
+            </div>
+          </button>
+
+          {/* Mentor Card */}
+          <button
+            onClick={() => handleRoleSelection('mentor')}
+            disabled={isLoading}
+            className={`relative p-8 rounded-2xl border-2 transition-all duration-300 text-left group ${selectedRole === 'mentor'
+                ? 'border-emerald-500 bg-emerald-50 shadow-lg shadow-emerald-500/20'
+                : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10'
+              } ${isLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            {/* Check Icon */}
+            {selectedRole === 'mentor' && (
+              <div className="absolute top-4 right-4 w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+            )}
+
+            {/* Icon */}
+            <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-200 transition">
+              <GraduationCap className="w-6 h-6" />
+            </div>
+
+            {/* Content */}
+            <h3 className="text-lg font-bold text-slate-900 mb-2">I&apos;m a Mentor</h3>
+            <p className="text-sm text-slate-600 mb-6">
+              Guide cohort startups, share domain expertise, and host office hours
+            </p>
+
+            {/* Benefits List */}
+            <ul className="space-y-2 mb-6">
+              {['Mentor cohort startups', 'Manage availability slots', 'Track session feedback'].map((benefit, idx) => (
+                <li key={idx} className="flex items-center gap-2 text-xs text-slate-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+
+            {/* Button */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <span className="text-xs font-semibold text-slate-500">
+                {selectedRole === 'mentor' ? 'Selected' : 'Select'}
+              </span>
+              <ArrowRight className={`w-4 h-4 transition-transform ${selectedRole === 'mentor' ? 'translate-x-1 text-emerald-600' : 'text-slate-400 group-hover:translate-x-1'}`} />
             </div>
           </button>
         </div>

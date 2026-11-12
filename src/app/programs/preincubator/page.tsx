@@ -220,6 +220,17 @@ const SUPPORT_OPTIONS = [
   'Financial Modeling',
 ];
 
+const inputClass =
+  'w-full h-10 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors';
+
+const textareaClass =
+  'w-full p-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors';
+
+const selectClass =
+  'w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors';
+
+const labelClass = 'block text-xs font-medium text-slate-600 mb-1.5';
+
 export default function PreIncubatorApplicationPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
@@ -315,7 +326,8 @@ export default function PreIncubatorApplicationPage() {
           let userTableFullName = '';
 
           // Check if user has selected a role before accessing application
-          const userRole = session.user.user_metadata?.role || (user as any)?.role;
+          const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+          const userRole = session.user.user_metadata?.role || (user as any)?.role || cachedRole || null;
           let activeRole = userRole;
 
           // 1. Fetch user record from users table via /api/v1/auth/me (using server-side supabaseAdmin)
@@ -330,33 +342,69 @@ export default function PreIncubatorApplicationPage() {
               }
               if (meData?.user?.role) {
                 activeRole = meData.user.role;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('user_role', meData.user.role);
+                }
               }
             }
           } catch (e) {
             console.warn('Could not query users table via /api/v1/auth/me:', e);
           }
 
-          // If role is not selected yet, strictly redirect to choose-role
+          // 2. Direct fallback to users table by id or email
+          if (!activeRole && session.user.id) {
+            try {
+              const cleanEmail = (session.user.email || '').trim().toLowerCase();
+              let uRec: any = null;
+
+              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.user.id)) {
+                const { data: byId } = await supabase
+                  .from('users')
+                  .select('role, full_name, first_name, last_name')
+                  .eq('id', session.user.id)
+                  .maybeSingle();
+                if (byId) uRec = byId;
+              }
+
+              if (!uRec && cleanEmail) {
+                const { data: byEmail } = await supabase
+                  .from('users')
+                  .select('role, full_name, first_name, last_name')
+                  .ilike('email', cleanEmail)
+                  .maybeSingle();
+                if (byEmail) uRec = byEmail;
+              }
+
+              if (uRec?.role) {
+                activeRole = uRec.role;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('user_role', uRec.role);
+                }
+              }
+              if (!userTableFullName && uRec) {
+                userTableFullName = uRec.full_name || [uRec.first_name, uRec.last_name].filter(Boolean).join(' ');
+              }
+            } catch {}
+          }
+
+          // If still no role but on the application form, default to startup role
           if (!activeRole) {
-            router.replace('/auth/choose-role');
+            activeRole = 'startup';
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('user_role', 'startup');
+            }
+          }
+
+          // Only redirect confirmed super-admins or verified incubators with an assigned org
+          const normalizedRole = (activeRole || '').toLowerCase();
+          if (normalizedRole.includes('super')) {
+            router.replace('/super-admin/dashboard');
             return;
           }
 
-          // Issue 1: Admin / Incubator Admin accounts must NOT display startup application forms
-          const normalizedRole = (activeRole || '').toLowerCase();
-          if (
-            normalizedRole === 'admin' ||
-            normalizedRole === 'incubator_admin' ||
-            normalizedRole === 'incubator' ||
-            normalizedRole === 'super-admin' ||
-            normalizedRole === 'super_admin'
-          ) {
-            const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
-            if (normalizedRole.includes('super')) {
-              router.replace('/super-admin/dashboard');
-            } else {
-              router.replace(orgId ? `/dashboard?org=${orgId}` : '/dashboard');
-            }
+          const orgId = (user as any)?.organization_id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+          if ((normalizedRole === 'admin' || normalizedRole === 'incubator_admin' || normalizedRole === 'incubator') && orgId) {
+            router.replace(`/dashboard?org=${orgId}`);
             return;
           }
 
@@ -567,115 +615,68 @@ export default function PreIncubatorApplicationPage() {
   };
 
   return (
-    <div className="min-h-screen text-slate-800 relative bg-gradient-to-br from-slate-50 via-slate-100 to-blue-50/40 flex flex-col justify-between overflow-x-hidden">
-      {/* Ambient Glowing Background Orbs */}
-      <div className="fixed top-[-10%] left-[-5%] w-[450px] h-[450px] bg-cyan-400/15 rounded-full blur-3xl pointer-events-none z-0 animate-pulse" />
-      <div className="fixed bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="fixed top-[40%] right-[20%] w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none z-0" />
-
-      {/* Floating Glass Header */}
-      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-slate-200/80 px-4 lg:px-8 py-3.5 shadow-xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between font-sans">
+      {/* Top Header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
           {/* Brand Logo & Back to Programs */}
           <div className="flex items-center gap-3">
             <Link
               href="/programs"
-              className="p-2 rounded-xl border border-slate-200/80 text-slate-500 hover:text-[#1A2151] hover:bg-slate-100 transition"
-              title="Back to Programs"
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition"
+              title="Back to programs"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="flex items-center gap-2.5">
-              <Logo size="md" href="/" />
-              <span className="hidden sm:inline-block px-2.5 py-0.5 text-xs font-semibold bg-cyan-50 text-cyan-700 rounded-full border border-cyan-200">
-                PRE-INCUBATOR
-              </span>
-            </div>
+            <Logo size="sm" href="/" />
           </div>
 
-          {/* Header Middle Progress Info */}
-          <div className="hidden md:flex flex-col items-center flex-1 max-w-md mx-6">
-            <div className="flex justify-between w-full text-xs font-semibold mb-1.5 text-slate-600">
-              <span>
-                Step {currentStep} of 14:{' '}
-                <span className="text-[#1A2151] font-bold">{STEPS[currentStep - 1]?.title}</span>
-              </span>
-              <span className="text-blue-600">{progressPercent}% Completed</span>
-            </div>
-            <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden p-0.5 border border-slate-300/40">
-              <div
-                className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full rounded-full transition-all duration-500 ease-out shadow-xs"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+          {/* Header Middle: Single Label "Step X of 14 · Title" */}
+          <div className="text-xs sm:text-sm font-medium text-slate-700 truncate max-w-xs sm:max-w-md text-center">
+            Step {currentStep} of 14 <span className="text-slate-300 mx-1.5">·</span> <span className="font-semibold text-slate-900">{STEPS[currentStep - 1]?.title}</span>
           </div>
 
-          {/* Top Right Action Controls */}
-          <div className="flex items-center gap-2">
+          {/* Top Right Action Controls: One Save Status next to Save Draft Button */}
+          <div className="flex items-center gap-3">
             {lastSavedAt && (
-              <div className="hidden lg:flex items-center gap-1.5 text-[11px] font-medium text-slate-500 bg-slate-100/90 px-3 py-1.5 rounded-xl border border-slate-200/60">
-                {isAutoSaving ? (
-                  <>
-                    <RotateCcw className="w-3 h-3 text-blue-600 animate-spin" />
-                    <span>Auto-saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                    <span>Saved at {lastSavedAt}</span>
-                  </>
-                )}
-              </div>
+              <span className="text-xs text-slate-500 hidden sm:inline">
+                {isAutoSaving ? 'Saving...' : `Saved ${lastSavedAt}`}
+              </span>
             )}
             <button
               onClick={saveDraft}
               type="button"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-[#1A2151] bg-white hover:bg-slate-50 border border-slate-200/80 px-3.5 py-2 rounded-xl shadow-xs transition-all duration-200 hover:shadow-sm"
-              title="Save current application draft to local storage"
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 transition shadow-2xs cursor-pointer"
             >
-              <Bookmark className="w-4 h-4 text-blue-600" />
-              <span className="hidden sm:inline">Save Draft</span>
+              Save draft
             </button>
-            <div className="text-xs font-bold px-3 py-1.5 rounded-xl bg-slate-100 text-[#1A2151] md:hidden">
-              {currentStep}/14
-            </div>
           </div>
         </div>
 
-        {/* Mobile Progress Bar */}
-        <div className="md:hidden w-full bg-slate-200 h-1.5 mt-3 rounded-full overflow-hidden">
+        {/* Single Progress Bar Under Top Bar */}
+        <div className="w-full bg-slate-100 h-1">
           <div
-            className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full transition-all duration-300"
-            style={{ width: `${progressPercent}%` }}
+            className="bg-blue-600 h-1 transition-all duration-300"
+            style={{ width: `${(currentStep / 14) * 100}%` }}
           />
         </div>
       </header>
 
       {/* Toast Notification Overlay */}
       {toastMessage && (
-        <div className="fixed top-20 right-5 z-50 flex items-center gap-3 bg-[#1A2151] text-white px-5 py-3 rounded-2xl shadow-2xl border border-cyan-400/30 animate-in fade-in slide-in-from-top-3 duration-200">
-          <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-          <span className="text-sm font-medium">{toastMessage}</span>
+        <div className="fixed top-16 right-5 z-50 flex items-center gap-2.5 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 animate-in fade-in slide-in-from-top-2 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs font-medium">{toastMessage}</span>
         </div>
       )}
 
       {/* Main Form Container */}
-      <main className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 flex-1 flex flex-col z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1 items-start">
-          {/* Sidebar Navigation (Desktop) */}
-          <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 sticky top-24">
-            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-5 shadow-xl max-h-[calc(100vh-120px)] flex flex-col">
-              <div className="mb-4 pb-3 border-b border-slate-200/80 flex items-center justify-between">
-                <h3 className="text-xs uppercase tracking-wider font-extrabold text-slate-400">
-                  Application Steps
-                </h3>
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-                  {completedStepsCount}/14 Completed
-                </span>
-              </div>
-
-              {/* Steps List */}
-              <nav className="space-y-1.5 overflow-y-auto pr-1 flex-1">
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex-1 flex flex-col pb-32">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 items-start">
+          {/* Left Stepper: Number + Title only, page scrolls naturally */}
+          <aside className="hidden lg:block lg:col-span-4 xl:col-span-3">
+            <div className="bg-white rounded-xl border border-slate-200 p-2 shadow-xs">
+              <nav className="space-y-0.5">
                 {STEPS.map((step, index) => {
                   const stepNum = index + 1;
                   const isActive = currentStep === stepNum;
@@ -686,41 +687,28 @@ export default function PreIncubatorApplicationPage() {
                       key={index}
                       onClick={() => goToStep(stepNum)}
                       type="button"
-                      className={`w-full text-left p-3 rounded-2xl transition-all duration-200 flex items-center gap-3 group relative ${isActive
-                        ? 'bg-[#1A2151] text-white shadow-lg shadow-[#1A2151]/20'
-                        : completed
-                          ? 'bg-emerald-50/80 text-emerald-900 hover:bg-emerald-100/80 border border-emerald-200/60'
-                          : 'hover:bg-slate-100/80 text-slate-600'
-                        }`}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-2.5 cursor-pointer relative ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-600 rounded-l-none'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                      }`}
                     >
-                      <div
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-transform duration-200 group-hover:scale-105 ${isActive
-                          ? 'bg-cyan-400 text-[#1A2151]'
-                          : completed
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-slate-200/80 text-slate-600'
-                          }`}
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] shrink-0 ${
+                          isActive
+                            ? 'bg-blue-600 text-white font-semibold'
+                            : completed
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
                       >
                         {completed && !isActive ? (
-                          <Check className="w-4 h-4" />
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                         ) : (
-                          <span>{stepNum}</span>
+                          stepNum
                         )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-xs font-bold truncate ${isActive ? 'text-white' : 'text-slate-800'
-                            }`}
-                        >
-                          {step.title}
-                        </p>
-                        <p className="text-[10px] truncate opacity-75">{step.subtitle}</p>
-                      </div>
-
-                      {isActive && (
-                        <div className="w-1.5 h-6 bg-cyan-400 rounded-full absolute right-2" />
-                      )}
+                      </span>
+                      <span className="truncate">{step.title}</span>
                     </button>
                   );
                 })}
@@ -730,170 +718,144 @@ export default function PreIncubatorApplicationPage() {
 
           {/* Form Content Card */}
           <section className="lg:col-span-8 xl:col-span-9 flex flex-col h-full">
-            <div className="bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl flex-1 relative flex flex-col justify-between mb-24">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8 shadow-xs flex-1 flex flex-col justify-between">
               <div>
                 {/* Step Header Title & Subtitle */}
-                <div className="mb-8 pb-5 border-b border-slate-200/80">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-200">
-                      Section {currentStep} of 14
-                    </span>
+                <div className="mb-6 pb-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-xl font-semibold text-slate-900">
+                        {STEPS[currentStep - 1]?.title}
+                      </h1>
+                      <p className="text-sm text-slate-500 mt-0.5">
+                        {STEPS[currentStep - 1]?.subtitle}
+                      </p>
+                    </div>
                     {validationErrors.length > 0 && (
-                      <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 flex items-center gap-1">
+                      <span className="text-xs font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 flex items-center gap-1 shrink-0">
                         <AlertCircle className="w-3.5 h-3.5" /> Required fields missing
                       </span>
                     )}
                   </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A2151] tracking-tight">
-                    {STEPS[currentStep - 1]?.title}
-                  </h1>
-                  <p className="text-sm text-slate-500 mt-1 font-medium">
-                    {STEPS[currentStep - 1]?.subtitle}
-                  </p>
                 </div>
 
                 {/* Form Sections */}
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                   {/* SECTION 1: FOUNDER INFORMATION */}
                   {currentStep === 1 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-4 animate-in fade-in duration-200">
                       {/* Target Incubator Name Input */}
-                      <div className="p-5 rounded-3xl bg-gradient-to-r from-blue-50/80 via-slate-50 to-cyan-50/60 border border-blue-200/80 space-y-2">
-                        <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-                            Target Incubator Name *
-                          </span>
+                      <div>
+                        <label className={labelClass}>
+                          Incubator name <span className="text-red-500">*</span>
                         </label>
-                        <p className="text-xs text-slate-500 font-medium">
-                          Enter the name of the incubator you are applying to. You can apply to up to 5 incubators independently.
-                        </p>
-                        <div className="relative mt-2">
-                          <Building2 className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div className="relative">
+                          <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                           <input
                             type="text"
                             value={formData.incubatorName}
                             onChange={(e) => setFormData({ ...formData, incubatorName: e.target.value })}
-                            placeholder="e.g. Arba360 Innovation Hub, NurtureCave, Kalsekar..."
-                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
+                            placeholder="e.g. Arba360 Innovation Hub, NurtureCave..."
+                            className={`${inputClass} pl-9`}
                           />
                         </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Enter the name of the incubator you are applying to. You can apply to up to 5 incubators independently.
+                        </p>
                       </div>
 
-                                            {/* Startup / Venture Name Input */}
-                      <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <Rocket className="w-4 h-4 text-blue-600" />
-                            Startup / Venture Name *
-                          </span>
+                      {/* Startup / Venture Name Input */}
+                      <div>
+                        <label className={labelClass}>
+                          Startup / venture name <span className="text-red-500">*</span>
                         </label>
-                        <p className="text-xs text-slate-500 font-medium">
-                          Enter your startup or business name. This will be linked to your startup dashboard.
-                        </p>
-                        <div className="relative mt-2">
-                          <Rocket className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div className="relative">
+                          <Rocket className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                           <input
                             type="text"
                             value={formData.startupName}
                             onChange={(e) => setFormData({ ...formData, startupName: e.target.value })}
                             placeholder="e.g. NextWave AI, EcoVolt Labs, FinFlow..."
-                            className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm font-bold text-slate-900 shadow-2xs"
+                            className={`${inputClass} pl-9`}
                           />
                         </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Enter your startup or business name. This will be linked to your startup dashboard.
+                        </p>
                       </div>
 
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                              Full Name *
-                            </label>
-                            {formData.fullName && (
-                              <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                Synced from profile
-                              </span>
-                            )}
-                          </div>
+                          <label className={labelClass}>
+                            Full name <span className="text-red-500">*</span>
+                          </label>
                           <input
                             type="text"
                             value={formData.fullName}
                             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                             placeholder="e.g. Sarah Jenkins"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-800"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                              Email Address *
-                            </label>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                              <Lock className="w-3 h-3 text-slate-400" />
-                              Account Email
-                            </span>
-                          </div>
+                          <label className={labelClass}>
+                            Email address <span className="text-red-500">*</span>
+                          </label>
                           <div className="relative">
                             <input
                               type="email"
                               value={formData.email}
                               readOnly
+                              disabled
                               aria-readonly="true"
-                              title="Email is retrieved from your database account and cannot be modified."
                               placeholder="sarah@example.com"
-                              className="w-full px-4 py-3 rounded-2xl bg-slate-100/90 text-slate-600 border border-slate-200 cursor-not-allowed select-none text-sm font-medium focus:outline-hidden"
+                              className="w-full h-10 pl-3 pr-9 rounded-lg bg-slate-100 text-slate-500 border border-slate-200 text-sm cursor-not-allowed select-none focus:outline-none"
                             />
-                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                            </div>
+                            <Lock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
-                            <span>Locked to your active login. Application updates will be sent here.</span>
-                          </p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Phone Number *
+                          <label className={labelClass}>
+                            Phone number <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             placeholder="+1 (555) 000-0000"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Operating Location *
+                          <label className={labelClass}>
+                            Operating location <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
                             value={formData.location}
                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                             placeholder="City, Country"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Professional Status *
+                          <label className={labelClass}>
+                            Professional status <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={formData.professionalStatus}
                             onChange={(e) =>
                               setFormData({ ...formData, professionalStatus: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-700"
+                            className={selectClass}
                           >
-                            <option value="">Select Status</option>
+                            <option value="">Select status</option>
                             <option value="Full-Time Founder">Full-Time Founder</option>
                             <option value="Employed (Transitioning)">
                               Employed (Transitioning)
@@ -905,8 +867,8 @@ export default function PreIncubatorApplicationPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Years of Experience *
+                          <label className={labelClass}>
+                            Years of experience <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
@@ -917,14 +879,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, yearsExperience: e.target.value })
                             }
                             placeholder="e.g. 6"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Previous Entrepreneurial History
+                        <label className={labelClass}>
+                          Previous entrepreneurial history
                         </label>
                         <textarea
                           rows={3}
@@ -933,15 +895,15 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, previousBusinessHistory: e.target.value })
                           }
                           placeholder="Briefly describe previous startups, side projects, or key achievements..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                          Primary Reasons for Joining Arba360
+                        <label className={labelClass}>
+                          Primary reasons for joining
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           {REASON_OPTIONS.map((reason) => {
                             const isSelected = formData.reasonsForJoining.includes(reason);
                             return (
@@ -949,19 +911,21 @@ export default function PreIncubatorApplicationPage() {
                                 key={reason}
                                 type="button"
                                 onClick={() => toggleArrayItem('reasonsForJoining', reason)}
-                                className={`p-3.5 rounded-2xl border text-left text-xs font-semibold flex items-center justify-between transition-all duration-200 ${isSelected
-                                  ? 'bg-blue-50 border-blue-600 text-blue-600 font-bold shadow-xs'
-                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                  }`}
+                                className={`p-3 rounded-lg border text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-blue-50 border-blue-600 text-blue-700 font-semibold'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                }`}
                               >
                                 <span>{reason}</span>
                                 <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center border ${isSelected
-                                    ? 'bg-blue-600 border-blue-600 text-white'
-                                    : 'border-slate-300'
-                                    }`}
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center border ${
+                                    isSelected
+                                      ? 'bg-blue-600 border-blue-600 text-white'
+                                      : 'border-slate-300'
+                                  }`}
                                 >
-                                  {isSelected && <Check className="w-3 h-3" />}
+                                  {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
                                 </div>
                               </button>
                             );
@@ -973,12 +937,12 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 2: BUSINESS STAGE */}
                   {currentStep === 2 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-4 animate-in fade-in duration-200">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                          Current Business Stage *
+                        <label className={labelClass}>
+                          Current business stage <span className="text-red-500">*</span>
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {STAGE_OPTIONS.map((stage) => {
                             const isSelected = formData.businessStage === stage.title;
                             return (
@@ -988,23 +952,25 @@ export default function PreIncubatorApplicationPage() {
                                 onClick={() =>
                                   setFormData({ ...formData, businessStage: stage.title })
                                 }
-                                className={`p-5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between ${isSelected
-                                  ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-lg'
-                                  : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                                  }`}
+                                className={`p-4 rounded-lg border text-left transition-colors cursor-pointer flex flex-col justify-between ${
+                                  isSelected
+                                    ? 'bg-blue-50/70 text-blue-950 border-blue-600 ring-1 ring-blue-600'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/50'
+                                }`}
                               >
                                 <div>
-                                  <div className="font-extrabold text-sm mb-1">{stage.title}</div>
-                                  <div className="text-xs opacity-75">{stage.desc}</div>
+                                  <div className="font-semibold text-sm mb-1">{stage.title}</div>
+                                  <div className="text-xs text-slate-500">{stage.desc}</div>
                                 </div>
-                                <div className="mt-4 flex justify-end">
+                                <div className="mt-3 flex justify-end">
                                   <span
-                                    className={`text-xs px-2.5 py-1 rounded-full font-bold ${isSelected
-                                      ? 'bg-cyan-400 text-[#1A2151]'
-                                      : 'bg-slate-100 text-slate-500'
-                                      }`}
+                                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      isSelected
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-100 text-slate-600'
+                                    }`}
                                   >
-                                    Select
+                                    {isSelected ? 'Selected' : 'Select'}
                                   </span>
                                 </div>
                               </button>
@@ -1013,10 +979,10 @@ export default function PreIncubatorApplicationPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Project/Company Start Date *
+                          <label className={labelClass}>
+                            Project / company start date <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="date"
@@ -1024,21 +990,21 @@ export default function PreIncubatorApplicationPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, startedDate: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Legal Registration Status *
+                          <label className={labelClass}>
+                            Legal registration status <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={formData.legalStatus}
                             onChange={(e) =>
                               setFormData({ ...formData, legalStatus: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-700"
+                            className={selectClass}
                           >
-                            <option value="">Select Status</option>
+                            <option value="">Select status</option>
                             <option value="Not Registered Yet">Not Registered Yet</option>
                             <option value="Incorporated (C-Corp / LLC)">
                               Incorporated (C-Corp / LLC / Private Ltd)
@@ -1050,8 +1016,8 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Primary Industry / Vertical *
+                        <label className={labelClass}>
+                          Primary industry / vertical <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1060,7 +1026,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, industryVertical: e.target.value })
                           }
                           placeholder="e.g. HealthTech, FinTech, B2B SaaS, Climate Tech"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -1068,10 +1034,10 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 3: THE PROBLEM */}
                   {currentStep === 3 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-4 animate-in fade-in duration-200">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          One-Sentence Pitch *
+                        <label className={labelClass}>
+                          One-sentence pitch <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1080,13 +1046,13 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, oneSentencePitch: e.target.value })
                           }
                           placeholder="We help [target group] solve [problem] by [key solution]."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Detailed Problem Statement *
+                        <label className={labelClass}>
+                          Detailed problem statement <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={4}
@@ -1095,14 +1061,14 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, problemStatement: e.target.value })
                           }
                           placeholder="What core pain point or inefficiency are you solving? Be specific."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Target Audience Suffering Most *
+                          <label className={labelClass}>
+                            Target audience suffering most <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1111,12 +1077,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, targetAudience: e.target.value })
                             }
                             placeholder="e.g. Mid-sized logistics operations managers"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Why Existing Alternatives Fail *
+                          <label className={labelClass}>
+                            Why existing alternatives fail <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1125,14 +1091,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, whyExistingSolutionsFail: e.target.value })
                             }
                             placeholder="Too expensive, manual, slow, fragmented..."
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Problem Validation Evidence *
+                        <label className={labelClass}>
+                          Problem validation evidence <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1141,7 +1107,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, validationEvidence: e.target.value })
                           }
                           placeholder="Interviews conducted, survey numbers, waitlist size, pilot data..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
                     </div>
@@ -1149,10 +1115,10 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 4: YOUR SOLUTION */}
                   {currentStep === 4 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-4 animate-in fade-in duration-200">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Solution Overview *
+                        <label className={labelClass}>
+                          Solution overview <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={4}
@@ -1161,14 +1127,14 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, solutionOverview: e.target.value })
                           }
                           placeholder="Explain how your product or service works in simple terms..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Key Differentiator *
+                          <label className={labelClass}>
+                            Key differentiator <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1177,12 +1143,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, keyDifferentiation: e.target.value })
                             }
                             placeholder="10x faster, proprietary AI model, unique distribution..."
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Unfair Competitive Advantage
+                          <label className={labelClass}>
+                            Unfair competitive advantage
                           </label>
                           <input
                             type="text"
@@ -1191,14 +1157,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, competitiveAdvantage: e.target.value })
                             }
                             placeholder="Patents, exclusive partnerships, network effect..."
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Prototype / Demo / Deck Link (Optional)
+                        <label className={labelClass}>
+                          Prototype / demo / deck link (optional)
                         </label>
                         <div className="relative">
                           <input
@@ -1208,9 +1174,9 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, prototypeLink: e.target.value })
                             }
                             placeholder="https://figma.com/..., https://youtube.com/..., https://yourdeck.com"
-                            className="w-full px-4 py-3 pl-10 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={`${inputClass} pl-9`}
                           />
-                          <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                          <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
                       </div>
                     </div>
@@ -1218,11 +1184,11 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 5: CUSTOMER & MARKET */}
                   {currentStep === 5 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Ideal Customer Persona *
+                          <label className={labelClass}>
+                            Ideal customer persona <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             rows={3}
@@ -1231,12 +1197,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, idealCustomerPersona: e.target.value })
                             }
                             placeholder="Who is the primary user or decision maker?"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={textareaClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Paying Customer Profile *
+                          <label className={labelClass}>
+                            Paying customer profile <span className="text-red-500">*</span>
                           </label>
                           <textarea
                             rows={3}
@@ -1245,27 +1211,27 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, payingCustomerProfile: e.target.value })
                             }
                             placeholder="Who actually writes the check or puts down the credit card?"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={textareaClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Estimated Market Size (TAM / SAM / SOM) *
+                        <label className={labelClass}>
+                          Estimated market size (TAM / SAM / SOM) <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={formData.marketSize}
                           onChange={(e) => setFormData({ ...formData, marketSize: e.target.value })}
                           placeholder="e.g. TAM: $12B, SAM: $1.5B, SOM: $50M"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Primary Target Geography *
+                        <label className={labelClass}>
+                          Primary target geography <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1274,7 +1240,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, targetGeography: e.target.value })
                           }
                           placeholder="e.g. India, MENA Region, North America, Southeast Asia, Global"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -1282,11 +1248,11 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 6: TRACTION & REVENUE */}
                   {currentStep === 6 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Total Active Users / Beta Testers *
+                          <label className={labelClass}>
+                            Total active users / beta testers <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
@@ -1296,12 +1262,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, currentUsers: e.target.value })
                             }
                             placeholder="0"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Paying Customers Count *
+                          <label className={labelClass}>
+                            Paying customers count <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
@@ -1311,15 +1277,15 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, payingCustomers: e.target.value })
                             }
                             placeholder="0"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Past 12 Months Revenue (USD/INR) *
+                          <label className={labelClass}>
+                            Past 12 months revenue (USD/INR) <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1328,12 +1294,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, revenue12Months: e.target.value })
                             }
                             placeholder="$0 or ₹2,50,000"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Monthly Growth Rate (%) *
+                          <label className={labelClass}>
+                            Monthly growth rate (%) <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1342,14 +1308,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, monthlyGrowthRate: e.target.value })
                             }
                             placeholder="e.g. 15%"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Primary Customer Acquisition Channels *
+                        <label className={labelClass}>
+                          Primary customer acquisition channels <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1361,7 +1327,7 @@ export default function PreIncubatorApplicationPage() {
                             })
                           }
                           placeholder="e.g. Cold outbound, Organic SEO, LinkedIn, Partner referrals"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -1369,20 +1335,20 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 7: BUSINESS MODEL & ECONOMICS */}
                   {currentStep === 7 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Business / Revenue Model *
+                          <label className={labelClass}>
+                            Business / revenue model <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={formData.revenueModel}
                             onChange={(e) =>
                               setFormData({ ...formData, revenueModel: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-700"
+                            className={selectClass}
                           >
-                            <option value="">Select Revenue Model</option>
+                            <option value="">Select revenue model</option>
                             <option value="SaaS Subscription">SaaS Subscription</option>
                             <option value="Marketplace / Take Rate">Marketplace / Take Rate</option>
                             <option value="Transactional / Pay-per-use">
@@ -1396,8 +1362,8 @@ export default function PreIncubatorApplicationPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Estimated Gross Margins (%) *
+                          <label className={labelClass}>
+                            Estimated gross margins (%) <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1406,15 +1372,15 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, grossMargins: e.target.value })
                             }
                             placeholder="e.g. 75%"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Monthly Burn Rate *
+                          <label className={labelClass}>
+                            Monthly burn rate <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1423,12 +1389,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, monthlyBurnRate: e.target.value })
                             }
                             placeholder="e.g. $4,000 / mo"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Runway Months Remaining *
+                          <label className={labelClass}>
+                            Runway months remaining <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1437,14 +1403,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, runwayMonths: e.target.value })
                             }
                             placeholder="e.g. 8 months"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Biggest Financial Bottleneck Right Now *
+                        <label className={labelClass}>
+                          Biggest financial bottleneck right now <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1453,7 +1419,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, financialBottleneck: e.target.value })
                           }
                           placeholder="High CAC, long sales cycles, R&D expenses..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -1461,11 +1427,11 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 8: FOUNDER READINESS & COMMITMENT */}
                   {currentStep === 8 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Hours Dedicated Per Week *
+                          <label className={labelClass}>
+                            Hours dedicated per week <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
@@ -1476,21 +1442,21 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, hoursPerWeek: Number(e.target.value) })
                             }
                             placeholder="e.g. 50"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Full-Time Commitment Status *
+                          <label className={labelClass}>
+                            Full-time commitment status <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={formData.fullTimeStatus}
                             onChange={(e) =>
                               setFormData({ ...formData, fullTimeStatus: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-700"
+                            className={selectClass}
                           >
-                            <option value="">Select Commitment Level</option>
+                            <option value="">Select commitment level</option>
                             <option value="Currently Full-Time">Currently Full-Time</option>
                             <option value="Ready to go Full-Time upon acceptance">
                               Ready to go Full-Time upon acceptance
@@ -1503,12 +1469,12 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       {/* Slider for Uncertainty */}
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                        <div className="flex justify-between items-center mb-3">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                            Comfort with High Uncertainty & Ambiguity *
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className={labelClass}>
+                            Comfort with high uncertainty & ambiguity <span className="text-red-500">*</span>
                           </label>
-                          <span className="text-base font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
                             {formData.comfortWithUncertainty} / 10
                           </span>
                         </div>
@@ -1523,18 +1489,18 @@ export default function PreIncubatorApplicationPage() {
                               comfortWithUncertainty: Number(e.target.value),
                             })
                           }
-                          className="w-full accent-blue-600 cursor-pointer"
+                          className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
                         />
-                        <div className="flex justify-between text-[11px] text-slate-400 font-semibold mt-2">
-                          <span>1: Prefer Predictability</span>
-                          <span>5: Moderate Risk</span>
-                          <span>10: Thrive in Chaos</span>
+                        <div className="flex justify-between text-xs text-slate-400 font-medium mt-1.5">
+                          <span>1: Prefer predictability</span>
+                          <span>5: Moderate risk</span>
+                          <span>10: Thrive in chaos</span>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Openness to Critical Feedback & Pivoting *
+                        <label className={labelClass}>
+                          Openness to critical feedback & pivoting <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1543,7 +1509,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, feedbackOpenness: e.target.value })
                           }
                           placeholder="Share an instance where feedback changed your direction or worldview..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
                     </div>
@@ -1551,27 +1517,27 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 9: TEAM & CO-FOUNDERS */}
                   {currentStep === 9 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Team Structure *
+                          <label className={labelClass}>
+                            Team structure <span className="text-red-500">*</span>
                           </label>
                           <select
                             value={formData.teamStructure}
                             onChange={(e) =>
                               setFormData({ ...formData, teamStructure: e.target.value })
                             }
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm text-slate-700"
+                            className={selectClass}
                           >
-                            <option value="">Select Team Structure</option>
+                            <option value="">Select team structure</option>
                             <option value="Solo Founder">Solo Founder</option>
                             <option value="Co-Founding Team">Co-Founding Team</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Number of Co-Founders *
+                          <label className={labelClass}>
+                            Number of co-founders <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="number"
@@ -1582,14 +1548,14 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, coFounderCount: Number(e.target.value) })
                             }
                             placeholder="0"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Missing Key Skills on Team *
+                        <label className={labelClass}>
+                          Missing key skills on team <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1597,33 +1563,35 @@ export default function PreIncubatorApplicationPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, missingSkills: e.target.value })
                           }
-                          placeholder="e.g. Lead AI Engineer, Growth Marketer, Regulatory Expert"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          placeholder="e.g. Lead AI engineer, growth marketer, regulatory expert"
+                          className={inputClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                          Are you currently seeking a Co-Founder? *
+                        <label className={labelClass}>
+                          Are you currently seeking a co-founder? <span className="text-red-500">*</span>
                         </label>
-                        <div className="flex gap-4">
+                        <div className="flex gap-3">
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, seekingCoFounder: 'Yes' })}
-                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${formData.seekingCoFounder === 'Yes'
-                              ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
-                              : 'bg-white border-slate-200 text-slate-600'
-                              }`}
+                            className={`flex-1 h-10 px-4 rounded-lg border text-sm font-medium transition cursor-pointer ${
+                              formData.seekingCoFounder === 'Yes'
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
                           >
-                            Yes, looking for a Co-Founder
+                            Yes, looking for a co-founder
                           </button>
                           <button
                             type="button"
                             onClick={() => setFormData({ ...formData, seekingCoFounder: 'No' })}
-                            className={`flex-1 py-3 px-4 rounded-2xl border text-xs font-bold transition-all duration-200 ${formData.seekingCoFounder === 'No'
-                              ? 'bg-[#1A2151] text-white border-[#1A2151] shadow-md'
-                              : 'bg-white border-slate-200 text-slate-600'
-                              }`}
+                            className={`flex-1 h-10 px-4 rounded-lg border text-sm font-medium transition cursor-pointer ${
+                              formData.seekingCoFounder === 'No'
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            }`}
                           >
                             No, team complete
                           </button>
@@ -1634,11 +1602,11 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 10: FUNDING & INVESTMENT NEEDS */}
                   {currentStep === 10 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Personal Capital Invested To-Date *
+                          <label className={labelClass}>
+                            Personal capital invested to-date <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1647,12 +1615,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, personalCapitalInvested: e.target.value })
                             }
                             placeholder="e.g. $15,000 or ₹5,00,000"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            External Capital Raised (Grants, Angels) *
+                          <label className={labelClass}>
+                            External capital raised (grants, angels) <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1660,16 +1628,16 @@ export default function PreIncubatorApplicationPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, externalFundingRaised: e.target.value })
                             }
-                            placeholder="e.g. $0 or $50,000 Grant"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            placeholder="e.g. $0 or $50,000 grant"
+                            className={inputClass}
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Target Funding Seeking *
+                          <label className={labelClass}>
+                            Target funding seeking <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1678,12 +1646,12 @@ export default function PreIncubatorApplicationPage() {
                               setFormData({ ...formData, fundingAmountSought: e.target.value })
                             }
                             placeholder="e.g. $150,000"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            className={inputClass}
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                            Primary Use of Funds *
+                          <label className={labelClass}>
+                            Primary use of funds <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -1691,8 +1659,8 @@ export default function PreIncubatorApplicationPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, primaryUseOfFunds: e.target.value })
                             }
-                            placeholder="e.g. 50% Tech Dev, 30% Growth Marketing, 20% Ops"
-                            className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                            placeholder="e.g. 50% tech dev, 30% growth marketing, 20% ops"
+                            className={inputClass}
                           />
                         </div>
                       </div>
@@ -1701,10 +1669,10 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 11: INCUBATION REQUIREMENTS */}
                   {currentStep === 11 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-5 animate-in fade-in duration-200">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Top 3 Goals for the Pre-Incubation Program *
+                        <label className={labelClass}>
+                          Top 3 goals for the pre-incubation program <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1713,15 +1681,15 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, top3IncubationGoals: e.target.value })
                           }
                           placeholder="1. Achieve $10k MRR&#10;2. Secure key pilot partner&#10;3. Fine-tune unit economics"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                          Support Areas Needed (Select all that apply)
+                        <label className={labelClass}>
+                          Support areas needed (select all that apply)
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                           {SUPPORT_OPTIONS.map((support) => {
                             const isSelected = formData.supportAreasNeeded.includes(support);
                             return (
@@ -1729,10 +1697,11 @@ export default function PreIncubatorApplicationPage() {
                                 key={support}
                                 type="button"
                                 onClick={() => toggleArrayItem('supportAreasNeeded', support)}
-                                className={`p-3 rounded-2xl border text-xs font-semibold text-center transition-all duration-200 ${isSelected
-                                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                                  }`}
+                                className={`h-10 px-3 rounded-lg border text-xs font-medium text-center transition cursor-pointer flex items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                }`}
                               >
                                 <span>{support}</span>
                               </button>
@@ -1742,8 +1711,8 @@ export default function PreIncubatorApplicationPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Single Key 90-Day Success Metric *
+                        <label className={labelClass}>
+                          Single key 90-day success metric <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1752,7 +1721,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, metric90Days: e.target.value })
                           }
                           placeholder="e.g. Sign 5 enterprise LOIs or launch public v1.0 MVP"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={inputClass}
                         />
                       </div>
                     </div>
@@ -1760,13 +1729,13 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 12: FOUNDER MINDSET */}
                   {currentStep === 12 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                        <div className="flex justify-between items-center mb-3">
-                          <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                            Accountability & Extreme Ownership Rating *
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className={labelClass}>
+                            Accountability & extreme ownership rating <span className="text-red-500">*</span>
                           </label>
-                          <span className="text-base font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-xl border border-blue-100">
+                          <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100">
                             {formData.accountabilityRating} / 10
                           </span>
                         </div>
@@ -1781,13 +1750,13 @@ export default function PreIncubatorApplicationPage() {
                               accountabilityRating: Number(e.target.value),
                             })
                           }
-                          className="w-full accent-blue-600 cursor-pointer"
+                          className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Execution vs Ideation Focus *
+                        <label className={labelClass}>
+                          Execution vs ideation focus <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1796,13 +1765,13 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, executionVsIdeation: e.target.value })
                           }
                           placeholder="How do you balance creative brainstorming with rapid execution and shipping?"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Handling Severe Pushback or Rejection *
+                        <label className={labelClass}>
+                          Handling severe pushback or rejection <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1811,7 +1780,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, handlingPushback: e.target.value })
                           }
                           placeholder="Describe a time an investor or customer rejected your vision and how you responded..."
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
                     </div>
@@ -1819,10 +1788,10 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 13: REALITY CHECK & ASSUMPTIONS */}
                   {currentStep === 13 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="space-y-5 animate-in fade-in duration-200">
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Biggest Unproven Assumption *
+                        <label className={labelClass}>
+                          Biggest unproven assumption <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1834,13 +1803,13 @@ export default function PreIncubatorApplicationPage() {
                             })
                           }
                           placeholder="What single assumption could destroy your startup if proven wrong?"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Biggest Mistake Made So Far *
+                        <label className={labelClass}>
+                          Biggest mistake made so far <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1849,13 +1818,13 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, biggestMistake: e.target.value })
                           }
                           placeholder="What decision backfired, and what was your key takeaway?"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
-                          Hard Truth You Are Actively Avoiding *
+                        <label className={labelClass}>
+                          Hard truth you are actively avoiding <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           rows={3}
@@ -1864,7 +1833,7 @@ export default function PreIncubatorApplicationPage() {
                             setFormData({ ...formData, activelyAvoiding: e.target.value })
                           }
                           placeholder="Be honest: What uncomfortable task or reality are you postponing?"
-                          className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-600 transition text-sm"
+                          className={textareaClass}
                         />
                       </div>
                     </div>
@@ -1872,115 +1841,114 @@ export default function PreIncubatorApplicationPage() {
 
                   {/* SECTION 14: FINAL REVIEW & SUBMISSION */}
                   {currentStep === 14 && (
-                    <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="bg-gradient-to-r from-[#1A2151] to-blue-600 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <Sparkles className="w-32 h-32 text-white/5 absolute -right-6 -bottom-6 pointer-events-none" />
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                         <div>
-                          <h2 className="text-xl font-bold mb-1">
-                            Final Review & Founder Declaration
-                          </h2>
-                          <p className="text-xs text-blue-100">
-                            Please review your key application summary below before submitting.
+                          <h3 className="text-base font-semibold text-slate-900">
+                            Review application summary
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Please review your key application details before submitting.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => setMyAppsModalOpen(true)}
-                          className="px-4 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-white font-extrabold text-xs flex items-center gap-2 shadow-sm transition shrink-0 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium shadow-2xs transition shrink-0 cursor-pointer"
                         >
-                          <Building2 className="w-4 h-4 text-cyan-400" />
-                          <span>My Applications</span>
+                          <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>My applications</span>
                         </button>
                       </div>
 
                       {/* Target Incubator Review Card */}
-                      <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/80 to-cyan-50/60 border border-blue-200">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[10px] font-extrabold uppercase text-blue-800 tracking-wider flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                            Target Incubator
+                      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                            Target incubator
                           </span>
                           <button
                             type="button"
                             onClick={() => goToStep(1)}
-                            className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                            className="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
                           >
                             Edit
                           </button>
                         </div>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#1A2151] to-blue-600 text-white font-black text-xs flex items-center justify-center shadow-2xs">
+                          <div className="w-7 h-7 rounded-md bg-blue-600 text-white font-semibold text-xs flex items-center justify-center">
                             {(formData.incubatorName || 'A').trim().charAt(0).toUpperCase()}
                           </div>
-                          <span className="text-sm font-extrabold text-[#1A2151]">
+                          <span className="text-sm font-semibold text-slate-900">
                             {formData.incubatorName || 'Not specified'}
                           </span>
                         </div>
                       </div>
 
                       {/* Summary Cards Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
-                            Startup & Founder
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Startup & founder
                           </span>
-                          <p className="text-sm font-extrabold text-[#1A2151] mt-1">
+                          <p className="text-sm font-semibold text-slate-900 mt-1">
                             {formData.startupName || `${formData.fullName}'s Startup`}
                           </p>
-                          <p className="text-xs text-slate-600 font-semibold">{formData.fullName} ({formData.email})</p>
-                          <div className="mt-2 inline-block px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-bold">
+                          <p className="text-xs text-slate-600 mt-0.5">{formData.fullName} ({formData.email})</p>
+                          <div className="mt-2 inline-block px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
                             {formData.businessStage || 'Stage N/A'}
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
-                            Pitch & Vertical
+                        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Pitch & vertical
                           </span>
-                          <p className="text-xs font-semibold text-slate-800 mt-1 line-clamp-2">
+                          <p className="text-xs font-normal text-slate-800 mt-1 line-clamp-2">
                             {formData.oneSentencePitch || 'Pitch not entered'}
                           </p>
-                          <p className="text-xs text-cyan-600 font-bold mt-1">
+                          <p className="text-xs text-blue-600 font-medium mt-1">
                             {formData.industryVertical || 'Vertical N/A'}
                           </p>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
-                            Traction & Funding
+                        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Traction & funding
                           </span>
-                          <p className="text-xs text-slate-700 font-bold mt-1">
+                          <p className="text-xs text-slate-700 font-medium mt-1">
                             Users:{' '}
-                            <span className="text-blue-600">{formData.currentUsers || 0}</span> |
+                            <span className="font-semibold text-slate-900">{formData.currentUsers || 0}</span> |
                             Paying:{' '}
-                            <span className="text-blue-600">{formData.payingCustomers || 0}</span>
+                            <span className="font-semibold text-slate-900">{formData.payingCustomers || 0}</span>
                           </p>
                           <p className="text-xs text-slate-600 mt-0.5">
                             Seeking:{' '}
-                            <span className="font-bold text-[#1A2151]">
+                            <span className="font-semibold text-slate-900">
                               {formData.fundingAmountSought || '$0'}
                             </span>
                           </p>
                         </div>
 
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                          <span className="text-[10px] font-bold uppercase text-slate-400">
-                            Commitment & Mindset
+                        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Commitment & mindset
                           </span>
                           <p className="text-xs text-slate-700 mt-1">
-                            Hours/wk: <span className="font-bold">{formData.hoursPerWeek}</span>
+                            Hours/wk: <span className="font-semibold text-slate-900">{formData.hoursPerWeek}</span>
                           </p>
-                          <p className="text-xs text-slate-700">
-                            Uncertainty Comfort:{' '}
-                            <span className="font-bold text-blue-600">
-                              {formData.comfortWithUncertainty}/10
+                          <p className="text-xs text-slate-700 mt-0.5">
+                            Uncertainty comfort:{' '}
+                            <span className="font-semibold text-blue-600">
+                              {formData.comfortWithUncertainty} / 10
                             </span>
                           </p>
                         </div>
                       </div>
 
                       {/* Agreement Checkbox */}
-                      <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-200/60 flex items-start gap-3">
+                      <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-start gap-2.5">
                         <input
                           type="checkbox"
                           id="declaration"
@@ -1988,46 +1956,44 @@ export default function PreIncubatorApplicationPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, declarationAgreed: e.target.checked })
                           }
-                          className="mt-1 w-5 h-5 rounded-md accent-blue-600 cursor-pointer"
+                          className="mt-0.5 w-4 h-4 rounded-sm border-slate-300 text-blue-600 accent-blue-600 cursor-pointer"
                         />
                         <label
                           htmlFor="declaration"
-                          className="text-xs text-slate-700 leading-relaxed cursor-pointer font-medium"
+                          className="text-xs text-slate-600 leading-relaxed cursor-pointer font-normal"
                         >
-                          I hereby declare that all information provided in this Arba360 Accelerator
-                          pre-incubation application is accurate, truthful, and representative of my
-                          startup. I agree to participate actively in program milestones if
-                          selected.
+                          I hereby declare that all information provided in this pre-incubation application is accurate,
+                          truthful, and representative of my startup. I agree to participate actively in program
+                          milestones if selected.
                         </label>
                       </div>
 
                       {/* Submitted celebration card */}
                       {submitted && (
-                        <div className="p-6 rounded-3xl bg-emerald-500 text-white text-center shadow-2xl animate-in zoom-in-95 duration-300">
-                          <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-white" />
-                          <h3 className="text-xl font-black">
-                            Application Submitted Successfully!
+                        <div className="p-6 rounded-xl bg-emerald-600 text-white text-center shadow-xs animate-in zoom-in-95 duration-200">
+                          <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-white" />
+                          <h3 className="text-lg font-semibold">
+                            Application submitted successfully
                           </h3>
                           <p className="text-xs text-emerald-100 mt-1">
-                            Application Reference:{' '}
-                            <span className="font-mono font-bold">{applicationId}</span>
+                            Application reference:{' '}
+                            <span className="font-mono font-medium">{applicationId}</span>
                           </p>
                           <p className="text-xs text-emerald-100 mt-1">
-                            Our admissions committee will review your application and respond within
-                            5 business days.
+                            Our admissions committee will review your application and respond within 5 business days.
                           </p>
                           <div className="mt-4 flex items-center justify-center gap-3">
                             <Link
                               href="/programs"
-                              className="px-4 py-2 bg-white text-emerald-700 rounded-xl font-bold text-xs hover:bg-emerald-50 transition shadow-xs"
+                              className="px-3.5 py-2 bg-white text-emerald-700 rounded-lg font-medium text-xs hover:bg-emerald-50 transition shadow-2xs"
                             >
-                              Explore Programs
+                              Explore programs
                             </Link>
                             <Link
                               href={`/programs/preincubator/status${applicationId ? `?id=${applicationId}` : ''}`}
-                              className="px-4 py-2 bg-emerald-700 text-white rounded-xl font-bold text-xs hover:bg-emerald-800 transition shadow-xs flex items-center gap-1.5"
+                              className="px-3.5 py-2 bg-emerald-700 text-white rounded-lg font-medium text-xs hover:bg-emerald-800 transition shadow-2xs flex items-center gap-1.5"
                             >
-                              <span>Track Application Status</span>
+                              <span>Track application status</span>
                               <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                           </div>
@@ -2042,55 +2008,45 @@ export default function PreIncubatorApplicationPage() {
         </div>
       </main>
 
-      {/* Floating Bottom Navigation Action Bar */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white/85 backdrop-blur-xl border-t border-slate-200/80 px-4 lg:px-8 py-3.5 shadow-2xl">
+      {/* Sticky Bottom Action Controls */}
+      <footer className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 px-4 sm:px-8 py-3.5 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Back Button */}
+          {/* Previous Button (Secondary) */}
           <button
             type="button"
             onClick={prevStep}
             disabled={currentStep === 1 || submitted}
-            className={`inline-flex items-center gap-2 text-xs font-bold px-5 py-3 rounded-2xl transition-all duration-200 ${currentStep === 1 || submitted
-              ? 'opacity-40 cursor-not-allowed bg-slate-200 text-slate-400'
-              : 'bg-white hover:bg-slate-100 text-[#1A2151] border border-slate-300 shadow-xs'
-              }`}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg border transition-colors cursor-pointer ${
+              currentStep === 1 || submitted
+                ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
+            }`}
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Previous</span>
           </button>
 
-          {/* Middle Status Indicator (Desktop) */}
-          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>
-              {isAutoSaving
-                ? 'Auto-saving changes locally...'
-                : lastSavedAt
-                ? `Auto-saved locally at ${lastSavedAt}`
-                : 'Encrypted & Auto-saved'}
-            </span>
-          </div>
-
-          {/* Next / Submit Button */}
+          {/* Next / Submit Button (Flat Blue, No Gradient) */}
           <div>
             {currentStep < 14 ? (
               <button
                 type="button"
                 onClick={nextStep}
-                className="inline-flex items-center gap-2 text-xs font-extrabold px-6 py-3 rounded-2xl bg-gradient-to-r from-[#1A2151] to-blue-600 hover:opacity-95 text-white shadow-lg shadow-blue-600/25 transition-all duration-200 transform hover:scale-[1.02]"
+                className="inline-flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition-colors cursor-pointer"
               >
-                <span>Next Step</span>
-                <ArrowRight className="w-4 h-4 text-cyan-400" />
+                <span>Next step</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={submitApplication}
                 disabled={!formData.declarationAgreed || isSubmitting || submitted}
-                className={`inline-flex items-center gap-2 text-xs font-black px-7 py-3.5 rounded-2xl transition-all duration-200 transform ${formData.declarationAgreed && !isSubmitting && !submitted
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-400 text-slate-900 shadow-xl shadow-cyan-400/30 hover:scale-105 cursor-pointer'
-                  : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60'
-                  }`}
+                className={`inline-flex items-center gap-1.5 text-xs font-medium px-5 py-2.5 rounded-lg transition-colors shadow-2xs ${
+                  formData.declarationAgreed && !isSubmitting && !submitted
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                }`}
               >
                 {isSubmitting ? (
                   <>
@@ -2100,7 +2056,7 @@ export default function PreIncubatorApplicationPage() {
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span>Submit Application</span>
+                    <span>Submit application</span>
                   </>
                 )}
               </button>

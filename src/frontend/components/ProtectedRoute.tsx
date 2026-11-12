@@ -90,6 +90,10 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
               return;
             }
             if (role === 'startup') {
+              if (typeof window !== 'undefined' && (window.location.pathname.startsWith('/programs') || window.location.pathname === '/startup/application')) {
+                if (isMounted) setIsCheckingApplication(false);
+                return;
+              }
               router.push('/startup/application');
               return;
             }

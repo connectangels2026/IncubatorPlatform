@@ -11,10 +11,13 @@ import {
   Users,
   GraduationCap,
   Calendar,
+  BarChart3,
   Settings,
   ArrowLeft,
   LogOut,
   X,
+  UserCheck,
+  Handshake,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -25,13 +28,13 @@ export interface NavItem {
 }
 
 export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
-  { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Applications', href: '/dashboard/applications', icon: ClipboardCheck, count: 42 },
-  { label: 'Startups', href: '/dashboard/startups', icon: Building2 },
-  { label: 'Mentors', href: '/dashboard/mentors', icon: Users },
-  { label: 'Collaborators', href: '/dashboard/collaborators', icon: Users },
-  { label: 'Co-Incubations', href: '/dashboard/co-incubations', icon: GraduationCap },
-  { label: 'Events', href: '/dashboard/events', icon: Calendar },
+  { label: 'Home', href: '/incubator', icon: LayoutDashboard },
+  { label: 'Applications', href: '/incubator/applications', icon: ClipboardCheck, count: 42 },
+  { label: 'Startups', href: '/incubator/startups', icon: Building2 },
+  { label: 'Mentors', href: '/incubator/mentors', icon: UserCheck },
+  { label: 'Collaborators', href: '/incubator/collaborators', icon: Handshake },
+  { label: 'Co-incubations', href: '/incubator/co-incubations', icon: GraduationCap },
+  { label: 'Events', href: '/incubator/events', icon: Calendar },
 ];
 
 interface SidebarProps {
@@ -107,7 +110,7 @@ export function Sidebar({
           {/* Navigation Section */}
           <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto overflow-x-hidden">
             <div
-              className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 transition-opacity duration-200 ${
+              className={`px-3 py-1.5 text-xs font-medium text-slate-400 transition-opacity duration-200 ${
                 isHovered ? 'opacity-100' : 'opacity-0 md:opacity-0 hidden md:block'
               }`}
             >
@@ -117,7 +120,7 @@ export function Sidebar({
             {items.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+                (item.href !== '/incubator' && pathname?.startsWith(item.href));
               const Icon = item.icon;
 
               return (
@@ -130,7 +133,7 @@ export function Sidebar({
                       ? 'bg-blue-50 text-blue-600 font-bold shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   } ${isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'}`}
-                  title={!isHovered ? item.label : undefined}
+                  title={item.label}
                 >
                   {/* Left indicator bar when collapsed */}
                   {isActive && !isHovered && (
@@ -179,7 +182,7 @@ export function Sidebar({
             className={`group flex items-center h-10 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all ${
               isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'
             }`}
-            title={!isHovered ? 'Back to Website' : undefined}
+            title={!isHovered ? 'Back to website' : undefined}
           >
             <ArrowLeft className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-slate-700" />
             <span
@@ -189,7 +192,7 @@ export function Sidebar({
                   : 'max-w-0 opacity-0 md:hidden ml-3'
               }`}
             >
-              Back to Website
+              Back to website
             </span>
           </Link>
 
@@ -198,7 +201,7 @@ export function Sidebar({
             className={`group w-full flex items-center h-10 rounded-xl text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-all ${
               isHovered ? 'px-3.5 justify-start' : 'justify-center md:px-0 px-3.5'
             }`}
-            title={!isHovered ? 'Log Out' : undefined}
+            title={!isHovered ? 'Sign out' : undefined}
           >
             <LogOut className="w-5 h-5 shrink-0 text-slate-400 group-hover:text-rose-600" />
             <span
@@ -208,7 +211,7 @@ export function Sidebar({
                   : 'max-w-0 opacity-0 md:hidden ml-3'
               }`}
             >
-              Log Out
+              Sign out
             </span>
           </button>
         </div>

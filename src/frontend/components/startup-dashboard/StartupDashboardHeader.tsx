@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { DashboardTab, StartupProfile } from './types';
+import StartupLogo from '@/frontend/components/ui/StartupLogo';
 
 interface HeaderProps {
   profile: StartupProfile;
@@ -45,8 +46,17 @@ export function StartupDashboardHeader({
         setIsDropdownOpen(false);
       }
     }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
@@ -55,9 +65,13 @@ export function StartupDashboardHeader({
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Startup Brand & Identity */}
         <div className="flex items-start sm:items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200/70 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
-            <Sparkles className="w-6 h-6 text-indigo-600" />
-          </div>
+          <StartupLogo
+            name={profile.name}
+            logoUrl={profile.logo_url}
+            logoColor={profile.logo_color}
+            initials={profile.initials}
+            className="w-12 h-12 rounded-xl text-sm shadow-2xs border border-slate-200/80"
+          />
 
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
@@ -68,7 +82,7 @@ export function StartupDashboardHeader({
                 <Rocket className="w-3 h-3 text-indigo-500" />
                 <span>{profile.batch}</span>
               </span>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
+              <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
                 {profile.track === 'both' ? 'DeepTech (HW+SW)' : `${profile.track} Track`}
               </span>
             </div>
@@ -110,9 +124,9 @@ export function StartupDashboardHeader({
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl border border-slate-200 shadow-lg py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+                      <p className="text-xs font-medium text-slate-500">
                         Application Statuses
                       </p>
                       <p className="text-xs text-slate-500 font-medium">
@@ -148,7 +162,7 @@ export function StartupDashboardHeader({
 
                             <div className="flex items-center gap-2 shrink-0">
                               <span
-                                className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${
                                   isAccepted
                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : isRejected

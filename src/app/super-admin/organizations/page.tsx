@@ -373,7 +373,7 @@ export default function OrganizationsPage() {
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/70 border-b border-slate-200/80 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-50/70 border-b border-slate-200/80 text-slate-500 font-medium text-xs">
                   <tr>
                     <th className="p-4 w-10">
                       <input type="checkbox" className="rounded border-slate-300" />

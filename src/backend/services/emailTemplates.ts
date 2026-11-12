@@ -111,7 +111,7 @@ export const emailTemplates = {
         'Next Step': 'Committee Evaluation',
       },
       actionText: 'Track Application Status',
-      actionUrl: 'https://incubator.example.com/dashboard/applications',
+      actionUrl: 'https://incubator.example.com/incubator/applications',
     }),
 
   application_decision: (applicantName: string, startupName: string, decision: 'admitted' | 'rejected' | 'under_review', comments?: string) => {
@@ -139,7 +139,7 @@ export const emailTemplates = {
         ...(comments ? { 'Reviewer Notes': comments } : {}),
       },
       actionText: 'View Application Details',
-      actionUrl: 'https://incubator.example.com/dashboard/applications',
+      actionUrl: 'https://incubator.example.com/incubator/applications',
     });
   },
 
@@ -156,7 +156,7 @@ export const emailTemplates = {
         'Meeting Link': link || 'Online',
       },
       actionText: 'Join Meeting',
-      actionUrl: link || 'https://incubator.example.com/dashboard/mentors',
+      actionUrl: link || 'https://incubator.example.com/incubator/mentors',
     }),
 
   mentorship_reminder: (recipientName: string, sessionTitle: string, partnerName: string, date: string, time: string, link: string) =>
@@ -172,7 +172,7 @@ export const emailTemplates = {
         'Meeting Link': link || 'Online',
       },
       actionText: 'Open Session Details',
-      actionUrl: link || 'https://incubator.example.com/dashboard/mentors',
+      actionUrl: link || 'https://incubator.example.com/incubator/mentors',
     }),
 
   /**
