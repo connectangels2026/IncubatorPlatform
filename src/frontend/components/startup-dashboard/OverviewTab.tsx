@@ -20,11 +20,13 @@ import {
   Loader2,
   Eye,
   GraduationCap,
+  Star,
   X,
 } from 'lucide-react';
 import { MilestoneItem, ScheduleEventItem } from './types';
 import { FileViewerModal } from '@/frontend/components/common/FileViewerModal';
 import { apiClient } from '@/services/apiClient';
+import { supabase } from '@/backend/lib/supabase';
 
 const SCOPE_LABELS: Record<string, string> = {
   lab: 'Lab & equipment',
@@ -79,6 +81,10 @@ export function OverviewTab({
   const [submittingBooking, setSubmittingBooking] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<ScheduleEventItem | null>(null);
   const [rescheduleForm, setRescheduleForm] = useState({ date: '', start: '', end: '' });
+  const [feedbackTarget, setFeedbackTarget] = useState<ScheduleEventItem | null>(null);
+  const [ratingValue, setRatingValue] = useState<number>(5);
+  const [ratingComment, setRatingComment] = useState<string>('');
+  const [submittingRating, setSubmittingRating] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
 
@@ -148,6 +154,28 @@ export function OverviewTab({
       isMounted = false;
     };
   }, [startup?.id, startup?.organization_id]);
+
+  // Realtime sync on mentorship_sessions & startup_mentors for live schedule updates
+  useEffect(() => {
+    if (!startup?.id) return;
+    const channel = supabase
+      .channel(`startup-overview-realtime-${startup.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'mentorship_sessions', filter: `startup_id=eq.${startup.id}` },
+        () => reloadSchedule()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'startup_mentors', filter: `startup_id=eq.${startup.id}` },
+        () => reloadSchedule()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [startup?.id]);
 
   // Fetch active mentors & open slots when Request Mentor Session modal opens
   useEffect(() => {
@@ -890,7 +918,21 @@ export function OverviewTab({
                         {ev.speaker || 'Host Incubator'}
                       </span>
                       <div className="flex items-center gap-2 shrink-0">
-                        {!readOnly && ev.source === 'mentorship_session' && (
+                        {!readOnly && ev.source === 'mentorship_session' && ev.status === 'completed' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFeedbackTarget(ev);
+                              setRatingValue(ev.startup_rating || 5);
+                              setRatingComment(ev.startup_feedback || '');
+                            }}
+                            className="inline-flex items-center gap-1 text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                          >
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            <span>{ev.startup_rating ? `${ev.startup_rating}/5 · View feedback` : 'View feedback & Rate'}</span>
+                          </button>
+                        )}
+                        {!readOnly && ev.source === 'mentorship_session' && ev.status !== 'completed' && (
                           <>
                             <button
                               type="button"
@@ -926,15 +968,34 @@ export function OverviewTab({
                           </>
                         )}
                         {ev.link && ev.link !== '#' ? (
-                          <a
-                            href={ev.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
-                          >
-                            <span>Join</span>
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                          </a>
+                          (() => {
+                            if (ev.source === 'mentorship_session') {
+                              const startMs = ev.starts_at ? new Date(ev.starts_at).getTime() : NaN;
+                              const diffMs = Number.isNaN(startMs) ? 0 : startMs - Date.now();
+                              const isWindowOpen = ev.status === 'scheduled' && diffMs <= 10 * 60000 && diffMs >= -90 * 60000;
+                              if (!isWindowOpen) {
+                                return (
+                                  <span
+                                    title="Join unlocks 10 minutes before session start"
+                                    className="text-slate-400 font-medium text-[11px] cursor-not-allowed"
+                                  >
+                                    {ev.status === 'completed' ? 'Completed' : 'Join (10m before)'}
+                                  </span>
+                                );
+                              }
+                            }
+                            return (
+                              <a
+                                href={ev.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800"
+                              >
+                                <span>Join</span>
+                                <ArrowUpRight className="w-3.5 h-3.5" />
+                              </a>
+                            );
+                          })()
                         ) : (
                           ev.source !== 'mentorship_session' && (
                             <span className="text-slate-400 font-medium text-[11px]">Online</span>
@@ -1207,6 +1268,112 @@ export function OverviewTab({
                 className="px-4 py-1.5 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-blue-700"
               >
                 Save Reschedule
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {feedbackTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmittingRating(true);
+              try {
+                await apiClient.post(`/mentorship-sessions/${feedbackTarget.id}/feedback`, {
+                  rating: ratingValue,
+                  feedback: ratingComment,
+                });
+                setFeedbackTarget(null);
+                setToastMessage('Rating submitted & mentor notified');
+                setTimeout(() => setToastMessage(null), 3000);
+                await reloadSchedule();
+              } catch (err: any) {
+                setToastMessage(err?.response?.data?.error || 'Could not submit rating');
+                setTimeout(() => setToastMessage(null), 3200);
+              } finally {
+                setSubmittingRating(false);
+              }
+            }}
+            className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-4 text-xs"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div>
+                <h3 className="text-sm font-bold text-[#1A2151]">Session Feedback &amp; Rating</h3>
+                <p className="text-[11px] text-slate-500">{feedbackTarget.title}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFeedbackTarget(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {feedbackTarget.mentor_feedback && (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <p className="font-semibold text-slate-800">Mentor Feedback</p>
+                <p className="text-slate-600 leading-relaxed">{feedbackTarget.mentor_feedback}</p>
+                {feedbackTarget.mentor_feedback_scores && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {Object.entries(feedbackTarget.mentor_feedback_scores).map(([k, v]) => (
+                      <span key={k} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-medium capitalize text-slate-700">
+                        {k}: {String(v)}/5
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="block font-semibold text-slate-800">Rate this session (1-5)</label>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingValue(star)}
+                    className="p-1 cursor-pointer"
+                  >
+                    <Star
+                      className={`w-6 h-6 ${
+                        star <= ratingValue ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="ml-2 font-bold text-slate-700">{ratingValue} / 5</span>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block font-semibold text-slate-800">Your review comment</label>
+              <textarea
+                rows={3}
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="How helpful was this mentorship session?"
+                className="w-full p-2.5 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setFeedbackTarget(null)}
+                className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                disabled={submittingRating}
+                className="px-4 py-1.5 bg-[#2563EB] text-white font-semibold rounded-lg hover:bg-blue-700"
+              >
+                {submittingRating ? 'Saving...' : 'Submit rating'}
               </button>
             </div>
           </form>

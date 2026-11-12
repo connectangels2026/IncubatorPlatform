@@ -122,7 +122,11 @@ export function ActivityLogTab({ startup, readOnly = false }: ActivityLogTabProp
     if (selectedFilter === 'All') return threadedLogs;
     if (selectedFilter === 'Mentors') {
       return threadedLogs.filter(
-        (it) => it.type === 'feedback' || it.author_role === 'Mentor' || it.author_role === 'Incubator'
+        (it) =>
+          it.type === 'feedback' ||
+          it.type === 'mentor_feedback' ||
+          it.author_role === 'Mentor' ||
+          it.author_role === 'Incubator'
       );
     }
     if (selectedFilter === 'Milestones') {
@@ -209,11 +213,10 @@ export function ActivityLogTab({ startup, readOnly = false }: ActivityLogTabProp
                 key={tab}
                 type="button"
                 onClick={() => setSelectedFilter(tab)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${
-                  selectedFilter === tab
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer shrink-0 ${selectedFilter === tab
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
               >
                 {tab}
               </button>
@@ -284,23 +287,22 @@ export function ActivityLogTab({ startup, readOnly = false }: ActivityLogTabProp
                         {item.title || 'Activity Note'}
                       </h3>
                       <span
-                        className={`px-2 py-0.5 rounded-md text-xs font-medium ${
-                          item.type === 'pitch_review'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200/70'
-                            : item.type === 'feedback'
+                        className={`px-2 py-0.5 rounded-md text-xs font-medium ${item.type === 'pitch_review'
+                          ? 'bg-purple-50 text-purple-700 border border-purple-200/70'
+                          : item.type === 'feedback' || item.type === 'mentor_feedback'
                             ? 'bg-blue-50 text-blue-700 border border-blue-200/70'
                             : item.type === 'milestone'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                        }`}
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/70'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}
                       >
                         {item.type === 'pitch_review'
                           ? 'Pitch review'
-                          : item.type === 'feedback'
-                          ? 'Mentor feedback'
-                          : item.type === 'milestone'
-                          ? 'Milestone'
-                          : 'Note'}
+                          : item.type === 'feedback' || item.type === 'mentor_feedback'
+                            ? 'Mentor feedback'
+                            : item.type === 'milestone'
+                              ? 'Milestone'
+                              : 'Note'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">

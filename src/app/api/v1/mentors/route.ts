@@ -10,11 +10,12 @@ const resolveOrg = (id: string | null) => (id && isValidUUID(id) ? id : DEFAULT_
 
 export async function GET(req: NextRequest) {
   try {
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
 
+    const callerRole = (user?.role || '').toLowerCase();
     const realOrgId = resolveOrg(orgId);
     const searchParams = req.nextUrl.searchParams;
     const expertise = searchParams.get('expertise')?.trim().toLowerCase();
@@ -38,11 +39,12 @@ export async function GET(req: NextRequest) {
         )
       `)
       .eq('organization_id', realOrgId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (statusParam) {
       if (statusParam === 'active') query = query.eq('is_active', true);
-    } else {
+    } else if (isAvailableParam !== null) {
       query = query.eq('is_active', true);
     }
 
@@ -59,10 +61,27 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
+    const [mentorsRes, sessionsRes, allocationsRes, startupsCountRes] = await Promise.all([
+      query,
+      supabaseAdmin
+        .from('mentorship_sessions')
+        .select('id, mentor_id, startup_id, scheduled_date, start_time, end_time, duration_minutes, status, startup_rating')
+        .eq('organization_id', realOrgId),
+      supabaseAdmin
+        .from('startup_mentors')
+        .select('mentor_id, startup_id, status, startup:startups(id, startup_name)')
+        .eq('organization_id', realOrgId)
+        .eq('status', 'active'),
+      supabaseAdmin
+        .from('startups')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', realOrgId)
+        .is('deleted_at', null),
+    ]);
 
-    let mentors = data || [];
+    if (mentorsRes.error) throw mentorsRes.error;
+
+    let mentors = mentorsRes.data || [];
 
     if (statusParam) {
       mentors = mentors.filter((m: any) => {
@@ -86,7 +105,7 @@ export async function GET(req: NextRequest) {
     if (search) {
       mentors = mentors.filter((m) => {
         const u = m.user || {};
-        const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
+        const fullName = `${u.first_name || ''} ${u.last_name || ''} ${u.full_name || ''}`.toLowerCase();
         const email = (u.email || '').toLowerCase();
         const bio = (m.bio || '').toLowerCase();
         const company = (m.company_background || '').toLowerCase();
@@ -99,11 +118,111 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Compute per-mentor and org-wide real aggregates from DB rows
+    const todayIso = new Date().toISOString().split('T')[0];
+    const monthPrefix = todayIso.slice(0, 7);
+    const allSessions = sessionsRes.data || [];
+    const allAllocs = allocationsRes.data || [];
+
+    const matchedByMentor = new Map<string, string[]>();
+    const uniqueMatchedStartups = new Set<string>();
+    for (const al of allAllocs) {
+      if (!al.mentor_id || !al.startup_id) continue;
+      uniqueMatchedStartups.add(al.startup_id);
+      const stObj = Array.isArray(al.startup) ? al.startup[0] : al.startup;
+      const stName = stObj?.startup_name || 'Startup';
+      const arr = matchedByMentor.get(al.mentor_id) || [];
+      if (!arr.includes(stName)) arr.push(stName);
+      matchedByMentor.set(al.mentor_id, arr);
+    }
+
+    const orgRatings: number[] = [];
+    let orgCompletedSessions = 0;
+    let orgCompletedMinutes = 0;
+
+    const enrichedMentors = mentors.map((m: any) => {
+      const mSessions = allSessions.filter((s: any) => s.mentor_id === m.id);
+      const activeMonthSessions = mSessions.filter(
+        (s: any) =>
+          String(s.scheduled_date || '').startsWith(monthPrefix) &&
+          !['cancelled', 'declined'].includes(String(s.status || '').toLowerCase())
+      );
+      const upcomingSessions = mSessions.filter(
+        (s: any) =>
+          String(s.scheduled_date || '') >= todayIso &&
+          ['requested', 'scheduled'].includes(String(s.status || '').toLowerCase())
+      );
+      const completedSessions = mSessions.filter(
+        (s: any) => String(s.status || '').toLowerCase() === 'completed'
+      );
+
+      let completedMin = 0;
+      for (const s of completedSessions) {
+        orgCompletedSessions += 1;
+        const mins =
+          typeof s.duration_minutes === 'number' && s.duration_minutes > 0 ? s.duration_minutes : 60;
+        completedMin += mins;
+        orgCompletedMinutes += mins;
+      }
+
+      const ratingVals = mSessions
+        .map((s: any) => Number(s.startup_rating))
+        .filter((r: number) => !Number.isNaN(r) && r >= 1 && r <= 5);
+      for (const r of ratingVals) orgRatings.push(r);
+
+      const hideOtherRatings = callerRole === 'mentor' && m.user_id !== user?.id;
+      const avgRating =
+        !hideOtherRatings && ratingVals.length > 0
+          ? Number((ratingVals.reduce((a, b) => a + b, 0) / ratingVals.length).toFixed(1))
+          : 0;
+
+      const weeklyGrid = m.availability_json?.weekly_grid || {};
+      const weeklySlotCount = Object.values(weeklyGrid).reduce(
+        (acc: number, arr: any) => acc + (Array.isArray(arr) ? arr.length : 0),
+        0
+      );
+      const openSlotsCount = m.is_available && m.is_active ? Math.max(0, weeklySlotCount - upcomingSessions.length) : 0;
+      const matchedList = matchedByMentor.get(m.id) || [];
+
+      return {
+        ...m,
+        average_rating: avgRating,
+        total_reviews: hideOtherRatings ? 0 : ratingVals.length,
+        sessions_count: activeMonthSessions.length,
+        upcoming_count: upcomingSessions.length,
+        completed_sessions_count: completedSessions.length,
+        completed_hours: Number((completedMin / 60).toFixed(1)),
+        open_slots_count: openSlotsCount,
+        matched_startups: matchedList,
+        matched_count: matchedList.length,
+        max_hours_per_month: m.availability_hours_per_month || 10,
+        company: m.company_background || '',
+        title: m.job_title || m.availability_json?.job_title || '',
+      };
+    });
+
+    const totalStartups = startupsCountRes.count || 0;
+    const avgFounderRating =
+      orgRatings.length > 0
+        ? Number((orgRatings.reduce((a, b) => a + b, 0) / orgRatings.length).toFixed(1))
+        : 0;
+
     return NextResponse.json({
       success: true,
       organization_id: realOrgId,
-      total: mentors.length,
-      data: mentors,
+      total: enrichedMentors.length,
+      data: enrichedMentors,
+      org_stats: {
+        totalActiveMentors: enrichedMentors.filter((m: any) => m.is_active).length,
+        availableMentors: enrichedMentors.filter((m: any) => m.is_active && m.is_available).length,
+        completedSessionsCount: orgCompletedSessions,
+        completedHours: Number((orgCompletedMinutes / 60).toFixed(1)),
+        avgFounderRating,
+        totalReviews: orgRatings.length,
+        matchedStartupsCount: uniqueMatchedStartups.size,
+        totalStartupsCount: totalStartups,
+        matchVelocityPct: totalStartups > 0 ? Math.min(100, Math.round((uniqueMatchedStartups.size / totalStartups) * 100)) : 0,
+      },
     });
   } catch (err) {
     return handleApiError(err);

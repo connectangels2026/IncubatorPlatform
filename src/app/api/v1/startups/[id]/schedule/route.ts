@@ -97,6 +97,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             status: ms.status || 'requested',
             meeting_mode: ms.meeting_mode || 'online',
             link: ms.meeting_link || ms.mentor?.calendar_url || '#',
+            mentor_feedback: ms.mentor_feedback || null,
+            mentor_feedback_scores: ms.mentor_feedback_scores || null,
+            startup_rating: ms.startup_rating || null,
+            startup_feedback: ms.startup_feedback || null,
+            action_points: Array.isArray(ms.action_points) ? ms.action_points : [],
+            session_notes: ms.session_notes || null,
             source: 'mentorship_session',
           });
         }
