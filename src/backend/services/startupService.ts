@@ -4,15 +4,29 @@ export const FOUNDER_MUTABLE_FIELDS = [
   'name',
   'startup_name',
   'tagline',
+  'sector',
   'description',
   'problem_statement',
   'solution_description',
   'target_market',
   'business_model',
   'revenue_model',
+  'founder_name',
+  'founder_email',
+  'founder_phone',
   'team_size',
   'cofounders',
   'team_members',
+  'registration_type',
+  'registration_number',
+  'pan_number',
+  'gst_number',
+  'cin_number',
+  'mrr',
+  'monthly_revenue',
+  'annual_revenue',
+  'funding_raised',
+  'customer_count',
   'tech_stack',
   'pitch_deck_url',
   'business_plan_url',
@@ -406,6 +420,11 @@ export class StartupService {
       }
     } else {
       throw new Error('Forbidden: You do not have permission to modify this startup');
+    }
+
+    // Normalize empty date string to null to satisfy PostgreSQL date column
+    if ('founded_date' in cleanPayload && !cleanPayload.founded_date) {
+      cleanPayload.founded_date = null;
     }
 
     // Normalize stage if provided to satisfy valid_stage CHECK constraint

@@ -1730,7 +1730,7 @@
       "file_type": "code",
       "norm_label": "startupservice",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L63"
+      "source_location": "L77"
     },
     {
       "id": "agents_skills_ui_ux_pro_max_scripts_design_system_designsystemgenerator",
@@ -7703,7 +7703,7 @@
       "file_type": "code",
       "norm_label": "normalizestage()",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L52"
+      "source_location": "L66"
     },
     {
       "id": "src_backend_services_startupservice_startupservice_getstartup",
@@ -7715,7 +7715,7 @@
       "file_type": "code",
       "norm_label": ".getstartup()",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L67"
+      "source_location": "L81"
     },
     {
       "id": "src_backend_services_startupservice_startupservice_updatestartup",
@@ -7727,7 +7727,7 @@
       "file_type": "code",
       "norm_label": ".updatestartup()",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L336"
+      "source_location": "L350"
     },
     {
       "id": "src_middleware_middleware",
@@ -25481,7 +25481,7 @@
       "file_type": "code",
       "norm_label": "incubator_mutable_fields",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L37"
+      "source_location": "L51"
     },
     {
       "id": "src_middleware",
@@ -55278,7 +55278,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L182",
+      "source_location": "L196",
       "weight": 1.0
     },
     {
@@ -55290,7 +55290,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L342",
+      "source_location": "L356",
       "weight": 1.0
     },
     {
@@ -55302,7 +55302,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L413",
+      "source_location": "L432",
       "weight": 1.0
     },
     {
@@ -55727,18 +55727,6 @@
     },
     {
       "source": "src_frontend_components_startup_dashboard_overviewtab_overviewtab",
-      "target": "src_frontend_components_common_fileviewermodal_fileviewermodal",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
-      "source_location": "L1036",
-      "weight": 1.0
-    },
-    {
-      "source": "src_frontend_components_startup_dashboard_overviewtab_overviewtab",
       "target": "src_frontend_components_startup_dashboard_overviewtab_getdomainonly",
       "relation": "calls",
       "_origin": "ast",
@@ -55747,6 +55735,18 @@
       "context": "call",
       "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
       "source_location": "L527",
+      "weight": 1.0
+    },
+    {
+      "source": "src_frontend_components_startup_dashboard_overviewtab_overviewtab",
+      "target": "src_frontend_components_common_fileviewermodal_fileviewermodal",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/frontend/components/startup-dashboard/OverviewTab.tsx",
+      "source_location": "L956",
       "weight": 1.0
     },
     {
@@ -106077,7 +106077,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L37",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -106088,7 +106088,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L52",
+      "source_location": "L66",
       "weight": 1.0
     },
     {
@@ -106099,7 +106099,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L63",
+      "source_location": "L77",
       "weight": 1.0
     },
     {
@@ -111716,7 +111716,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L336",
+      "source_location": "L350",
       "weight": 1.0
     },
     {
@@ -111727,7 +111727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/backend/services/startupService.ts",
-      "source_location": "L67",
+      "source_location": "L81",
       "weight": 1.0
     },
     {
@@ -115405,5 +115405,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c4161ff92ce5193a8685cfc9e5f48776c5ec279c"
+  "built_at_commit": "3b993d909d781c90081ec54e77c75940392a1ab5"
 }

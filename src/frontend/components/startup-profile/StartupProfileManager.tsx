@@ -142,7 +142,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
         payload.initials = formData.initials || null;
         payload.website = formData.website;
         payload.sector = formData.sector;
-        payload.founded_date = formData.founded_date;
+        payload.founded_date = formData.founded_date || null;
       } else if (section === 'team') {
         payload.founder_name = formData.founder_name;
         payload.founder_email = formData.founder_email;
