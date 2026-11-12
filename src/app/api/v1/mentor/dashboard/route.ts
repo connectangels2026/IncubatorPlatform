@@ -3,8 +3,25 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { NotificationService } from '@/backend/services/notificationService';
+import { logActivity } from '@/backend/services/activityLogger';
 
 export const dynamic = 'force-dynamic';
+
+const SHARED_STARTUP_COLUMNS =
+  'id, organization_id, startup_name, sector, stage, logo_url, founder_name, founder_email, description, problem_statement, team_size, customer_count, tagline, website';
+
+function calcSessionMinutes(row: any): number {
+  if (typeof row?.duration_minutes === 'number' && row.duration_minutes > 0) {
+    return row.duration_minutes;
+  }
+  if (row?.start_time && row?.end_time) {
+    const [sh, sm] = String(row.start_time).split(':').map((n) => parseInt(n, 10) || 0);
+    const [eh, em] = String(row.end_time).split(':').map((n) => parseInt(n, 10) || 0);
+    const diff = eh * 60 + em - (sh * 60 + sm);
+    if (diff > 0) return diff;
+  }
+  return 60;
+}
 
 const isValidUUID = (s: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -63,7 +80,8 @@ function normalizeStartup(s: any) {
     founder: s.founder_name || s.founder_email || 'Founder',
     email: s.founder_email || '',
     bio: s.description || s.problem_statement || 'Early-stage venture in incubator cohort.',
-    mrr: Number(s.mrr || s.monthly_revenue || 0),
+    tagline: s.tagline || '',
+    website: s.website || '',
     teamSize: Number(s.team_size || 1),
     customerCount: Number(s.customer_count || 0),
   };
@@ -101,7 +119,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const [sessionsRes, allocationsRes, notificationsRes] = await Promise.all([
+    const [sessionsRes, allocationsRes, sharedStartupsRpcRes, notificationsRes] = await Promise.all([
       supabaseAdmin
         .from('mentorship_sessions')
         .select('*')
@@ -110,14 +128,15 @@ export async function GET(req: NextRequest) {
         .order('start_time', { ascending: true }),
       supabaseAdmin
         .from('startup_mentors')
-        .select('*, startup:startups (*)')
+        .select(`*, startup:startups (${SHARED_STARTUP_COLUMNS})`)
         .eq('mentor_id', mentor.id)
         .in('status', ['pending', 'active'])
         .order('created_at', { ascending: false }),
+      supabaseAdmin.rpc('get_mentor_allocated_startups', { p_mentor_id: mentor.id }),
       dbUser?.id
         ? supabaseAdmin
             .from('notifications')
-            .select('id, title, message, notification_type, is_read, related_entity_id, created_at')
+            .select('id, title, message, notification_type, is_read, related_entity_type, related_entity_id, created_at')
             .eq('recipient_id', dbUser.id)
             .eq('is_read', false)
             .order('created_at', { ascending: false })
@@ -130,25 +149,35 @@ export async function GET(req: NextRequest) {
     const startupMap = new Map<string, any>();
     const activeStartupMap = new Map<string, any>();
 
-    for (const alloc of allocations) {
-      const sRow = Array.isArray(alloc.startup) ? alloc.startup[0] : alloc.startup;
-      const normalized = normalizeStartup(sRow);
-      if (normalized) {
-        startupMap.set(normalized.id, normalized);
-        if (alloc.status === 'active') {
+    if (!sharedStartupsRpcRes.error && Array.isArray(sharedStartupsRpcRes.data)) {
+      for (const sRow of sharedStartupsRpcRes.data) {
+        const normalized = normalizeStartup(sRow);
+        if (normalized) {
+          startupMap.set(normalized.id, normalized);
           activeStartupMap.set(normalized.id, normalized);
         }
       }
     }
 
-    // Include any session-linked startups for session display names
+    for (const alloc of allocations) {
+      const sRow = Array.isArray(alloc.startup) ? alloc.startup[0] : alloc.startup;
+      const normalized = normalizeStartup(sRow);
+      if (normalized) {
+        if (!startupMap.has(normalized.id)) startupMap.set(normalized.id, normalized);
+        if (alloc.status === 'active' && !activeStartupMap.has(normalized.id)) {
+          activeStartupMap.set(normalized.id, normalized);
+        }
+      }
+    }
+
+    // Include any session-linked startups (non-financial shared columns only)
     const missingIds = Array.from(
       new Set(rawSessions.map((r: any) => r.startup_id).filter((id: string) => id && !startupMap.has(id)))
     );
     if (missingIds.length > 0) {
       const { data: extraStartups } = await supabaseAdmin
         .from('startups')
-        .select('*')
+        .select(SHARED_STARTUP_COLUMNS)
         .in('id', missingIds);
       for (const s of extraStartups || []) {
         const normalized = normalizeStartup(s);
@@ -203,6 +232,8 @@ export async function GET(req: NextRequest) {
         startupRating: row.startup_rating || null,
         startupFeedback: row.startup_feedback || null,
         mentorFeedback: row.mentor_feedback || null,
+        mentorFeedbackScores: row.mentor_feedback_scores || null,
+        durationMinutes: calcSessionMinutes(row),
       };
     });
 
@@ -218,7 +249,7 @@ export async function GET(req: NextRequest) {
         sessionsHeld: completed.length,
         lastFeedbackDate: lastFb?.date || '—',
         metrics: {
-          MRR: st.mrr > 0 ? `$${st.mrr.toLocaleString()}` : 'Pre-rev',
+          Stage: st.stage || 'Seed',
           Customers: String(st.customerCount),
           Team: `${st.teamSize} FTEs`,
         },
@@ -235,17 +266,26 @@ export async function GET(req: NextRequest) {
           startupName: s.startupName,
           founderName: st?.founder || 'Founder',
           date: s.date,
-          rating: s.startupRating || 5,
-          comment: s.startupFeedback || 'Positive mentorship session.',
+          rating: s.startupRating || null,
+          comment: s.startupFeedback || '',
           tags: Array.isArray(mentor.expertise_areas) ? mentor.expertise_areas.slice(0, 2) : ['Mentorship'],
         };
       });
 
-    const ratings = feedbackList.map((f: any) => f.rating).filter((r: number) => r > 0);
+    const ratings = feedbackList.map((f: any) => Number(f.rating)).filter((r: number) => r >= 1 && r <= 5);
     const avgRating =
       ratings.length > 0
         ? Number((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1))
         : 0;
+    const ratingDistribution: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    for (const r of ratings) {
+      const bucket = Math.min(5, Math.max(1, Math.round(r)));
+      ratingDistribution[bucket] += 1;
+    }
+    const ratingTrend = feedbackList
+      .filter((f: any) => typeof f.rating === 'number' && f.rating >= 1)
+      .slice(-7)
+      .map((f: any) => f.rating);
 
     const actionQueue: any[] = [];
     for (const alloc of allocations) {
@@ -260,6 +300,7 @@ export async function GET(req: NextRequest) {
           title: 'New Startup Allocation Request',
           subtitle: `${stName} (${alloc.domain || 'Advisory'}) was allocated to your mentorship portfolio.`,
           startupName: stName,
+          href: '/mentor/dashboard',
           date: new Date(alloc.created_at || Date.now()).toLocaleDateString(),
         });
       }
@@ -272,6 +313,7 @@ export async function GET(req: NextRequest) {
           title: 'Session Confirmation Needed',
           subtitle: `${s.startupName} requested "${s.title}" on ${s.date} at ${s.startTime}.`,
           sessionId: s.id,
+          href: '/mentor/sessions',
           date: s.date,
         });
       } else if (s.status === 'Completed' && !s.mentorFeedback) {
@@ -281,24 +323,43 @@ export async function GET(req: NextRequest) {
           title: 'Feedback Required',
           subtitle: `Session with ${s.startupName} on ${s.date} requires mentor evaluation.`,
           sessionId: s.id,
+          href: '/mentor/feedback',
           date: s.date,
         });
       }
     }
     for (const n of notificationsRes.data || []) {
+      const nt = String(n.notification_type || n.related_entity_type || '').toLowerCase();
+      const href =
+        nt.includes('feedback') || nt.includes('rating')
+          ? '/mentor/feedback'
+          : nt.includes('booking') || nt.includes('session')
+          ? '/mentor/sessions'
+          : nt.includes('allocation')
+          ? '/mentor/startups'
+          : '/mentor/dashboard';
       actionQueue.push({
         id: `notif-${n.id}`,
         notificationId: n.id,
         type: 'notification',
+        notificationType: n.notification_type,
+        relatedEntityId: n.related_entity_id,
+        href,
         title: n.title,
         subtitle: n.message,
         date: new Date(n.created_at).toLocaleDateString(),
       });
     }
 
-    const sessionsThisMonth = sessions.filter(
+    const monthlyNonDeclined = sessions.filter(
       (s: any) => s.timestamp >= startOfMonth && s.status !== 'Declined'
-    ).length;
+    );
+    const sessionsThisMonth = monthlyNonDeclined.length;
+    const hoursUsedThisMonth = Number(
+      (
+        monthlyNonDeclined.reduce((acc: number, s: any) => acc + (Number(s.durationMinutes) || 60), 0) / 60
+      ).toFixed(1)
+    );
     const upcoming7Days = sessions.filter(
       (s: any) => s.status === 'Confirmed' && s.timestamp >= now && s.timestamp <= sevenDaysAhead
     ).length;
@@ -343,9 +404,12 @@ export async function GET(req: NextRequest) {
       },
       stats: {
         sessionsThisMonth,
+        hoursUsedThisMonth,
         upcoming7Days,
         avgRating,
         ratingCount: ratings.length,
+        ratingDistribution,
+        ratingTrend,
         activeStartups: startups.length,
       },
       sessions,
@@ -384,6 +448,16 @@ export async function PATCH(req: NextRequest) {
         .select('id, is_available')
         .single();
       if (error) throw error;
+      await logActivity({
+        organization_id: mentor.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: 'mentor_availability_toggled',
+        entity_type: 'mentor',
+        entity_id: mentor.id,
+        description: `Mentor set accepting startups to ${nextVal}`,
+        details: { is_available: nextVal },
+      });
       return NextResponse.json({ success: true, data });
     }
 
@@ -413,6 +487,16 @@ export async function PATCH(req: NextRequest) {
         .select()
         .single();
       if (error) throw error;
+      await logActivity({
+        organization_id: mentor.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: 'mentor_availability_updated',
+        entity_type: 'mentor',
+        entity_id: mentor.id,
+        description: 'Mentor updated weekly availability schedule',
+        details: { timezone: data.timezone, hours_per_month: data.availability_hours_per_month },
+      });
       return NextResponse.json({ success: true, data });
     }
 
@@ -549,6 +633,17 @@ export async function PATCH(req: NextRequest) {
         console.warn('Allocation decision notification error:', nErr);
       }
 
+      await logActivity({
+        organization_id: allocRow.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: `mentor_allocation_${decision}`,
+        entity_type: 'startup_mentor',
+        entity_id: allocation_id,
+        description: `Mentor ${decision} allocation for startup`,
+        details: { startup_id: allocRow.startup_id, decline_reason: decline_reason || null },
+      });
+
       return NextResponse.json({ success: true, data: updatedAlloc });
     }
 
@@ -661,6 +756,17 @@ export async function PATCH(req: NextRequest) {
         } catch {}
       }
 
+      await logActivity({
+        organization_id: existingSess.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: mappedStatus ? `mentorship_session_${mappedStatus}` : 'mentorship_session_updated',
+        entity_type: 'mentorship_session',
+        entity_id: session_id,
+        description: `Mentor updated session "${existingSess.session_title || 'Session'}"`,
+        details: { status: mappedStatus || existingSess.status, startup_id: existingSess.startup_id },
+      });
+
       return NextResponse.json({ success: true, data });
     }
 
@@ -721,29 +827,124 @@ export async function PATCH(req: NextRequest) {
         }
         throw error;
       }
+      await logActivity({
+        organization_id: mentor.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: 'mentorship_session_created',
+        entity_type: 'mentorship_session',
+        entity_id: data.id,
+        description: `${mentorDisplayName} scheduled "${data.session_title}"`,
+        details: { startup_id, scheduled_date, start_time },
+      });
+
       return NextResponse.json({ success: true, data }, { status: 201 });
     }
 
     if (action === 'submit_feedback') {
-      const { session_id, mentor_feedback, action_points } = body;
+      const { session_id, mentor_feedback, action_points, scores } = body;
       if (!session_id) return NextResponse.json({ error: 'session_id is required' }, { status: 400 });
 
+      const { data: existingSess } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .select('id, organization_id, startup_id, session_title, startup:startups (id, startup_name, founder_id, founder_email)')
+        .eq('id', session_id)
+        .eq('mentor_id', mentor.id)
+        .maybeSingle();
+
+      if (!existingSess) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+
+      const cleanNote = String(mentor_feedback || '').trim();
+      const scoresObj = scores && typeof scores === 'object' ? scores : null;
+      const summaryText =
+        cleanNote ||
+        (scoresObj
+          ? `Preparedness: ${scoresObj.preparedness ?? '-'}/5, Clarity: ${scoresObj.clarity ?? '-'}/5, Progress: ${scoresObj.progress ?? '-'}/5`
+          : 'Session reviewed.');
+
       const updates: Record<string, any> = {
-        mentor_feedback: mentor_feedback || 'Session reviewed.',
+        mentor_feedback: summaryText,
         updated_at: nowIso,
       };
       if (Array.isArray(action_points)) {
         updates.action_points = action_points;
       }
+      if (scoresObj) {
+        updates.mentor_feedback_scores = scoresObj;
+      }
 
-      const { data, error } = await supabaseAdmin
+      let { data, error } = await supabaseAdmin
         .from('mentorship_sessions')
         .update(updates)
         .eq('id', session_id)
         .eq('mentor_id', mentor.id)
         .select()
         .single();
+
+      if (error && (error as any).code === '42703' && updates.mentor_feedback_scores !== undefined) {
+        delete updates.mentor_feedback_scores;
+        const retry = await supabaseAdmin
+          .from('mentorship_sessions')
+          .update(updates)
+          .eq('id', session_id)
+          .eq('mentor_id', mentor.id)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
       if (error) throw error;
+
+      const mentorDisplayName =
+        dbUser?.full_name ||
+        [dbUser?.first_name, dbUser?.last_name].filter(Boolean).join(' ').trim() ||
+        dbUser?.email?.split('@')[0] ||
+        'Mentor';
+
+      try {
+        await supabaseAdmin.from('startup_activity').insert({
+          startup_id: existingSess.startup_id,
+          author_id: dbUser?.id || null,
+          author_name: mentorDisplayName,
+          author_role: 'Mentor',
+          type: 'mentor_feedback',
+          title: `Mentor Feedback · ${existingSess.session_title || 'Mentorship Session'}`,
+          body: summaryText,
+          scores: scoresObj || {},
+        });
+      } catch (actErr) {
+        console.warn('Could not insert startup_activity mentor_feedback:', actErr);
+      }
+
+      try {
+        const stRow = Array.isArray(existingSess.startup) ? existingSess.startup[0] : existingSess.startup;
+        if (stRow?.founder_id && isValidUUID(stRow.founder_id)) {
+          await NotificationService.createNotification({
+            organization_id: existingSess.organization_id,
+            recipient_id: stRow.founder_id,
+            recipient_email: stRow.founder_email || undefined,
+            title: `New Mentor Feedback: ${existingSess.session_title || 'Session'}`,
+            message: `${mentorDisplayName} submitted session feedback. View feedback and rate your session on the dashboard.`,
+            notification_type: 'mentor_feedback',
+            send_email: true,
+            send_in_app: true,
+            related_entity_type: 'mentorship_session',
+            related_entity_id: session_id,
+          });
+        }
+      } catch {}
+
+      await logActivity({
+        organization_id: existingSess.organization_id,
+        user_id: dbUser?.id,
+        actor_email: dbUser?.email,
+        action: 'mentor_feedback_submitted',
+        entity_type: 'mentorship_session',
+        entity_id: session_id,
+        description: `${mentorDisplayName} submitted feedback for session "${existingSess.session_title || 'Session'}"`,
+        details: { startup_id: existingSess.startup_id, scores: scoresObj },
+      });
+
       return NextResponse.json({ success: true, data });
     }
 

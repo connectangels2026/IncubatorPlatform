@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { logActivity } from '@/backend/services/activityLogger';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -14,7 +15,7 @@ interface Params {
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
@@ -48,12 +49,23 @@ export async function PUT(req: NextRequest, { params }: Params) {
           id,
           user:users (first_name, last_name, email)
         ),
-        startup:startups (id, name)
+        startup:startups (id, startup_name)
       `)
       .single();
 
     if (error) throw error;
     if (!updatedSession) return NextResponse.json({ error: 'Mentorship session not found' }, { status: 404 });
+
+    await logActivity({
+      organization_id: realOrgId,
+      user_id: user?.id || null,
+      actor_email: user?.email || null,
+      action: 'mentorship_session_completed',
+      entity_type: 'mentorship_session',
+      entity_id: id,
+      description: `Completed session "${updatedSession.session_title || 'Session'}"`,
+      details: { startup_id: updatedSession.startup_id, attended: updatedSession.attended },
+    });
 
     return NextResponse.json({
       success: true,

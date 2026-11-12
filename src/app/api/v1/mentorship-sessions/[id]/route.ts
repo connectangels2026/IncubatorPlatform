@@ -4,6 +4,7 @@ import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
+import { logActivity } from '@/backend/services/activityLogger';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user: caller, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
@@ -198,6 +199,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
       console.warn('Session update notification skipped:', nErr);
     }
 
+    await logActivity({
+      organization_id: existing.organization_id,
+      user_id: caller?.id || null,
+      actor_email: caller?.email || null,
+      action: updated.status ? `mentorship_session_${updated.status}` : 'mentorship_session_updated',
+      entity_type: 'mentorship_session',
+      entity_id: id,
+      description: `Updated mentorship session "${existing.session_title || 'Session'}"`,
+      details: { status: updated.status, startup_id: existing.startup_id },
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Mentorship session updated successfully',
@@ -259,6 +271,17 @@ export async function DELETE(req: NextRequest, { params }: Params) {
         });
       }
     } catch {}
+
+    await logActivity({
+      organization_id: existing.organization_id,
+      user_id: caller?.id || null,
+      actor_email: caller?.email || null,
+      action: 'mentorship_session_cancelled',
+      entity_type: 'mentorship_session',
+      entity_id: id,
+      description: `Cancelled mentorship session "${existing.session_title || 'Session'}"`,
+      details: { startup_id: existing.startup_id },
+    });
 
     return NextResponse.json({
       success: true,

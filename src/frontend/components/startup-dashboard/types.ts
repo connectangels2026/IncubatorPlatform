@@ -32,6 +32,7 @@ export interface ScheduleEventItem {
   type: string;
   speaker: string;
   timing: string;
+  starts_at?: string;
   link?: string;
   source?: string;
   status?: string;
@@ -39,6 +40,11 @@ export interface ScheduleEventItem {
   start_time?: string;
   end_time?: string;
   mentor_id?: string;
+  mentor_feedback?: string | null;
+  mentor_feedback_scores?: Record<string, number> | null;
+  startup_rating?: number | null;
+  startup_feedback?: string | null;
+  action_points?: any[];
 }
 
 export interface DeckRevision {
