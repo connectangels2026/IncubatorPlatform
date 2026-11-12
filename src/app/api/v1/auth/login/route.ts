@@ -162,16 +162,39 @@ export async function POST(req: Request) {
 
     // Check if user has selected a role
     if (!isSuperAdmin && !userData.role) {
-      return NextResponse.json(
+      const roleRes = NextResponse.json(
         {
           success: false,
           error: 'Please select your role first',
           code: 'ROLE_NOT_SELECTED',
           user_id: userData.id,
           next_step: '/auth/choose-role',
+          session: data.session
+            ? {
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+              }
+            : null,
         },
         { status: 403 }
       );
+      if (data.session?.access_token && data.session?.refresh_token) {
+        roleRes.cookies.set('refresh_token', data.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        });
+        roleRes.cookies.set('sb-access-token', data.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        });
+      }
+      return roleRes;
     }
 
     // Calculate immediate redirect target server-side to avoid client-side waterfalls

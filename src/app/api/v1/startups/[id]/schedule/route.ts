@@ -46,58 +46,70 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    // 2. Query mentor sessions for this startup (mentor_sessions table)
+    // 2. Query mentorship_sessions for this startup (exclude cancelled and declined)
     try {
-      const { data: mentorSessions, error: msErr } = await supabaseAdmin
-        .from('mentor_sessions')
-        .select('*')
+      const { data: mentorSessions } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .select(`
+          *,
+          mentor:mentors (
+            id,
+            calendar_url,
+            user:users (
+              id,
+              first_name,
+              last_name,
+              full_name,
+              email
+            )
+          )
+        `)
         .eq('startup_id', startup.id)
-        .order('starts_at', { ascending: true });
+        .not('status', 'in', '("cancelled","declined")')
+        .order('scheduled_date', { ascending: true })
+        .order('start_time', { ascending: true });
 
-      if (!msErr && Array.isArray(mentorSessions)) {
+      if (Array.isArray(mentorSessions)) {
         for (const ms of mentorSessions) {
+          const mUser = Array.isArray(ms.mentor?.user) ? ms.mentor.user[0] : ms.mentor?.user;
+          const mentorName =
+            mUser?.full_name ||
+            [mUser?.first_name, mUser?.last_name].filter(Boolean).join(' ').trim() ||
+            ms.mentor_name ||
+            'Mentor';
+          const startFormatted = String(ms.start_time || '').slice(0, 5);
+          const endFormatted = String(ms.end_time || '').slice(0, 5);
+          const dateStr = ms.scheduled_date ? `${ms.scheduled_date}T${ms.start_time || '00:00:00'}` : new Date().toISOString();
+
           items.push({
             id: ms.id,
             type: '1-on-1 Session',
-            title: ms.topic || 'Mentorship Session',
-            speaker: ms.mentor_name ? `Mentor: ${ms.mentor_name}` : undefined,
-            timing: ms.starts_at ? new Date(ms.starts_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Upcoming',
-            starts_at: ms.starts_at || new Date().toISOString(),
-            link: ms.link || '#',
-            source: 'mentor_session',
+            title: ms.session_title || 'Mentorship Session',
+            speaker: `Mentor: ${mentorName}`,
+            timing: ms.scheduled_date
+              ? `${ms.scheduled_date} · ${startFormatted}${endFormatted ? `-${endFormatted}` : ''}`
+              : 'Upcoming',
+            starts_at: dateStr,
+            scheduled_date: ms.scheduled_date,
+            start_time: startFormatted,
+            end_time: endFormatted,
+            mentor_id: ms.mentor_id,
+            status: ms.status || 'requested',
+            meeting_mode: ms.meeting_mode || 'online',
+            link: ms.meeting_link || ms.mentor?.calendar_url || '#',
+            mentor_feedback: ms.mentor_feedback || null,
+            mentor_feedback_scores: ms.mentor_feedback_scores || null,
+            startup_rating: ms.startup_rating || null,
+            startup_feedback: ms.startup_feedback || null,
+            action_points: Array.isArray(ms.action_points) ? ms.action_points : [],
+            session_notes: ms.session_notes || null,
+            source: 'mentorship_session',
           });
         }
       }
     } catch (e) {
-      console.warn('Could not query mentor_sessions table:', e);
+      console.warn('Could not query mentorship_sessions table:', e);
     }
-
-    // 3. Fallback: also check mentorship_sessions table if present
-    try {
-      const { data: legacySessions } = await supabaseAdmin
-        .from('mentorship_sessions')
-        .select('*')
-        .eq('startup_id', startup.id)
-        .order('scheduled_date', { ascending: true });
-
-      if (Array.isArray(legacySessions)) {
-        for (const ls of legacySessions) {
-          if (!items.some((it) => it.id === ls.id)) {
-            const dateStr = ls.scheduled_date ? `${ls.scheduled_date}T${ls.start_time || '00:00:00'}` : new Date().toISOString();
-            items.push({
-              id: ls.id,
-              type: '1-on-1 Session',
-              title: ls.session_title || 'Mentorship Session',
-              speaker: ls.meeting_location ? `Location: ${ls.meeting_location}` : undefined,
-              timing: ls.scheduled_date ? `${ls.scheduled_date} ${ls.start_time || ''}` : 'Upcoming',
-              starts_at: dateStr,
-              link: ls.meeting_link || '#',
-              source: 'mentorship_session',
-            });
-          }
-        }
-      }
-    } catch {}
 
     // Sort merged schedule by date
     items.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());

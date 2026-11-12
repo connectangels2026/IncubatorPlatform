@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { StartupService } from '@/modules/startups/services';
+import { logActivity } from '@/backend/services/activityLogger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const { errorResponse: authError } = await verifyAuth(req);
+    const { user, errorResponse: authError } = await verifyAuth(req);
     if (authError) return authError;
     const { orgId, errorResponse: tenantError } = requireOrg(req);
     if (tenantError) return tenantError;
@@ -34,13 +35,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!startup) return NextResponse.json({ error: 'Startup not found' }, { status: 404 });
 
     const body = await req.json();
-    const mentorId = body.mentor_id || body.id || ('m_' + Date.now());
+    const mentorId = body.mentor_id || body.id;
+    if (!mentorId) {
+      return NextResponse.json({ error: 'Validation Error: mentor_id is required' }, { status: 400 });
+    }
     const mentorType = body.mentor_type || body.type || 'General';
 
     const alloc = await StartupService.allocateMentor(id, mentorId, mentorType, {
       name: body.name || body.mentor_name,
       domain: body.domain,
       notes: body.notes || body.feedback,
+      allocatedBy: user?.id,
+    });
+    await logActivity({
+      organization_id: orgId,
+      user_id: user?.id || null,
+      actor_email: user?.email || null,
+      action: 'mentor_allocated_to_startup',
+      entity_type: 'startup_mentor',
+      entity_id: alloc?.id || null,
+      description: `Allocated mentor ${mentorId} to startup ${id}`,
+      details: { startup_id: id, mentor_id: mentorId, mentor_type: mentorType },
     });
     return NextResponse.json({ success: true, data: alloc }, { status: 201 });
   } catch (error) {

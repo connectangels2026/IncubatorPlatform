@@ -574,43 +574,37 @@ export const StartupsPage: React.FC = () => {
 
   const handleConfirmAllocateMentor = async (mentorData: Omit<AllocatedMentor, "id">) => {
     if (!targetStartupForAction) return;
-    const tempId = "m_" + Date.now();
-    const newMentor: AllocatedMentor = { ...mentorData, id: tempId };
-
-    // Optimistic UI update
-    const updateLocal = (mId: string) => {
-      const createdMentor = { ...newMentor, id: mId };
-      const updated = startups.map((s) => {
-        if (s.id === targetStartupForAction.id) {
-          return { ...s, allocatedMentors: [...(s.allocatedMentors || []), createdMentor] };
-        }
-        return s;
-      });
-      setStartups(updated);
-      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
-        setSelectedStartup({
-          ...selectedStartup,
-          allocatedMentors: [...(selectedStartup.allocatedMentors || []), createdMentor],
-        });
-      }
-    };
-
-    updateLocal(tempId);
-    showToast(`Mentor allocated to ${targetStartupForAction.name}`);
-
     try {
       const res = await apiClient.post(`/startups/${targetStartupForAction.id}/mentors`, {
-        mentor_id: tempId,
+        mentor_id: mentorData.mentor_id,
         name: mentorData.name,
         type: mentorData.type,
         domain: mentorData.domain,
         notes: mentorData.feedback,
       });
-      if (res.data?.data?.id) {
-        updateLocal(res.data.data.id);
+      const createdMentor: AllocatedMentor = res.data?.data || {
+        ...mentorData,
+        id: "m_" + Date.now(),
+        status: "pending",
+      };
+      setStartups((prev) =>
+        prev.map((s) =>
+          s.id === targetStartupForAction.id
+            ? { ...s, allocatedMentors: [createdMentor, ...(s.allocatedMentors || [])] }
+            : s
+        )
+      );
+      if (selectedStartup && selectedStartup.id === targetStartupForAction.id) {
+        setSelectedStartup((prev) =>
+          prev
+            ? { ...prev, allocatedMentors: [createdMentor, ...(prev.allocatedMentors || [])] }
+            : prev
+        );
       }
+      showToast(`Mentor invitation sent to ${mentorData.name} for ${targetStartupForAction.name}`);
     } catch (err: any) {
-      console.warn("API mentor post notification (using optimistic):", err?.message);
+      showToast(err?.response?.data?.error || "Failed to allocate mentor");
+      throw err;
     }
   };
 

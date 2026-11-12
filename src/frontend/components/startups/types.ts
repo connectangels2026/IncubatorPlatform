@@ -1,9 +1,12 @@
 export interface AllocatedMentor {
   id: string;
+  mentor_id?: string;
   name: string;
   avatar?: string;
   type: 'General' | 'SME';
   domain: string;
+  status?: 'pending' | 'active' | 'declined' | 'ended' | string;
+  decline_reason?: string | null;
   allocatedDate?: string;
   feedback?: string;
 }

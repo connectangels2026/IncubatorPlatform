@@ -137,7 +137,7 @@ export async function POST(req: Request) {
           .maybeSingle();
         redirect_to = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
       }
-      return NextResponse.json(
+      const alreadySetRes = NextResponse.json(
         {
           success: true,
           message: 'Role already set',
@@ -146,6 +146,14 @@ export async function POST(req: Request) {
         },
         { status: 200 }
       );
+      alreadySetRes.cookies.set('sb-access-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+      return alreadySetRes;
     }
 
     const isStartupRole = role === 'startup';
@@ -245,8 +253,8 @@ export async function POST(req: Request) {
       ? '/mentor/application-form'
       : '/auth/incubator-plans';
 
-    // Return success response
-    return NextResponse.json(
+    // Return success response and ensure sb-access-token cookie is present for protected routes
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Role selected successfully',
@@ -257,6 +265,14 @@ export async function POST(req: Request) {
       },
       { status: 200 }
     );
+    response.cookies.set('sb-access-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+    return response;
   } catch (err: any) {
     console.error('Choose role error:', err);
     return NextResponse.json(
