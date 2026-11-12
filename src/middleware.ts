@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isValidToken } from '@/backend/lib/session';
 
 // Setup supabase client for middleware
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -27,6 +26,7 @@ export async function middleware(req: NextRequest) {
   const isProtectedUserPage =
     pathname.startsWith('/incubator') ||
     pathname.startsWith('/startup/dashboard') ||
+    pathname.startsWith('/mentor') ||
     pathname.includes('/status') ||
     pathname === '/choose-role';
 
@@ -70,7 +70,46 @@ export async function middleware(req: NextRequest) {
     !isPublicApplicationAction;
 
   if (isProtectedApiRoute) {
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    let authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+
+    // If Authorization header is absent, check Supabase auth token cookie or refresh token
+    if (!authHeader) {
+      const directCookie =
+        req.cookies.get('sb-access-token')?.value ||
+        req.cookies.get('access_token')?.value;
+      if (directCookie) {
+        authHeader = `Bearer ${directCookie}`;
+      } else {
+        const allCookies = req.cookies.getAll();
+        const sbCookie = allCookies.find(
+          (c) => c.name.startsWith('sb-') && (c.name.includes('auth-token') || c.name.includes('access-token'))
+        );
+        if (sbCookie) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(sbCookie.value));
+            const tokenVal = parsed.access_token || (Array.isArray(parsed) ? parsed[0] : null);
+            if (tokenVal) authHeader = `Bearer ${tokenVal}`;
+            else authHeader = `Bearer ${sbCookie.value}`;
+          } catch {
+            authHeader = `Bearer ${sbCookie.value}`;
+          }
+        }
+      }
+
+      // Check if refresh_token exists as fallback
+      if (!authHeader) {
+        const refreshTokenCookie = req.cookies.get('refresh_token')?.value;
+        if (refreshTokenCookie) {
+          try {
+            const supabase = createClient(supabaseUrl, supabaseKey);
+            const { data: refData } = await supabase.auth.refreshSession({ refresh_token: refreshTokenCookie });
+            if (refData?.session?.access_token) {
+              authHeader = `Bearer ${refData.session.access_token}`;
+            }
+          } catch {}
+        }
+      }
+    }
 
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized: Missing Authorization header' }, { status: 401 });
@@ -104,12 +143,6 @@ export async function middleware(req: NextRequest) {
       return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
     }
 
-    // Check Token against Redis/Memory Active Sessions
-    const isSessionActive = await isValidToken(token);
-    if (!isSessionActive) {
-      return NextResponse.json({ error: 'Session expired or invalid' }, { status: 401 });
-    }
-
     // Role check logic for Super Admin API routes
     if (pathname.startsWith('/api/v1/super-admin')) {
       const userRole = user.user_metadata?.role;
@@ -119,6 +152,15 @@ export async function middleware(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden: Super Admin access required' }, { status: 403 });
       }
     }
+    const requestHeaders = new Headers(req.headers);
+    if (authHeader && !requestHeaders.get('authorization')) {
+      requestHeaders.set('authorization', authHeader);
+    }
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   return res;
@@ -133,6 +175,8 @@ export const config = {
     '/dashboard/:path*',
     '/startup/dashboard',
     '/startup/dashboard/:path*',
+    '/mentor',
+    '/mentor/:path*',
     '/super-admin',
     '/super-admin/:path*',
     '/choose-role',

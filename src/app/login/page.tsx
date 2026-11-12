@@ -102,12 +102,6 @@ function LoginForm() {
 
       let effectiveOrgId = orgId || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
 
-      // Fast-path: If user has an active organization, route directly to incubator dashboard
-      if (effectiveOrgId) {
-        router.push(`/incubator?org=${effectiveOrgId}`);
-        return;
-      }
-
       if (isIncubatorRole) {
         if (!effectiveOrgId) {
           const meData = await fetchMeWithAuth();
@@ -117,6 +111,24 @@ function LoginForm() {
           }
         }
         router.push(effectiveOrgId ? `/incubator?org=${effectiveOrgId}` : '/incubator');
+        return;
+      }
+
+      if (role === 'mentor') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const mRes = await fetch('/api/v1/mentors/apply', {
+            headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          });
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            router.push(mData?.existingApplication ? '/mentor/dashboard' : '/mentor/application-form');
+            return;
+          }
+        } catch {
+          // fallback below
+        }
+        router.push('/mentor/dashboard');
         return;
       }
 
@@ -143,18 +155,24 @@ function LoginForm() {
         const res = await fetch('/api/v1/startups/me', { headers });
         const data = await res.json();
 
-        const acceptedApp = apps.find(
-          (a) => (a.status === 'accepted' || a.status === 'admitted') && a.organization_id
-        );
+        if (res.ok && data?.has_assigned_dashboard && data?.startup?.id) {
+          if (typeof window !== 'undefined' && data.startup.organization_id) {
+            localStorage.setItem('org_id', data.startup.organization_id);
+          }
 
-        const hasDashboardAccess = Boolean(
-          acceptedApp &&
-          (acceptedApp.admission_status === 'dashboard_assigned' || acceptedApp.form_data?.dashboard_access_granted)
-        );
+          // Check if startup track (software, hardware, or both) has been selected
+          const existingTrack =
+            data.startup.track ||
+            data.application?.form_data?.startup_track ||
+            (session?.user as any)?.user_metadata?.startup_track ||
+            (typeof window !== 'undefined' ? localStorage.getItem('startup_track') : null);
 
-        if (hasDashboardAccess && acceptedApp) {
-          if (typeof window !== 'undefined') localStorage.setItem('org_id', acceptedApp.organization_id);
-          router.push(`/incubator?org=${acceptedApp.organization_id}`);
+          if (!existingTrack) {
+            router.push('/choose-role');
+            return;
+          }
+
+          router.push('/startup/dashboard');
           return;
         }
 

@@ -6,9 +6,12 @@ export interface StartupProfile {
   batch: string;
   tagline: string;
   stage: string;
-  stageProgress: number; // e.g. 70
-  track: 'hardware' | 'software' | 'both';
+  stageProgress?: number | null;
+  track?: 'hardware' | 'software' | 'both' | null;
   incubatorName: string;
+  logo_url?: string | null;
+  logo_color?: string | null;
+  initials?: string | null;
 }
 
 export interface MilestoneItem {
@@ -17,7 +20,7 @@ export interface MilestoneItem {
   category: string;
   dueDate: string;
   completed: boolean;
-  assignedMentor: {
+  assignedMentor?: {
     name: string;
     avatar?: string;
   };
@@ -26,7 +29,7 @@ export interface MilestoneItem {
 export interface ScheduleEventItem {
   id: string;
   title: string;
-  type: 'Workshop' | '1-on-1 Session' | 'Lab Office Hours';
+  type: string;
   speaker: string;
   timing: string;
   link?: string;

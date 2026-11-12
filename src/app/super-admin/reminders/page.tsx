@@ -186,7 +186,7 @@ export default function PaymentRemindersPage() {
 
           {/* Section 1: Automation Rules Configuration Card */}
           <div className="mb-8">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-medium text-slate-500 mb-2">
               Automation Rules Configuration Card
             </div>
 
@@ -284,7 +284,7 @@ export default function PaymentRemindersPage() {
 
           {/* Section 2: Upcoming Reminders Queue Table */}
           <div className="mb-8">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-medium text-slate-500 mb-2">
               Upcoming Reminders Queue Table (active pending invoices queue)
             </div>
 
@@ -307,7 +307,7 @@ export default function PaymentRemindersPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
+                    <tr className="bg-slate-50/70 border-b border-slate-200 text-xs font-medium text-slate-500">
                       <th className="py-3 px-6">Organization Name</th>
                       <th className="py-3 px-4">Invoice #</th>
                       <th className="py-3 px-4">Amount Due</th>
@@ -371,7 +371,7 @@ export default function PaymentRemindersPage() {
 
           {/* Section 3: Sent Reminders Audit History Table */}
           <div>
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-medium text-slate-500 mb-2">
               Sent Reminders Audit History Table (recent dispatches log)
             </div>
 
@@ -385,7 +385,7 @@ export default function PaymentRemindersPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-50/70 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase">
+                    <tr className="bg-slate-50/70 border-b border-slate-200 text-xs font-medium text-slate-500">
                       <th className="py-3 px-6">Organization</th>
                       <th className="py-3 px-4">Sent To (Email)</th>
                       <th className="py-3 px-4">Template Used</th>

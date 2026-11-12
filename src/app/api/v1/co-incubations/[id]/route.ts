@@ -38,3 +38,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return handleApiError(err);
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const { errorResponse: authError } = await verifyAuth(req);
+    if (authError) return authError;
+    const { orgId, errorResponse: tenantError } = requireOrg(req);
+    if (tenantError) return tenantError;
+
+    await CoIncubationService.delete(id, orgId!);
+    return NextResponse.json({ success: true, message: 'Co-incubation removed' });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}

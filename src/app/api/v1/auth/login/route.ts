@@ -35,11 +35,11 @@ export async function POST(req: Request) {
     const cleanEmail = email.trim().toLowerCase();
     const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
 
-    // Query user profile by auth_user_id, id, or email (case-insensitive) to prevent duplicates
+    // Query user profile by id or email (case-insensitive) to prevent duplicates
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, email_verified, role, organization_id')
-      .or(`id.eq.${data.user.id},auth_user_id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+      .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
       .limit(1)
       .maybeSingle();
 
@@ -58,7 +58,6 @@ export async function POST(req: Request) {
 
       const insertPayload: Record<string, any> = {
         id: data.user.id,
-        auth_user_id: data.user.id,
         email: cleanEmail,
         full_name: fullName,
         first_name: fullName.split(' ')[0] || fullName,
@@ -182,21 +181,44 @@ export async function POST(req: Request) {
     if (isSuperAdmin || userRole === 'super-admin' || userRole === 'super_admin') {
       redirectTo = '/super-admin/dashboard';
     } else if (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator') {
-      redirectTo = orgData?.id ? `/dashboard?org=${orgData.id}` : '/dashboard';
+      redirectTo = orgData?.id ? `/incubator?org=${orgData.id}` : '/incubator';
     } else if (userRole === 'pending_incubator') {
       redirectTo = '/auth/incubator-plans';
+    } else if (userRole === 'mentor') {
+      const { data: existingMentor } = await supabaseAdmin
+        .from('mentors')
+        .select('id')
+        .eq('user_id', userData.id)
+        .is('deleted_at', null)
+        .maybeSingle();
+      redirectTo = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
     } else {
       // Startup or applicant: verify active record in startups table
       const { data: startupRow } = await supabaseAdmin
         .from('startups')
-        .select('id, organization_id')
+        .select('id, organization_id, track')
         .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
         .eq('is_active', true)
         .limit(1)
         .maybeSingle();
 
       if (startupRow) {
-        redirectTo = '/startup/dashboard';
+        let hasTrack = Boolean(startupRow.track);
+        if (!hasTrack) {
+          const { data: appRow } = await supabaseAdmin
+            .from('applications')
+            .select('form_data')
+            .ilike('applicant_email', cleanEmail)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (appRow?.form_data?.startup_track) {
+            hasTrack = true;
+          }
+        }
+
+        redirectTo = hasTrack ? '/startup/dashboard' : '/choose-role';
         acceptedOrgId = startupRow.organization_id || null;
       } else {
         redirectTo = '/programs/preincubator/status';

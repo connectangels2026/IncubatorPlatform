@@ -5,10 +5,8 @@ export interface Startup {
   founder_name: string;
   founder_id?: string;
   founder_phone?: string;
-  description?: string;
   email: string;
   founder_email?: string;
-  founder_phone?: string;
   sector: string;
   stage: string;
   status: string;
@@ -20,6 +18,8 @@ export interface Startup {
   mrr?: number;
   customer_count?: number;
   logo_url?: string;
+  logo_color?: string;
+  initials?: string;
   website?: string;
   description?: string;
   problem_statement?: string;

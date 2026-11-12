@@ -22,16 +22,47 @@ export interface AllocatedInvestor {
 export interface CoIncubatorItem {
   id: string;
   name: string;
-  mouStatus: 'Pending' | 'Signed';
-  type: 'Full' | 'Partial' | 'Knowledge Sharing';
+  partner_name?: string;
+  mouStatus?: 'Pending' | 'Signed' | string;
+  mou_signed?: boolean;
+  mou_signed_date?: string;
+  type?: 'Full' | 'Partial' | 'Knowledge Sharing' | string;
   durationMonths?: number;
+  duration_months?: number;
   duration?: string;
-  status: 'Active' | 'Completed' | 'Terminated';
+  status:
+    | 'Active'
+    | 'Completed'
+    | 'Terminated'
+    | 'Pending'
+    | 'Declined'
+    | 'Ended'
+    | 'pending'
+    | 'active'
+    | 'rejected'
+    | 'ended'
+    | string;
+  reject_reason?: string | null;
+  rejectReason?: string | null;
+  shared_scope?: string[] | null;
+  sharedScope?: string[] | null;
+  message?: string | null;
+  co_incubator?: {
+    id: string;
+    name: string;
+    logo_url?: string | null;
+  };
+  primary_incubator?: {
+    id: string;
+    name: string;
+    logo_url?: string | null;
+  };
   equitySplit?: string;
   equityShare?: string;
   mouType?: string;
   responsibilities?: string;
   startDate?: string;
+  start_date?: string;
   documentUrl?: string;
   documentName?: string;
 }
@@ -68,6 +99,8 @@ export interface StartupItem {
   founder_id?: string;
   website?: string;
   logo_url?: string;
+  logo_color?: string;
+  initials?: string;
   sector: string;
   industry?: string;
   stage: 'Idea' | 'MVP' | 'Revenue' | 'Growth' | 'Pre-revenue' | 'Scale' | string;
@@ -83,6 +116,11 @@ export interface StartupItem {
   monthlyBurn?: string;
   healthScore?: string;
   cohort?: string;
+  batch?: string;
+  track?: string;
+  lifecycle_stage?: string;
+  is_active?: boolean;
+  milestones?: any[];
   location?: string;
   customers: number;
   customer_count?: number;
@@ -121,4 +159,12 @@ export interface StartupItem {
   allocatedInvestors?: AllocatedInvestor[];
   coIncubators?: CoIncubatorItem[];
   organization_id?: string;
+  activity_logs?: Array<{
+    id?: string;
+    action?: string;
+    description?: string;
+    triggered_by?: string;
+    created_at?: string;
+    metadata?: any;
+  }>;
 }

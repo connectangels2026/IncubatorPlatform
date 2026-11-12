@@ -50,20 +50,19 @@ const fallbackStartups: Startup[] = [
   },
 ];
 
-const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
-
-const isValidUUID = (str: string): boolean => {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+const isValidUUID = (str?: string | null): boolean => {
+  return Boolean(str && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim()));
 };
 
-const resolveOrgId = (orgId: string): string => {
-  if (isValidUUID(orgId)) return orgId;
-  return DEFAULT_ORG_ID;
+const resolveOrgId = (orgId?: string | null): string => {
+  if (orgId && isValidUUID(orgId)) return orgId.trim();
+  return orgId || '';
 };
 
 // Map DB row from Supabase to Startup interface
 const mapRowToStartup = (row: any): Startup => {
   return {
+    ...row,
     id: row.id,
     startup_name: row.startup_name || row.name || 'Startup',
     name: row.startup_name || row.name || 'Startup',
@@ -80,9 +79,9 @@ const mapRowToStartup = (row: any): Startup => {
     created_at: row.created_at,
     updated_at: row.updated_at,
     is_deleted: !!row.deleted_at,
-    mentors: [],
-    investors: [],
-    co_incubations: [],
+    mentors: row.mentors || [],
+    investors: row.investors || [],
+    co_incubations: row.co_incubations || [],
   };
 };
 
@@ -93,9 +92,11 @@ export class StartupService {
 
     let query = supabaseAdmin
       .from('startups')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', realOrgId)
-      .is('deleted_at', null);
+      .select('*', { count: 'exact' });
+
+    if (realOrgId && orgId !== 'all') {
+      query = query.eq('organization_id', realOrgId);
+    }
 
     // Filtering
     if (filter.sector) query = query.ilike('sector', `%${filter.sector}%`);
@@ -110,18 +111,33 @@ export class StartupService {
     // Sorting
     const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
-    query = query.order(sortField, { ascending: isAsc });
+    try {
+      query = query.order(sortField, { ascending: isAsc });
+    } catch {}
 
     // Pagination
     const offset = filter.offset ? Number(filter.offset) : 0;
-    const limit = filter.limit ? Number(filter.limit) : 10;
+    const limit = filter.limit ? Number(filter.limit) : 100;
     query = query.range(offset, offset + limit - 1);
 
-    const { data, count, error } = await query;
+    let { data, count, error } = await query;
+
+    if (error) {
+      console.warn('Initial startups query failed, retrying simplified:', error);
+      let retryQuery = supabaseAdmin
+        .from('startups')
+        .select('*', { count: 'exact' });
+      if (orgId && orgId !== 'all') {
+        retryQuery = retryQuery.eq('organization_id', realOrgId);
+      }
+      const retryRes = await retryQuery.range(offset, offset + limit - 1);
+      data = retryRes.data;
+      count = retryRes.count;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.error('Error fetching startups:', error);
-      // Return empty array on error to maintain tenant isolation
       return { startups: [], total: 0 };
     }
 
@@ -172,9 +188,11 @@ export class StartupService {
       if (match) validStage = match;
     }
 
+    const stName = data.startup_name || data.name || 'New Startup';
     const insertPayload: any = {
       organization_id: realOrgId,
-      startup_name: data.startup_name || data.name || 'New Startup',
+      name: stName,
+      startup_name: stName,
       sector: data.sector || 'Tech',
       stage: validStage,
       founder_name: data.founder_name || 'Founder',
@@ -240,6 +258,12 @@ export class StartupService {
     if (data.sector !== undefined) updatePayload.sector = data.sector;
     if (data.stage !== undefined) updatePayload.stage = data.stage;
     if (data.status !== undefined) updatePayload.status = data.status;
+    if ((data as any).cohort !== undefined) updatePayload.cohort = (data as any).cohort;
+    if ((data as any).batch !== undefined) updatePayload.cohort = (data as any).batch;
+    if ((data as any).track !== undefined) updatePayload.track = (data as any).track;
+    if ((data as any).lifecycle_stage !== undefined) updatePayload.lifecycle_stage = (data as any).lifecycle_stage;
+    if ((data as any).is_active !== undefined) updatePayload.is_active = (data as any).is_active;
+    if ((data as any).milestones !== undefined) updatePayload.milestones = (data as any).milestones;
     if (data.description !== undefined) updatePayload.description = data.description;
     if (data.website !== undefined) updatePayload.website = data.website;
     if (data.logo_url !== undefined) updatePayload.logo_url = data.logo_url;
@@ -263,6 +287,7 @@ export class StartupService {
     if (data.customer_count !== undefined) updatePayload.customer_count = Number(data.customer_count) || 0;
     if (data.team_size !== undefined) updatePayload.team_size = Number(data.team_size) || 1;
     if (data.team_members !== undefined) updatePayload.team_members = data.team_members;
+    if ((data as any).cofounders !== undefined) updatePayload.cofounders = (data as any).cofounders;
     if (data.revenue !== undefined || data.monthly_revenue !== undefined) {
       const rev = Number(data.monthly_revenue !== undefined ? data.monthly_revenue : data.revenue) || 0;
       updatePayload.monthly_revenue = rev;
@@ -399,7 +424,20 @@ export class StartupService {
 
   // Mentors and Investors stubs
   static async getMentors(startupId: string): Promise<MentorAllocation[]> { return []; }
-  static async allocateMentor(startupId: string, mentorId: string, mentorType: any): Promise<any> { return {}; }
+  static async allocateMentor(startupId: string, mentorId: string, mentorType: any, extraData: any = {}): Promise<any> {
+    const id = mentorId || `m_${Date.now()}`;
+    return {
+      id,
+      startup_id: startupId,
+      mentor_id: id,
+      name: extraData.name || 'Mentor',
+      type: mentorType || 'General',
+      domain: extraData.domain || 'Advisory',
+      feedback: extraData.notes || '',
+      allocatedDate: new Date().toISOString().split('T')[0],
+      assigned_at: new Date().toISOString(),
+    };
+  }
   static async updateMentorAllocation(startupId: string, mentorId: string, mentorType: 'Lead' | 'Domain' | 'Peer'): Promise<MentorAllocation | null> {
     return {
       id: 'mentor_alloc_' + Date.now(),

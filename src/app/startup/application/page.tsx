@@ -52,12 +52,27 @@ export default function StartupApplicationPage() {
 
         if (!role && session?.user?.id) {
           try {
-            const cleanEmail = (session.user.email || '').trim();
-            const { data: uRec } = await supabase
-              .from('users')
-              .select('role')
-              .or(`id.eq.${session.user.id},email.ilike.${cleanEmail}`)
-              .maybeSingle();
+            const cleanEmail = (session.user.email || '').trim().toLowerCase();
+            let uRec: any = null;
+
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.user.id)) {
+              const { data: byId } = await supabase
+                .from('users')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle();
+              if (byId) uRec = byId;
+            }
+
+            if (!uRec && cleanEmail) {
+              const { data: byEmail } = await supabase
+                .from('users')
+                .select('role')
+                .ilike('email', cleanEmail)
+                .maybeSingle();
+              if (byEmail) uRec = byEmail;
+            }
+
             if (uRec?.role) {
               role = uRec.role;
               if (typeof window !== 'undefined') {

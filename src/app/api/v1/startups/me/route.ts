@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/backend/middleware/auth';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { StartupService } from '@/backend/services/startupService';
 
 export const dynamic = 'force-dynamic';
+
+const normalizeStage = (val?: string): string => {
+  if (!val) return 'Idea';
+  const v = val.trim().toLowerCase();
+  if (v === 'mvp' || v.includes('prototype')) return 'MVP';
+  if (v.includes('pre-revenue') || v.includes('prerevenue')) return 'Pre-revenue';
+  if (v.includes('revenue') || v.includes('commercial')) return 'Revenue';
+  if (v.includes('growth')) return 'Growth';
+  if (v.includes('scale')) return 'Scale';
+  return 'Idea';
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,57 +27,28 @@ export async function GET(req: NextRequest) {
 
     const emailLower = user.email.trim().toLowerCase();
 
-    // Issue 1: Incubator administrators must NOT create startup records or access startup dashboards
-    const callerRole = (user.role || '').toLowerCase();
-    if (callerRole === 'admin' || callerRole === 'incubator_admin' || callerRole === 'incubator' || callerRole === 'super-admin' || callerRole === 'super_admin') {
-      return NextResponse.json(
-        { success: false, has_assigned_dashboard: false, error: 'Forbidden: Incubator administrators do not have personal startup dashboards.' },
-        { status: 403 }
-      );
-    }
-
-    const { data: dbUserCheck } = await supabaseAdmin
-      .from('users')
-      .select('role')
-      .eq('email', emailLower)
-      .maybeSingle();
-
-    const dbRoleCheck = (dbUserCheck?.role || '').toLowerCase();
-    if (dbRoleCheck === 'admin' || dbRoleCheck === 'incubator_admin' || dbRoleCheck === 'incubator' || dbRoleCheck === 'super-admin' || dbRoleCheck === 'super_admin') {
-      return NextResponse.json(
-        { success: false, has_assigned_dashboard: false, error: 'Forbidden: Incubator administrators do not have personal startup dashboards.' },
-        { status: 403 }
-      );
-    }
-
-    // 1. Fetch startup record strictly belonging to this founder
-    let query = supabaseAdmin
+    // 1. Fetch startup record linked to this founder
+    let { data: startup, error: stErr } = await supabaseAdmin
       .from('startups')
       .select('*')
+      .ilike('founder_email', emailLower)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
-    if (user.id && emailLower) {
-      query = query.or(`founder_id.eq.${user.id},founder_email.ilike.${emailLower}`);
-    } else if (user.id) {
-      query = query.eq('founder_id', user.id);
-    } else {
-      query = query.ilike('founder_email', emailLower);
-    }
-
-    const { data: startup, error: stErr } = await query.maybeSingle();
+    // 2. If no startup record found, check if user has an accepted application with dashboard assigned
+    let linkedApp: any = null;
 
     if (!startup) {
-      return NextResponse.json(
-        {
-          success: false,
-          has_assigned_dashboard: false,
-          message: 'No active startup record found in database. Dashboard access requires an incubator to accept your application and assign a dashboard.',
-        },
-        { status: 403 }
-      );
-    }
+      const { data: acceptedApp } = await supabaseAdmin
+        .from('applications')
+        .select('*')
+        .ilike('applicant_email', emailLower)
+        .or('admission_status.eq.dashboard_assigned,status.eq.admitted,status.eq.accepted')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       const isDashboardAssigned =
         acceptedApp?.admission_status === 'dashboard_assigned' ||
@@ -91,35 +74,111 @@ export async function GET(req: NextRequest) {
         acceptedApp.applicant_name ||
         'My Startup';
 
-      const { data: createdStartup } = await supabaseAdmin
+      const isValidUUID = (val?: any) =>
+        Boolean(val && typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
+      const queryOrgId = req.nextUrl.searchParams.get('org_id');
+      const headerOrgId = req.headers.get('x-org-id');
+
+      let validOrgId = [
+        acceptedApp.organization_id,
+        acceptedApp.selected_incubator_id,
+        acceptedApp.form_data?.selected_incubator_id,
+        acceptedApp.form_data?.selected_id,
+        acceptedApp.form_data?.incubator_id,
+        user.organization_id,
+        queryOrgId,
+        headerOrgId,
+      ].find((id) => isValidUUID(id));
+
+      if (!validOrgId) {
+        const { data: defaultOrg } = await supabaseAdmin.from('organizations').select('id').limit(1).maybeSingle();
+        validOrgId = defaultOrg?.id;
+      }
+
+      let validFounderId: string | null = null;
+      if (emailLower) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').ilike('email', emailLower).maybeSingle();
+        if (uData?.id) validFounderId = uData.id;
+      }
+      if (!validFounderId && isValidUUID(user?.id)) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').eq('id', user.id).maybeSingle();
+        if (uData?.id) validFounderId = uData.id;
+      }
+
+      let validCreatedBy: string | null = validFounderId;
+      if (!validCreatedBy && isValidUUID(user?.id)) {
+        const { data: uData } = await supabaseAdmin.from('users').select('id').eq('id', user.id).maybeSingle();
+        if (uData?.id) validCreatedBy = uData.id;
+      }
+
+      const startupPayload: Record<string, any> = {
+        organization_id: validOrgId,
+        startup_name: startupName,
+        founder_id: validFounderId,
+        founder_email: emailLower,
+        founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
+        sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
+        stage: normalizeStage(acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage),
+        status: 'active',
+        is_active: true,
+        created_by: validCreatedBy,
+      };
+
+      let { data: createdStartup, error: autoErr } = await supabaseAdmin
         .from('startups')
-        .insert({
-          organization_id: acceptedApp.organization_id || acceptedApp.selected_incubator_id,
-          application_id: acceptedApp.id,
-          startup_name: startupName,
-          founder_name: acceptedApp.applicant_name,
-          founder_email: emailLower,
-          founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
-          sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
-          stage: acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage || 'Early Stage',
-          status: 'active',
-          is_active: true,
-          created_by: user.id,
-        })
+        .insert(startupPayload)
         .select()
         .single();
 
-      startup = createdStartup;
-    } else if (startup.application_id) {
+      if (autoErr && (autoErr.message?.includes("'startup_name'") || (autoErr as any).code === 'PGRST204')) {
+        delete startupPayload.startup_name;
+        startupPayload.name = startupName;
+        const retryRes = await supabaseAdmin
+          .from('startups')
+          .insert(startupPayload)
+          .select()
+          .single();
+        createdStartup = retryRes.data;
+        autoErr = retryRes.error;
+      }
+
+      if (autoErr && ((autoErr as any).code === '23503' || autoErr.message?.includes('foreign key constraint'))) {
+        startupPayload.created_by = null;
+        startupPayload.founder_id = null;
+        const retryFk = await supabaseAdmin
+          .from('startups')
+          .insert(startupPayload)
+          .select()
+          .single();
+        createdStartup = retryFk.data;
+        autoErr = retryFk.error;
+      }
+
+      if (autoErr) {
+        console.error('[startups/me] Auto-provision insert error:', autoErr);
+      } else {
+        startup = createdStartup;
+      }
+    } else if (startup?.id) {
       const { data: appData } = await supabaseAdmin
         .from('applications')
         .select('*')
-        .or(`startup_id.eq.${startup.id},applicant_email.ilike.${emailLower}`)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('startup_id', startup.id)
         .maybeSingle();
-      linkedApp = appData;
-    } else if (emailLower) {
+      if (appData) {
+        linkedApp = appData;
+      } else {
+        const { data: appByEmail } = await supabaseAdmin
+          .from('applications')
+          .select('*')
+          .ilike('applicant_email', emailLower)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        linkedApp = appByEmail;
+      }
+    } else {
       const { data: appData } = await supabaseAdmin
         .from('applications')
         .select('*')
@@ -132,7 +191,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Fetch linked incubator organization
     let orgData: any = null;
-    const orgId = startup.organization_id || linkedApp?.organization_id || linkedApp?.selected_incubator_id;
+    const orgId = startup?.organization_id || linkedApp?.organization_id || linkedApp?.selected_incubator_id;
     if (orgId) {
       const { data: org } = await supabaseAdmin
         .from('organizations')
@@ -156,4 +215,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { user, errorResponse } = await verifyAuth(req);
+    if (errorResponse) return errorResponse;
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized: User authentication required' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const updated = await StartupService.updateStartup('me', body, user);
+
+    return NextResponse.json({ success: true, startup: updated, data: updated });
+  } catch (err: any) {
+    const status = err.message?.includes('Forbidden') ? 403 : err.message?.includes('Unauthorized') ? 401 : 400;
+    return NextResponse.json({ success: false, error: err.message }, { status });
+  }
+}
+
 

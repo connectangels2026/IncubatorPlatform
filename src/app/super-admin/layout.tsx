@@ -103,7 +103,7 @@ export default function SuperAdminLayout({
       <div className="min-h-screen bg-[#0A0E26] flex flex-col items-center justify-center p-4 text-white">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-          <p className="text-xs font-semibold text-slate-400 tracking-wide">
+          <p className="text-xs font-medium text-slate-400">
             Verifying Super Admin Authorization...
           </p>
         </div>

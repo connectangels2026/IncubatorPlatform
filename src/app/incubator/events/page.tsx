@@ -173,43 +173,48 @@ export default function EventsPage() {
     }
   };
 
-  const filtered = events.filter((ev) => {
-    const matchesSearch =
-      ev.title.toLowerCase().includes(search.toLowerCase()) ||
-      (ev.description || '').toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'all' || ev.event_type.toLowerCase() === typeFilter.toLowerCase();
-    return matchesSearch && matchesType;
-  });
+  const isPastEvent = (eventDateStr: string) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const evDate = new Date(eventDateStr);
+      evDate.setHours(0, 0, 0, 0);
+      return evDate.getTime() < today.getTime();
+    } catch {
+      return false;
+    }
+  };
+
+  const filtered = events
+    .filter((ev) => {
+      const matchesSearch =
+        ev.title.toLowerCase().includes(search.toLowerCase()) ||
+        (ev.description || '').toLowerCase().includes(search.toLowerCase());
+      const matchesType = typeFilter === 'all' || ev.event_type.toLowerCase() === typeFilter.toLowerCase();
+      return matchesSearch && matchesType;
+    })
+    .sort((a, b) => {
+      const aDate = new Date(a.event_date).getTime();
+      const bDate = new Date(b.event_date).getTime();
+      const now = Date.now();
+      const aUpcoming = aDate >= now;
+      const bUpcoming = bDate >= now;
+      if (aUpcoming && !bUpcoming) return -1;
+      if (!aUpcoming && bUpcoming) return 1;
+      return aDate - bDate;
+    });
 
   return (
     <ProtectedRoute>
       <DashboardLayout
-        title="Events & Workshops"
-        headerActions={
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            size="sm"
-            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 h-8 rounded-xl shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Schedule Event</span>
-            <span className="sm:hidden">Schedule</span>
-          </Button>
-        }
+        breadcrumbs={[{ label: 'Events' }]}
       >
         <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <Link
-              href="/incubator"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 mb-2 transition"
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Incubator Dashboard
-            </Link>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-blue-600" />
-              Cohort Events & Workshops
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Events
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Host demo days, investor pitch sessions, regulatory webinars, and founder mixers.
@@ -217,124 +222,122 @@ export default function EventsPage() {
           </div>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm"
+            className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-4 py-2 rounded-lg shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Schedule Event
+            <Plus className="w-4 h-4" />
+            <span>Create event</span>
           </Button>
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs flex flex-col md:flex-row gap-3 justify-between items-center">
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search event title or description..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-            <span className="text-xs font-semibold text-slate-400 flex items-center gap-1">
-              <Filter className="w-3.5 h-3.5" /> Type:
-            </span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
             {['all', 'Demo Day', 'Workshop', 'Pitch Session', 'Networking'].map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer whitespace-nowrap ${
                   typeFilter === t
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                {t === 'all' ? 'All Events' : t}
+                {t === 'all' ? 'All events' : t}
               </button>
             ))}
           </div>
         </div>
 
         {/* Events Cards */}
-        <div className="space-y-4">
-          {filtered.map((ev) => (
-            <div
-              key={ev.id}
-              className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center justify-between gap-6"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex flex-col items-center justify-center font-extrabold flex-shrink-0 border border-blue-100">
-                  <span className="text-[10px] uppercase tracking-wider text-blue-500 font-bold">
-                    {new Date(ev.event_date).toLocaleString('default', { month: 'short' })}
-                  </span>
-                  <span className="text-lg leading-none mt-0.5">
-                    {new Date(ev.event_date).getUTCDate()}
-                  </span>
+        <div className="space-y-3">
+          {filtered.map((ev) => {
+            const past = isPastEvent(ev.event_date);
+            return (
+              <div
+                key={ev.id}
+                className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-xs transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-lg bg-slate-100 text-slate-700 flex flex-col items-center justify-center flex-shrink-0 border border-slate-200/80">
+                    <span className="text-[10px] text-slate-500 font-medium">
+                      {new Date(ev.event_date).toLocaleString('default', { month: 'short' })}
+                    </span>
+                    <span className="text-base font-semibold leading-none mt-0.5">
+                      {new Date(ev.event_date).getUTCDate()}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-xs font-normal px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/80">
+                        {ev.event_type}
+                      </span>
+                      <span className="text-xs text-slate-300">•</span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {ev.start_time} - {ev.end_time}
+                      </span>
+                    </div>
+
+                    <h3 className="font-semibold text-slate-900 text-sm">{ev.title}</h3>
+                    {ev.description && (
+                      <p className="text-xs text-slate-500 mt-1 max-w-2xl line-clamp-2">
+                        {ev.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-4 mt-2.5 text-xs text-slate-500">
+                      <span className="flex items-center gap-1">
+                        {ev.mode === 'online' ? (
+                          <>
+                            <Video className="w-3.5 h-3.5 text-blue-500" /> Virtual session
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="w-3.5 h-3.5 text-rose-500" /> {ev.location || 'In-person'}
+                          </>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="font-medium text-slate-700">{ev.attendees_count}</span> registered
+                        {ev.capacity ? ` / ${ev.capacity}` : ''}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-                        ev.event_type === 'Demo Day'
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : ev.event_type === 'Workshop'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}
+                <div className="flex md:flex-col items-center justify-end gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                  {ev.meeting_link && !past ? (
+                    <a
+                      href={ev.meeting_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 px-3.5 py-1.5 rounded-lg transition"
                     >
-                      {ev.event_type}
+                      <span>Join link</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ) : past ? (
+                    <span className="text-xs font-normal text-slate-400 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+                      Past event
                     </span>
-                    <span className="text-xs text-slate-400">•</span>
-                    <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      {ev.start_time} - {ev.end_time}
-                    </span>
-                  </div>
-
-                  <h3 className="font-bold text-slate-900 text-base">{ev.title}</h3>
-                  {ev.description && (
-                    <p className="text-xs text-slate-500 mt-1 max-w-2xl line-clamp-2">
-                      {ev.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1 font-medium text-slate-700">
-                      {ev.mode === 'online' ? (
-                        <>
-                          <Video className="w-3.5 h-3.5 text-blue-500" /> Virtual Session
-                        </>
-                      ) : (
-                        <>
-                          <MapPin className="w-3.5 h-3.5 text-rose-500" /> {ev.location || 'In-Person'}
-                        </>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <strong className="text-slate-800">{ev.attendees_count}</strong> Registered
-                      {ev.capacity ? ` / ${ev.capacity}` : ''}
-                    </span>
-                  </div>
+                  ) : null}
                 </div>
               </div>
-
-              <div className="flex md:flex-col items-center justify-between gap-2 border-t md:border-t-0 pt-4 md:pt-0">
-                {ev.meeting_link && (
-                  <a
-                    href={ev.meeting_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3.5 py-2 rounded-xl transition"
-                  >
-                    Join Link <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {filtered.length === 0 && (

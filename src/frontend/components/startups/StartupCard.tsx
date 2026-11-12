@@ -3,6 +3,7 @@
 import React from "react";
 import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake } from "lucide-react";
 import { StartupItem } from "./types";
+import StartupLogo from "@/frontend/components/ui/StartupLogo";
 
 interface StartupCardProps {
   startup: StartupItem;
@@ -87,9 +88,13 @@ export const StartupCard: React.FC<StartupCardProps> = ({
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center shrink-0 border border-indigo-100/80 shadow-xs">
-              {startup.name.slice(0, 2).toUpperCase()}
-            </div>
+            <StartupLogo
+              name={startup.name}
+              logoUrl={(startup as any).logo_url}
+              logoColor={(startup as any).logo_color}
+              initials={(startup as any).initials}
+              className="w-10 h-10 rounded-lg text-xs shrink-0 border border-slate-200/80 shadow-xs"
+            />
             <div className="min-w-0">
               <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
                 {startup.name}
@@ -129,11 +134,11 @@ export const StartupCard: React.FC<StartupCardProps> = ({
         {/* Key Metrics Pill Grid */}
         <div className="grid grid-cols-2 gap-2 py-2.5 px-3 bg-slate-50/70 rounded-lg border border-slate-100 text-xs mb-3">
           <div>
-            <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">Cohort</span>
+            <span className="text-[10px] text-slate-500 block font-medium">Cohort</span>
             <span className="text-slate-800 font-medium truncate block">{startup.cohort || "Cohort 2026"}</span>
           </div>
           <div>
-            <span className="text-[10px] text-slate-500 block uppercase tracking-wider font-semibold">Funding</span>
+            <span className="text-[10px] text-slate-500 block font-medium">Funding</span>
             <span className="text-emerald-700 font-semibold truncate block">{startup.fundingRaised || "$0"}</span>
           </div>
         </div>

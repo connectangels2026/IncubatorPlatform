@@ -21,9 +21,9 @@ function validateFounderName(name: string): ValidationError | null {
   if (name.length > 255) {
     return { field: 'founder_name', message: 'Founder name must not exceed 255 characters', code: 'MAX_LENGTH' };
   }
-  // Check for special characters
-  if (!/^[a-zA-Z\s'-]+$/.test(name)) {
-    return { field: 'founder_name', message: 'Founder name can only contain letters, spaces, hyphens, and apostrophes', code: 'INVALID_FORMAT' };
+  // Check for special characters (allow letters, spaces, hyphens, apostrophes, and dots)
+  if (!/^[a-zA-Z\s.'-]+$/.test(name)) {
+    return { field: 'founder_name', message: 'Founder name can only contain letters, spaces, hyphens, periods, and apostrophes', code: 'INVALID_FORMAT' };
   }
   return null;
 }
@@ -143,18 +143,20 @@ export async function POST(req: Request) {
       console.error('Auth user creation failed:', error);
       await logAuthEvent('failed_attempt');
       const errorMsg = (error.message || '').toLowerCase();
+      const isRateLimit = errorMsg.includes('rate limit') || errorMsg.includes('too many') || (error as any).status === 429;
       let userFacingError = error.message || 'Failed to create auth user';
-      if (errorMsg.includes('rate limit') || errorMsg.includes('too many') || (error as any).status === 429) {
+      if (isRateLimit) {
         userFacingError = 'Too many email requests sent. Please wait 24hours before requesting a new link.';
       }
+      const statusCode = isRateLimit ? 429 : ((error as any).status && (error as any).status >= 400 && (error as any).status < 600 ? (error as any).status : 400);
       return NextResponse.json(
         {
           success: false,
           error: userFacingError,
-          code: 'RATE_LIMIT_EXCEEDED',
+          code: isRateLimit ? 'RATE_LIMIT_EXCEEDED' : 'AUTH_CREATION_FAILED',
           message: userFacingError
         },
-        { status: error.status || 429 }
+        { status: statusCode }
       );
     }
 

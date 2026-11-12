@@ -20,11 +20,21 @@ export default function Home() {
 
   // Read cached role synchronously so there is zero delay/flicker
   const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+  const cachedToken = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
+  const isLoggedIn = Boolean(user || cachedRole || cachedToken);
   const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
   const emailLower = (user?.email || '').toLowerCase().trim();
   const isSuperAdmin = (user as any)?.is_super_admin === true || userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';
   const isStartup = !isSuperAdmin && (userRole === 'startup' || userRole === 'founder');
   const isIncubator = !isSuperAdmin && !isStartup && (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator');
+
+  const getDashboardUrl = () => {
+    if (isSuperAdmin) return '/super-admin/dashboard';
+    if (userRole === 'mentor') return '/mentor/dashboard';
+    if (isStartup) return '/startup/dashboard';
+    const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+    return orgId ? `/incubator?org=${orgId}` : '/incubator';
+  };
 
   return (
     <div className="antialiased overflow-x-hidden" style={{ fontFamily: 'Inter, sans-serif', backgroundColor: '#EDF2FA', color: '#1A2151' }}>
@@ -49,7 +59,7 @@ export default function Home() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-              {user ? (
+              {isLoggedIn ? (
                 // Logged in - show actions based on verified role
                 <>
                   {!isSuperAdmin && !isStartup && organization?.name && (
@@ -67,31 +77,13 @@ export default function Home() {
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
                   </button>
-                  {isSuperAdmin ? (
-                    <button
-                      onClick={() => router.push('/super-admin/dashboard')}
-                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-                      style={{ backgroundColor: '#1A2151' }}
-                    >
-                      Super Admin Dashboard
-                    </button>
-                  ) : isStartup ? (
-                    <button
-                      onClick={() => router.push('/programs/preincubator/status')}
-                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-                      style={{ backgroundColor: '#2563EB' }}
-                    >
-                      Applications
-                    </button>
-                  ) : isIncubator ? (
-                    <button
-                      onClick={() => router.push('/incubator')}
-                      className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
-                      style={{ backgroundColor: '#2563EB' }}
-                    >
-                      Dashboard
-                    </button>
-                  ) : null}
+                  <button
+                    onClick={() => router.push(getDashboardUrl())}
+                    className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                    style={{ backgroundColor: '#2563EB' }}
+                  >
+                    Dashboard
+                  </button>
                 </>
               ) : (
                 // Not logged in - show sign in and get started
@@ -130,9 +122,15 @@ export default function Home() {
                   Launch and manage your incubator ecosystem — startups, mentors, investors, and co-incubation programs, all in one auditable platform.
                 </p>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-8">
-                  <Link href="/signup" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
-                    Get Started <ArrowRight className="w-5 h-5 ml-2" />
-                  </Link>
+                  {isLoggedIn ? (
+                    <Link href={getDashboardUrl()} className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
+                      Go to Dashboard <ArrowRight className="w-5 h-5 ml-2" />
+                    </Link>
+                  ) : (
+                    <Link href="/signup" className="inline-flex justify-center items-center px-7 py-3.5 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" style={{ backgroundColor: '#1A2151' }}>
+                      Get Started <ArrowRight className="w-5 h-5 ml-2" />
+                    </Link>
+                  )}
                   <Link href="/programs" className="inline-flex justify-center items-center px-6 py-3.5 rounded-xl bg-white border border-slate-200/90 hover:border-[#2563EB]/40 text-base font-semibold text-[#1A2151] hover:text-[#2563EB] shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
                     <span>Explore Programs</span>
                     <ArrowRight className="w-4 h-4 ml-2 text-[#2563EB] group-hover:translate-x-1 transition-transform" />

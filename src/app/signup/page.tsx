@@ -80,11 +80,7 @@ export default function SignupPage() {
     try {
       const res = await signup(founderName, email, password);
       if (res.success) {
-        if (isTestMode) {
-          router.push('/auth/choose-role');
-        } else {
-          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-        }
+        router.push('/auth/choose-role');
       } else {
         setError(res.error || 'Failed to create account');
         setIsLoading(false);
