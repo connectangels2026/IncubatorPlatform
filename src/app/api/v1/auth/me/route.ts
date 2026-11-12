@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
 
         userProfile = uRec;
 
-        // 3. Fallback to org linked via public.users if not found by auth_user_id
-        if (!orgData && uRec?.organization_id) {
+        // 3. Fallback to org linked via public.users for incubator staff only (not startups or mentors)
+        const recRole = (uRec?.role || '').toLowerCase();
+        if (!orgData && uRec?.organization_id && !['startup', 'founder', 'mentor'].includes(recRole)) {
           const { data: org2 } = await supabaseAdmin
             .from('organizations')
             .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminEmail(user?.email);
-    const validRoles = ['startup', 'founder', 'incubator_admin', 'incubator', 'admin', 'pending_incubator', 'super-admin'];
+    const validRoles = ['startup', 'founder', 'mentor', 'incubator_admin', 'incubator', 'admin', 'pending_incubator', 'super-admin'];
     const dbRole = userProfile?.role && validRoles.includes(userProfile.role.toLowerCase()) ? userProfile.role : null;
     const userMetaRole = (user as any)?.user_metadata?.role;
     const metaRole = userMetaRole && validRoles.includes(String(userMetaRole).toLowerCase()) ? userMetaRole : null;

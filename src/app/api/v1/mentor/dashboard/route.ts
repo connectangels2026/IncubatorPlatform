@@ -1,0 +1,544 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/backend/middleware/auth';
+import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
+import { handleApiError } from '@/backend/middleware/errorHandler';
+
+export const dynamic = 'force-dynamic';
+
+const isValidUUID = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+
+async function resolveUserAndMentor(authUser: { id: string; email?: string }) {
+  let dbUser: any = null;
+  if (isValidUUID(authUser.id)) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, organization_id, email, phone, first_name, last_name, full_name, profile_picture_url, bio, linkedin_url, website, role')
+      .eq('id', authUser.id)
+      .maybeSingle();
+    if (data) dbUser = data;
+  }
+  if (!dbUser && authUser.email) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, organization_id, email, phone, first_name, last_name, full_name, profile_picture_url, bio, linkedin_url, website, role')
+      .ilike('email', authUser.email.trim())
+      .maybeSingle();
+    if (data) dbUser = data;
+  }
+
+  let mentor: any = null;
+  if (dbUser?.id) {
+    const { data } = await supabaseAdmin
+      .from('mentors')
+      .select(`
+        *,
+        organization:organizations (
+          id,
+          name,
+          city,
+          state
+        )
+      `)
+      .eq('user_id', dbUser.id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) mentor = data;
+  }
+
+  return { dbUser, mentor };
+}
+
+function normalizeStartup(s: any) {
+  if (!s) return null;
+  return {
+    id: s.id,
+    name: s.startup_name || s.name || 'Startup',
+    sector: s.sector || 'Technology',
+    stage: s.stage || 'Seed',
+    logo: s.logo_url || null,
+    founder: s.founder_name || s.founder_email || 'Founder',
+    email: s.founder_email || '',
+    bio: s.description || s.problem_statement || 'Early-stage venture in incubator cohort.',
+    mrr: Number(s.mrr || s.monthly_revenue || 0),
+    teamSize: Number(s.team_size || 1),
+    customerCount: Number(s.customer_count || 0),
+  };
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { user, errorResponse } = await verifyAuth(req);
+    if (errorResponse) return errorResponse;
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { dbUser, mentor } = await resolveUserAndMentor(user);
+    const fullName =
+      dbUser?.full_name ||
+      [dbUser?.first_name, dbUser?.last_name].filter(Boolean).join(' ').trim() ||
+      user.email?.split('@')[0] ||
+      'Mentor';
+
+    const userPayload = {
+      id: dbUser?.id || user.id,
+      email: dbUser?.email || user.email || '',
+      fullName,
+      phone: dbUser?.phone || '',
+      avatar: dbUser?.profile_picture_url || null,
+      role: dbUser?.role || user.role || null,
+    };
+
+    if (!mentor) {
+      return NextResponse.json({
+        success: true,
+        hasMentorProfile: false,
+        user: userPayload,
+      });
+    }
+
+    const [sessionsRes, orgStartupsRes, notificationsRes] = await Promise.all([
+      supabaseAdmin
+        .from('mentorship_sessions')
+        .select('*')
+        .eq('mentor_id', mentor.id)
+        .order('scheduled_date', { ascending: true })
+        .order('start_time', { ascending: true }),
+      supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('organization_id', mentor.organization_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      dbUser?.id
+        ? supabaseAdmin
+            .from('notifications')
+            .select('id, title, message, notification_type, is_read, related_entity_id, created_at')
+            .eq('recipient_id', dbUser.id)
+            .eq('is_read', false)
+            .order('created_at', { ascending: false })
+            .limit(10)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const rawSessions = sessionsRes.data || [];
+    const startupMap = new Map<string, any>();
+    for (const s of orgStartupsRes.data || []) {
+      const normalized = normalizeStartup(s);
+      if (normalized) startupMap.set(normalized.id, normalized);
+    }
+
+    // Also include any session-linked startups missing from orgStartupsRes
+    const missingIds = Array.from(
+      new Set(rawSessions.map((r: any) => r.startup_id).filter((id: string) => id && !startupMap.has(id)))
+    );
+    if (missingIds.length > 0) {
+      const { data: extraStartups } = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .in('id', missingIds);
+      for (const s of extraStartups || []) {
+        const normalized = normalizeStartup(s);
+        if (normalized) startupMap.set(normalized.id, normalized);
+      }
+    }
+
+    const now = Date.now();
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+    const sevenDaysAhead = now + 7 * 86400000;
+
+    const sessions = rawSessions.map((row: any) => {
+      const st = startupMap.get(row.startup_id);
+      const dtIso = row.scheduled_date && row.start_time ? `${row.scheduled_date}T${row.start_time}` : null;
+      const timestamp = dtIso ? new Date(dtIso).getTime() : now;
+      const rawStatus = (row.status || 'scheduled').toLowerCase();
+      let displayStatus = 'Confirmed';
+      if (rawStatus === 'pending' || rawStatus === 'requested') displayStatus = 'Pending';
+      else if (rawStatus === 'completed') displayStatus = 'Completed';
+      else if (rawStatus === 'cancelled' || rawStatus === 'declined') displayStatus = 'Declined';
+
+      const tabCategory =
+        displayStatus === 'Pending'
+          ? 'Requests'
+          : displayStatus === 'Confirmed'
+          ? 'Upcoming'
+          : 'Past';
+
+      return {
+        id: row.id,
+        startupId: row.startup_id,
+        startupName: st?.name || 'Portfolio Startup',
+        startupLogo: st?.logo || null,
+        title: row.session_title || 'Mentorship Session',
+        date: row.scheduled_date || '',
+        startTime: (row.start_time || '').slice(0, 5),
+        endTime: (row.end_time || '').slice(0, 5),
+        time:
+          row.start_time && row.end_time
+            ? `${String(row.start_time).slice(0, 5)} - ${String(row.end_time).slice(0, 5)}`
+            : String(row.start_time || '').slice(0, 5),
+        timestamp: Number.isNaN(timestamp) ? now : timestamp,
+        mode: row.meeting_mode || 'Google Meet',
+        meetingLink: row.meeting_link || '',
+        meetingLocation: row.meeting_location || '',
+        timezone: row.timezone || mentor.timezone || 'Asia/Kolkata',
+        status: displayStatus,
+        tabCategory,
+        agenda: row.agenda || row.description || '',
+        notes: row.session_notes || '',
+        actionPoints: Array.isArray(row.action_points) ? row.action_points : [],
+        startupRating: row.startup_rating || null,
+        startupFeedback: row.startup_feedback || null,
+        mentorFeedback: row.mentor_feedback || null,
+      };
+    });
+
+    const startups = Array.from(startupMap.values()).map((st) => {
+      const stSessions = sessions.filter((s: any) => s.startupId === st.id);
+      const upcoming = stSessions.find((s: any) => s.status === 'Confirmed' && s.timestamp >= now);
+      const completed = stSessions.filter((s: any) => s.status === 'Completed');
+      const lastFb = completed.find((s: any) => s.mentorFeedback || s.startupFeedback);
+
+      return {
+        ...st,
+        nextSession: upcoming ? `${upcoming.date}, ${upcoming.startTime}` : 'No upcoming session',
+        sessionsHeld: completed.length,
+        lastFeedbackDate: lastFb?.date || '—',
+        metrics: {
+          MRR: st.mrr > 0 ? `$${st.mrr.toLocaleString()}` : 'Pre-rev',
+          Customers: String(st.customerCount),
+          Team: `${st.teamSize} FTEs`,
+        },
+      };
+    });
+
+    const feedbackList = sessions
+      .filter((s: any) => s.startupRating || s.startupFeedback)
+      .map((s: any) => {
+        const st = startupMap.get(s.startupId);
+        return {
+          id: `fb-${s.id}`,
+          sessionId: s.id,
+          startupName: s.startupName,
+          founderName: st?.founder || 'Founder',
+          date: s.date,
+          rating: s.startupRating || 5,
+          comment: s.startupFeedback || 'Positive mentorship session.',
+          tags: Array.isArray(mentor.expertise_areas) ? mentor.expertise_areas.slice(0, 2) : ['Mentorship'],
+        };
+      });
+
+    const ratings = feedbackList.map((f: any) => f.rating).filter((r: number) => r > 0);
+    const avgRating =
+      ratings.length > 0
+        ? Number((ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length).toFixed(1))
+        : 0;
+
+    const actionQueue: any[] = [];
+    for (const s of sessions) {
+      if (s.status === 'Pending') {
+        actionQueue.push({
+          id: `confirm-${s.id}`,
+          type: 'session_confirm',
+          title: 'Session Confirmation Needed',
+          subtitle: `${s.startupName} requested "${s.title}" on ${s.date} at ${s.startTime}.`,
+          sessionId: s.id,
+          date: s.date,
+        });
+      } else if (s.status === 'Completed' && !s.mentorFeedback) {
+        actionQueue.push({
+          id: `fb-due-${s.id}`,
+          type: 'feedback_due',
+          title: 'Feedback Required',
+          subtitle: `Session with ${s.startupName} on ${s.date} requires mentor evaluation.`,
+          sessionId: s.id,
+          date: s.date,
+        });
+      }
+    }
+    for (const n of notificationsRes.data || []) {
+      actionQueue.push({
+        id: `notif-${n.id}`,
+        notificationId: n.id,
+        type: 'notification',
+        title: n.title,
+        subtitle: n.message,
+        date: new Date(n.created_at).toLocaleDateString(),
+      });
+    }
+
+    const sessionsThisMonth = sessions.filter(
+      (s: any) => s.timestamp >= startOfMonth && s.status !== 'Declined'
+    ).length;
+    const upcoming7Days = sessions.filter(
+      (s: any) => s.status === 'Confirmed' && s.timestamp >= now && s.timestamp <= sevenDaysAhead
+    ).length;
+
+    const availJson = mentor.availability_json || {};
+    const profileFieldsComplete = [
+      Boolean(fullName),
+      Boolean(availJson.job_title),
+      Boolean(mentor.company_background),
+      Boolean(mentor.bio && mentor.bio.length >= 30),
+      Array.isArray(mentor.expertise_areas) && mentor.expertise_areas.length > 0,
+      Boolean(mentor.linkedin_url),
+      Boolean(mentor.calendar_url || availJson.default_meeting_link),
+    ];
+    const completeness = Math.round(
+      (profileFieldsComplete.filter(Boolean).length / profileFieldsComplete.length) * 100
+    );
+
+    return NextResponse.json({
+      success: true,
+      hasMentorProfile: true,
+      user: userPayload,
+      mentor: {
+        id: mentor.id,
+        organization_id: mentor.organization_id,
+        organization: mentor.organization || null,
+        is_active: mentor.is_active,
+        is_available: mentor.is_available,
+        availability_hours_per_month: mentor.availability_hours_per_month || 10,
+        preferred_meeting_mode: mentor.preferred_meeting_mode || 'video',
+        timezone: mentor.timezone || 'Asia/Kolkata',
+        calendar_url: mentor.calendar_url || '',
+        bio: mentor.bio || dbUser?.bio || '',
+        company_background: mentor.company_background || '',
+        years_of_experience: mentor.years_of_experience || 1,
+        expertise_areas: Array.isArray(mentor.expertise_areas) ? mentor.expertise_areas : [],
+        industry_experience: mentor.industry_experience || '',
+        linkedin_url: mentor.linkedin_url || dbUser?.linkedin_url || '',
+        website: mentor.website || dbUser?.website || '',
+        availability_json: availJson,
+        completeness,
+      },
+      stats: {
+        sessionsThisMonth,
+        upcoming7Days,
+        avgRating,
+        ratingCount: ratings.length,
+        activeStartups: startups.length,
+      },
+      sessions,
+      startups,
+      feedbackList,
+      actionQueue,
+    });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { user, errorResponse } = await verifyAuth(req);
+    if (errorResponse) return errorResponse;
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { dbUser, mentor } = await resolveUserAndMentor(user);
+    if (!mentor) {
+      return NextResponse.json({ error: 'Mentor profile not found' }, { status: 404 });
+    }
+
+    const body = await req.json();
+    const { action } = body;
+    const nowIso = new Date().toISOString();
+
+    if (action === 'toggle_availability') {
+      const nextVal = Boolean(body.is_available);
+      const { data, error } = await supabaseAdmin
+        .from('mentors')
+        .update({ is_available: nextVal, updated_at: nowIso })
+        .eq('id', mentor.id)
+        .select('id, is_available')
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
+
+    if (action === 'save_availability') {
+      const mergedAvailJson = {
+        ...(mentor.availability_json || {}),
+        weekly_grid: body.weekly_grid || (mentor.availability_json || {}).weekly_grid || {},
+        default_meeting_link: body.default_meeting_link ?? (mentor.availability_json || {}).default_meeting_link ?? '',
+        vacation_date: body.vacation_date ?? (mentor.availability_json || {}).vacation_date ?? '',
+      };
+
+      const { data, error } = await supabaseAdmin
+        .from('mentors')
+        .update({
+          availability_json: mergedAvailJson,
+          timezone: body.timezone || mentor.timezone,
+          preferred_meeting_mode: body.preferred_meeting_mode || mentor.preferred_meeting_mode,
+          calendar_url: body.default_meeting_link ?? mentor.calendar_url,
+          is_available: body.is_available !== undefined ? Boolean(body.is_available) : mentor.is_available,
+          availability_hours_per_month:
+            body.availability_hours_per_month !== undefined
+              ? Number(body.availability_hours_per_month)
+              : mentor.availability_hours_per_month,
+          updated_at: nowIso,
+        })
+        .eq('id', mentor.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
+
+    if (action === 'save_profile') {
+      const fullName = String(body.full_name || '').trim();
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = parts[0] || undefined;
+      const lastName = parts.slice(1).join(' ') || null;
+
+      if (dbUser?.id) {
+        await supabaseAdmin
+          .from('users')
+          .update({
+            ...(fullName ? { full_name: fullName, first_name: firstName, last_name: lastName } : {}),
+            bio: body.bio ?? dbUser.bio,
+            linkedin_url: body.linkedin_url ?? dbUser.linkedin_url,
+            website: body.website ?? dbUser.website,
+            updated_at: nowIso,
+          })
+          .eq('id', dbUser.id);
+      }
+
+      const mergedAvailJson = {
+        ...(mentor.availability_json || {}),
+        job_title: body.job_title ?? (mentor.availability_json || {}).job_title ?? '',
+        primary_expertise: body.primary_expertise ?? (mentor.availability_json || {}).primary_expertise ?? '',
+        sme_specialization: body.sme_specialization ?? (mentor.availability_json || {}).sme_specialization ?? '',
+      };
+
+      const { data, error } = await supabaseAdmin
+        .from('mentors')
+        .update({
+          company_background: body.company_background ?? mentor.company_background,
+          bio: body.bio ?? mentor.bio,
+          expertise_areas: Array.isArray(body.expertise_areas) ? body.expertise_areas : mentor.expertise_areas,
+          years_of_experience:
+            body.years_of_experience !== undefined ? Number(body.years_of_experience) : mentor.years_of_experience,
+          linkedin_url: body.linkedin_url ?? mentor.linkedin_url,
+          website: body.website ?? mentor.website,
+          availability_json: mergedAvailJson,
+          updated_at: nowIso,
+        })
+        .eq('id', mentor.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
+
+    if (action === 'update_session') {
+      const { session_id, status, meeting_link, session_notes, action_points, mentor_feedback } = body;
+      if (!session_id) return NextResponse.json({ error: 'session_id is required' }, { status: 400 });
+
+      const updates: Record<string, any> = { updated_at: nowIso };
+      if (status) {
+        const s = String(status).toLowerCase();
+        updates.status =
+          s === 'confirmed' ? 'scheduled' : s === 'declined' ? 'cancelled' : s;
+        if (s === 'completed') updates.attended = true;
+      }
+      if (meeting_link !== undefined) updates.meeting_link = meeting_link;
+      if (session_notes !== undefined) updates.session_notes = session_notes;
+      if (action_points !== undefined) updates.action_points = action_points;
+      if (mentor_feedback !== undefined) updates.mentor_feedback = mentor_feedback;
+
+      const { data, error } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .update(updates)
+        .eq('id', session_id)
+        .eq('mentor_id', mentor.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
+
+    if (action === 'create_session') {
+      const { startup_id, session_title, scheduled_date, start_time, end_time, meeting_link, agenda, meeting_mode } =
+        body;
+      if (!startup_id || !scheduled_date || !start_time) {
+        return NextResponse.json({ error: 'startup_id, scheduled_date, and start_time are required' }, { status: 400 });
+      }
+      const computedEnd = end_time || `${String(Math.min(23, Number(start_time.split(':')[0] || 9) + 1)).padStart(2, '0')}:${start_time.split(':')[1] || '00'}`;
+
+      const { data, error } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .insert({
+          organization_id: mentor.organization_id,
+          startup_id,
+          mentor_id: mentor.id,
+          session_title: session_title?.trim() || 'Mentorship Session',
+          scheduled_date,
+          start_time,
+          end_time: computedEnd,
+          duration_minutes: 45,
+          timezone: mentor.timezone || 'Asia/Kolkata',
+          meeting_mode: meeting_mode || 'Google Meet',
+          meeting_link: meeting_link || mentor.calendar_url || '',
+          agenda: agenda || '',
+          status: 'scheduled',
+          created_by: dbUser?.id || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data }, { status: 201 });
+    }
+
+    if (action === 'submit_feedback') {
+      const { session_id, mentor_feedback, action_points } = body;
+      if (!session_id) return NextResponse.json({ error: 'session_id is required' }, { status: 400 });
+
+      const updates: Record<string, any> = {
+        mentor_feedback: mentor_feedback || 'Session reviewed.',
+        updated_at: nowIso,
+      };
+      if (Array.isArray(action_points)) {
+        updates.action_points = action_points;
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('mentorship_sessions')
+        .update(updates)
+        .eq('id', session_id)
+        .eq('mentor_id', mentor.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ success: true, data });
+    }
+
+    if (action === 'dismiss_notification') {
+      if (body.notification_id && dbUser?.id) {
+        await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true, read_at: nowIso })
+          .eq('id', body.notification_id)
+          .eq('recipient_id', dbUser.id);
+      } else if (dbUser?.id) {
+        await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true, read_at: nowIso })
+          .eq('recipient_id', dbUser.id)
+          .eq('is_read', false);
+      }
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+

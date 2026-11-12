@@ -30,6 +30,7 @@ export default function Home() {
 
   const getDashboardUrl = () => {
     if (isSuperAdmin) return '/super-admin/dashboard';
+    if (userRole === 'mentor') return '/mentor/dashboard';
     if (isStartup) return '/startup/dashboard';
     const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
     return orgId ? `/incubator?org=${orgId}` : '/incubator';

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 
-const VALID_ROLES = ['startup', 'incubator_admin', 'incubator'];
+const VALID_ROLES = ['startup', 'incubator_admin', 'incubator', 'mentor'];
 
 interface JwtPayload {
   sub: string;
@@ -125,9 +125,18 @@ export async function POST(req: Request) {
 
     // If user already has the exact role selected, return cleanly
     if (userData.role && userData.role === role) {
-      const redirect_to = (userData.role === 'startup' || role === 'startup')
-        ? '/startup/application'
-        : '/auth/incubator-plans';
+      let redirect_to = '/auth/incubator-plans';
+      if (userData.role === 'startup' || role === 'startup') {
+        redirect_to = '/startup/application';
+      } else if (userData.role === 'mentor' || role === 'mentor') {
+        const { data: existingMentor } = await supabaseAdmin
+          .from('mentors')
+          .select('id')
+          .eq('user_id', userData.id)
+          .is('deleted_at', null)
+          .maybeSingle();
+        redirect_to = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
+      }
       return NextResponse.json(
         {
           success: true,
@@ -140,7 +149,12 @@ export async function POST(req: Request) {
     }
 
     const isStartupRole = role === 'startup';
-    const dbRoleToAssign = isStartupRole ? 'startup' : 'pending_incubator';
+    const isMentorRole = role === 'mentor';
+    const dbRoleToAssign = isStartupRole
+      ? 'startup'
+      : isMentorRole
+      ? 'mentor'
+      : 'pending_incubator';
 
     // Update user role in database - use the user's DB id (from lookup) not JWT sub
     const dbUserId = userData.id;
@@ -225,7 +239,11 @@ export async function POST(req: Request) {
     }
 
     // Determine redirect URL based on role
-    const redirect_to = isStartupRole ? '/startup/application' : '/auth/incubator-plans';
+    const redirect_to = isStartupRole
+      ? '/startup/application'
+      : isMentorRole
+      ? '/mentor/application-form'
+      : '/auth/incubator-plans';
 
     // Return success response
     return NextResponse.json(

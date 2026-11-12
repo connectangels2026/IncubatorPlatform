@@ -184,6 +184,14 @@ export async function POST(req: Request) {
       redirectTo = orgData?.id ? `/incubator?org=${orgData.id}` : '/incubator';
     } else if (userRole === 'pending_incubator') {
       redirectTo = '/auth/incubator-plans';
+    } else if (userRole === 'mentor') {
+      const { data: existingMentor } = await supabaseAdmin
+        .from('mentors')
+        .select('id')
+        .eq('user_id', userData.id)
+        .is('deleted_at', null)
+        .maybeSingle();
+      redirectTo = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
     } else {
       // Startup or applicant: verify active record in startups table
       const { data: startupRow } = await supabaseAdmin

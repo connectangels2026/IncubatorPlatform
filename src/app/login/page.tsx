@@ -114,6 +114,24 @@ function LoginForm() {
         return;
       }
 
+      if (role === 'mentor') {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const mRes = await fetch('/api/v1/mentors/apply', {
+            headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+          });
+          if (mRes.ok) {
+            const mData = await mRes.json();
+            router.push(mData?.existingApplication ? '/mentor/dashboard' : '/mentor/application-form');
+            return;
+          }
+        } catch {
+          // fallback below
+        }
+        router.push('/mentor/dashboard');
+        return;
+      }
+
       // 3. Check if user owns an incubator organization in database
       try {
         const meRes = await fetch('/api/v1/auth/me');

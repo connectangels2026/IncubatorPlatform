@@ -26,6 +26,7 @@ export async function middleware(req: NextRequest) {
   const isProtectedUserPage =
     pathname.startsWith('/incubator') ||
     pathname.startsWith('/startup/dashboard') ||
+    pathname.startsWith('/mentor') ||
     pathname.includes('/status') ||
     pathname === '/choose-role';
 
@@ -174,6 +175,8 @@ export const config = {
     '/dashboard/:path*',
     '/startup/dashboard',
     '/startup/dashboard/:path*',
+    '/mentor',
+    '/mentor/:path*',
     '/super-admin',
     '/super-admin/:path*',
     '/choose-role',
