@@ -248,6 +248,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (founder_name: string, email: string, password: string) => {
     setError(null);
     setIsLoading(true);
+    setOrganization(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('org_id');
+      localStorage.removeItem('org_founder_name');
+      localStorage.removeItem('org_name');
+      localStorage.removeItem('startup_track');
+      localStorage.removeItem('access_token');
+    }
     try {
       const res = await fetch('/api/v1/auth/signup', {
         method: 'POST',
@@ -260,28 +269,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || data.error || 'Failed to sign up');
       }
 
-      // After signup, try to sign in with the credentials to establish session
+      // Sync browser Supabase session cleanly
       try {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
-        });
-
-        if (signInError) {
-          console.warn('Auto sign-in after signup failed:', signInError);
-          // Continue anyway - user will be redirected to choose-role
-        } else if (signInData.session) {
-          // Session established
-          setSession(signInData.session);
-          setUser(signInData.user);
+        if (data.session?.access_token && data.session?.refresh_token) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', data.session.access_token);
+          }
+          const { data: setSessData } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          if (setSessData?.session) {
+            setSession(setSessData.session);
+            setUser(setSessData.user);
+          }
+        } else {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+          });
+          if (signInError) {
+            console.warn('Auto sign-in after signup failed:', signInError);
+          } else if (signInData.session) {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('access_token', signInData.session.access_token);
+            }
+            setSession(signInData.session);
+            setUser(signInData.user);
+          }
         }
       } catch (signInErr) {
         console.warn('Error during auto sign-in:', signInErr);
-        // Continue - session should be established by Supabase listener
       }
 
-      // New flow: Don't set organization yet (user hasn't selected role)
-      // Organization will be set after role selection
       return { success: true };
     } catch (err: any) {
       const msg = err.message || 'Failed to sign up';
