@@ -336,9 +336,9 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/signup/route.ts": {
-    "mtime": 1794303918.4927082,
-    "seen": 1794318310.6819313,
-    "ast_hash": "8a491af79b7d4cadc64f8519c5c3d7c9",
+    "mtime": 1794474512.8333359,
+    "seen": 1794474531.475473,
+    "ast_hash": "afbf9f3a246b0872bed54ca9fad4061b",
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/verify-email/route.ts": {
@@ -498,8 +498,8 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/mentorship-sessions/[id]/route.ts": {
-    "mtime": 1794472963.2769272,
-    "seen": 1794473365.9263434,
+    "mtime": 1794474513.2443128,
+    "seen": 1794474531.500233,
     "ast_hash": "48726224bc94b4f8f3b1d0899b33d852",
     "semantic_hash": ""
   },
@@ -756,9 +756,9 @@
     "semantic_hash": ""
   },
   "src/app/layout.tsx": {
-    "mtime": 1794042667.105121,
-    "seen": 1794042696.3232074,
-    "ast_hash": "23bddd8e3d716081128ce5ddd3f6bf2d",
+    "mtime": 1794474513.361475,
+    "seen": 1794474531.5589855,
+    "ast_hash": "e4a8515c9c2381fe70678b24f2dc0f57",
     "semantic_hash": ""
   },
   "src/app/login/page.tsx": {
@@ -792,9 +792,9 @@
     "semantic_hash": ""
   },
   "src/app/signup/page.tsx": {
-    "mtime": 1794302513.7707198,
-    "seen": 1794303891.3709745,
-    "ast_hash": "58d51241cfd2eb988518430758b81b47",
+    "mtime": 1794474513.5345993,
+    "seen": 1794474531.5692296,
+    "ast_hash": "5e4c437c6bc4e3b64fa97cd090ff3511",
     "semantic_hash": ""
   },
   "src/app/super-admin/activity-logs/page.tsx": {
@@ -1086,9 +1086,9 @@
     "semantic_hash": ""
   },
   "src/frontend/context/AuthContext.tsx": {
-    "mtime": 1794303919.026388,
-    "seen": 1794318310.913716,
-    "ast_hash": "a768ee6593c77678abc0d6fbc8c69f30",
+    "mtime": 1794474513.7147682,
+    "seen": 1794474531.6495957,
+    "ast_hash": "79309a8994245dd50d8b43758682d762",
     "semantic_hash": ""
   },
   "src/frontend/lib/apiClient.ts": {
@@ -1968,9 +1968,9 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/choose-role/route.ts": {
-    "mtime": 1794461244.0248709,
-    "seen": 1794462830.913245,
-    "ast_hash": "02b9bb69d29ed9814c611b1ebc8e29e3",
+    "mtime": 1794475387.3669415,
+    "seen": 1794475414.1991746,
+    "ast_hash": "4c1b12c7e7f149541819af94a869a345",
     "semantic_hash": ""
   },
   "src/app/api/v1/auth/select-role/route.ts": {
@@ -1986,9 +1986,9 @@
     "semantic_hash": ""
   },
   "src/app/auth/choose-role/page.tsx": {
-    "mtime": 1794461244.6250787,
-    "seen": 1794462831.0068727,
-    "ast_hash": "dd06e486c4ac354df402833284d6b33a",
+    "mtime": 1794475387.6183589,
+    "seen": 1794475414.2812715,
+    "ast_hash": "d002d2560598f8e18a420e4c72f44709",
     "semantic_hash": ""
   },
   "src/app/auth/signup-incubator/page.tsx": {

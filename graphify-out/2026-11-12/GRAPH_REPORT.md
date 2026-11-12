@@ -1,17 +1,17 @@
 # Graph Report - Incubator-WebApp  (2026-11-12)
 
 ## Corpus Check
-- 399 files · ~348,410 words
+- 399 files · ~348,693 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 100 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 3)
 
 ## Summary
-- 3577 nodes · 6358 edges · 236 communities (161 shown, 75 thin omitted)
+- 3577 nodes · 6359 edges · 236 communities (161 shown, 75 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 35 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `810a579e`
+- Built from commit: `c4161ff9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -895,7 +895,7 @@ Nodes (3): Option, Select(), SelectProps
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `next` connect `next` to `verifyAuth`, `incubator/applications/page.tsx`, `[id]/video-submission/route.ts`, `super-admin/Sidebar.tsx`, `taskService.ts`, `csv/route.ts`, `notificationService.ts`, `validation.ts`, `MentorPortal.tsx`, `CoIncubationService`, `handleApiError`, `mentorship-sessions/[id]/route.ts`, `progress/route.ts`, `notifications/[id]/route.ts`, `package.json`, `PageHeader.tsx`, `session.ts`, `react`, `forgot-password/page.tsx`, `application-form/page.tsx`, `incubator/page.tsx`, `lucide-react`, `startup-reviews/[id]/route.ts`, `documents/[id]/route.ts`, `evaluations/[id]/route.ts`, `ProtectedRoute`, `choose-role/route.ts`, `availability/route.ts`, `@supabase/supabase-js`, `StartupDashboard.tsx`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.059) - this node is a cross-community bridge._
 - **What connects `fs`, `path`, `fs` to the rest of the system?**
   _1469 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `verifyAuth` be split into smaller, more focused modules?**
@@ -905,6 +905,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `TestShadcnInstaller` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
 - **Why does `@supabase/supabase-js` connect `@supabase/supabase-js` to `check_cols.js`, `package.json`, `next`, `ref_fs`, `session.ts`, `react`, `verify_latest.js`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Should `incubator/applications/page.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.1053763440860215 - nodes in this community are weakly interconnected._
