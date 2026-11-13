@@ -112,18 +112,12 @@ export async function GET(req: NextRequest) {
         if (uData?.id) validCreatedBy = uData.id;
       }
 
-      const startupPayload: Record<string, any> = {
-        organization_id: validOrgId,
-        startup_name: startupName,
-        founder_id: validFounderId,
-        founder_email: emailLower,
-        founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
-        sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
-        stage: normalizeStage(acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage),
-        status: 'active',
-        is_active: true,
-        created_by: validCreatedBy,
-      };
+      const startupPayload = StartupService.buildStartupPayloadFromApplication(acceptedApp, {
+        organizationId: validOrgId,
+        founderId: validFounderId,
+        createdBy: validCreatedBy,
+        startupName,
+      });
 
       let { data: createdStartup, error: autoErr } = await supabaseAdmin
         .from('startups')
@@ -177,6 +171,44 @@ export async function GET(req: NextRequest) {
           .limit(1)
           .maybeSingle();
         linkedApp = appByEmail;
+      }
+
+      // Hydrate any blank profile fields on existing startup from linked application without overwriting user edits
+      if (linkedApp) {
+        const fromApp = StartupService.buildStartupPayloadFromApplication(linkedApp, {
+          organizationId: startup.organization_id,
+          founderId: startup.founder_id,
+          createdBy: startup.created_by,
+        });
+        const backfillKeys = [
+          'founder_name',
+          'founder_phone',
+          'tagline',
+          'description',
+          'problem_statement',
+          'solution_description',
+          'target_market',
+          'business_model',
+          'revenue_model',
+          'founded_date',
+          'registration_type',
+          'demo_url',
+        ];
+        const patch: Record<string, any> = {};
+        for (const k of backfillKeys) {
+          if ((startup[k] === null || startup[k] === undefined || startup[k] === '') && fromApp[k]) {
+            patch[k] = fromApp[k];
+          }
+        }
+        if (Object.keys(patch).length > 0) {
+          const { data: hydrated } = await supabaseAdmin
+            .from('startups')
+            .update({ ...patch, updated_at: new Date().toISOString() })
+            .eq('id', startup.id)
+            .select()
+            .maybeSingle();
+          if (hydrated) startup = hydrated;
+        }
       }
     } else {
       const { data: appData } = await supabaseAdmin

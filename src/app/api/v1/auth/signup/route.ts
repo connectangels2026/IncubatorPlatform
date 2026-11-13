@@ -114,7 +114,7 @@ export async function POST(req: Request) {
     const trimmedEmail = email.trim().toLowerCase();
 
     // Check for duplicate email in auth and public tables
-    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const duplicateAuthUser = usersData?.users?.some(
       (u) => u.email?.toLowerCase() === trimmedEmail
     );
@@ -122,7 +122,8 @@ export async function POST(req: Request) {
     const { data: existingPublicUser } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('email', trimmedEmail)
+      .ilike('email', trimmedEmail)
+      .limit(1)
       .maybeSingle();
 
     if (duplicateAuthUser || existingPublicUser) {
@@ -179,9 +180,10 @@ export async function POST(req: Request) {
     const firstName = nameArray[0] || 'User';
     const lastName = nameArray.slice(1).join(' ') || '';
 
-    const { data: userData, error: userError } = await supabaseAdmin
+    let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
+        id: data.user.id,
         organization_id: null, // No organization created here
         email: trimmedEmail,
         first_name: firstName,
@@ -193,6 +195,25 @@ export async function POST(req: Request) {
       })
       .select()
       .single();
+
+    if (userError) {
+      const retry = await supabaseAdmin
+        .from('users')
+        .insert({
+          organization_id: null,
+          email: trimmedEmail,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: founder_name.trim(),
+          is_active: true,
+          email_verified: true,
+          role: null,
+        })
+        .select()
+        .single();
+      userData = retry.data;
+      userError = retry.error;
+    }
 
     // Auto-confirm user in Supabase Auth and ensure role is explicitly null until user chooses a role
     if (data?.user?.id) {

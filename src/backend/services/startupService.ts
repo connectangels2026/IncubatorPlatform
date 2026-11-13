@@ -4,18 +4,33 @@ export const FOUNDER_MUTABLE_FIELDS = [
   'name',
   'startup_name',
   'tagline',
+  'sector',
   'description',
   'problem_statement',
   'solution_description',
   'target_market',
   'business_model',
   'revenue_model',
+  'founder_name',
+  'founder_email',
+  'founder_phone',
   'team_size',
   'cofounders',
   'team_members',
+  'registration_type',
+  'registration_number',
+  'pan_number',
+  'gst_number',
+  'cin_number',
+  'mrr',
+  'monthly_revenue',
+  'annual_revenue',
+  'funding_raised',
+  'customer_count',
   'tech_stack',
   'pitch_deck_url',
   'business_plan_url',
+  'one_pager_url',
   'github_url',
   'figma_url',
   'demo_url',
@@ -408,6 +423,11 @@ export class StartupService {
       throw new Error('Forbidden: You do not have permission to modify this startup');
     }
 
+    // Normalize empty date string to null to satisfy PostgreSQL date column
+    if ('founded_date' in cleanPayload && !cleanPayload.founded_date) {
+      cleanPayload.founded_date = null;
+    }
+
     // Normalize stage if provided to satisfy valid_stage CHECK constraint
     if (cleanPayload.stage) {
       cleanPayload.stage = normalizeStage(cleanPayload.stage);
@@ -506,6 +526,82 @@ export class StartupService {
     }
 
     return updated;
+  }
+
+  /**
+   * Maps fields collected in an application (pre-incubator or incubator) into
+   * canonical columns of the `startups` table for consistent hydration.
+   */
+  static buildStartupPayloadFromApplication(
+    app: any,
+    opts: {
+      organizationId: string | null | undefined;
+      founderId?: string | null;
+      createdBy?: string | null;
+      startupName?: string;
+    }
+  ): Record<string, any> {
+    const fd = app?.form_data || {};
+    const cleanEmail = (app?.applicant_email || fd.email || '').trim().toLowerCase() || null;
+
+    const parseNum = (v: any): number => {
+      if (typeof v === 'number' && !Number.isNaN(v)) return v;
+      if (typeof v !== 'string') return 0;
+      const cleaned = v.replace(/[^0-9.]/g, '');
+      const n = parseFloat(cleaned);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const parseDateOnly = (v: any): string | null => {
+      if (!v || typeof v !== 'string') return null;
+      const s = v.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toISOString().split('T')[0];
+    };
+
+    const cofoundersCount = Math.max(0, parseInt(String(fd.coFounderCount ?? '0'), 10) || 0);
+    const annualRev = parseNum(fd.revenue12Months || fd.projectedRevenue12M);
+    const monthlyRev = annualRev > 0 ? Math.round(annualRev / 12) : 0;
+
+    return {
+      organization_id: opts.organizationId || null,
+      startup_name:
+        opts.startupName ||
+        app?.startup_name ||
+        fd.startupName ||
+        fd.startup_name ||
+        fd.businessName ||
+        fd.name ||
+        `${app?.applicant_name || fd.fullName || 'Startup'}'s Venture`,
+      founder_id: opts.founderId || null,
+      founder_name: app?.applicant_name || fd.fullName || null,
+      founder_email: cleanEmail,
+      founder_phone: app?.applicant_phone || fd.phone || null,
+      sector: fd.industryVertical || fd.sector || 'Technology',
+      stage: normalizeStage(fd.businessStage || fd.ideaStage || fd.stage),
+      tagline: fd.oneSentencePitch || null,
+      description: fd.solutionOverview || fd.businessDescription || fd.oneSentencePitch || null,
+      problem_statement: fd.problemStatement || fd.problemSolved || fd.customerProblems || null,
+      solution_description: fd.solutionOverview || fd.customerSolutions || fd.oneSentencePitch || null,
+      target_market: fd.targetAudience || fd.targetMarket || fd.idealCustomerPersona || null,
+      business_model: fd.customerAcquisitionChannels || fd.businessModelValidation || null,
+      revenue_model: fd.revenueModel || null,
+      founded_date: parseDateOnly(fd.startedDate),
+      registration_type: fd.legalStatus || null,
+      demo_url: fd.prototypeLink || null,
+      team_size: Math.max(1, 1 + cofoundersCount),
+      customer_count: Math.round(parseNum(fd.payingCustomers || fd.currentUsers)),
+      annual_revenue: annualRev,
+      monthly_revenue: monthlyRev,
+      mrr: monthlyRev,
+      funding_raised: parseNum(fd.externalFundingRaised || fd.fundingRequired),
+      track: fd.startup_track || null,
+      status: 'active',
+      is_active: true,
+      created_by: opts.createdBy || null,
+    };
   }
 }
 

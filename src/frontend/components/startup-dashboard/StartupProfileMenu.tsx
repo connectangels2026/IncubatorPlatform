@@ -276,11 +276,6 @@ export const StartupProfileMenu: React.FC<StartupProfileMenuProps> = ({
               {profileForm.fullName || startupForm.name || 'Founder'}
             </p>
             <p className="text-[11px] text-slate-500 truncate mt-0.5">{user?.email}</p>
-            <div className="mt-2 flex items-center gap-1.5">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                Admitted startup
-              </span>
-            </div>
           </div>
 
           {/* Menu Items */}
