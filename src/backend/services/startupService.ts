@@ -123,6 +123,108 @@ export class StartupService {
         if (data) startup = data;
       }
 
+      // Backfill missing fields from user's application if startup was created with blank defaults
+      if (startup && emailLower && (!startup.description || !startup.founder_name || !startup.website)) {
+        try {
+          const { data: appData } = await supabaseAdmin
+            .from('applications')
+            .select('*')
+            .ilike('applicant_email', emailLower)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (appData) {
+            const fd = appData.form_data || {};
+            const updates: Record<string, any> = {};
+            if (!startup.description) {
+              const desc =
+                fd.businessDescription ||
+                fd.description ||
+                fd.solutionOverview ||
+                fd.oneSentencePitch ||
+                fd.problemStatement ||
+                fd.problemSolved ||
+                appData.pitch ||
+                null;
+              if (desc) updates.description = desc;
+            }
+            if (!startup.founder_name || startup.founder_name.toLowerCase() === 'founder') {
+              let fn = appData.applicant_name || fd.fullName || fd.founderName || fd.founder_name || null;
+              if (!fn || fn.toLowerCase() === 'founder') {
+                const { data: u } = await supabaseAdmin
+                  .from('users')
+                  .select('full_name')
+                  .ilike('email', emailLower)
+                  .maybeSingle();
+                if (u?.full_name) fn = u.full_name;
+              }
+              if (fn) updates.founder_name = fn;
+            }
+            if ((!startup.startup_name || startup.startup_name.includes("'s Startup")) && (appData.startup_name || fd.businessName || fd.startupName)) {
+              updates.startup_name = appData.startup_name || fd.businessName || fd.startupName;
+            }
+            if (!startup.website) {
+              const ws = fd.website || fd.companyWebsite || fd.websiteUrl || fd.url || fd.prototypeLink || null;
+              if (ws) updates.website = ws;
+            }
+            if (!startup.founder_phone && (appData.applicant_phone || fd.phone)) {
+              updates.founder_phone = appData.applicant_phone || fd.phone;
+            }
+            if (!startup.sector && (fd.industryVertical || fd.sector)) {
+              updates.sector = fd.industryVertical || fd.sector;
+            }
+            if ((!startup.stage || startup.stage === 'Idea' || startup.stage === 'Not started') && (fd.businessStage || fd.ideaStage || fd.stage)) {
+              updates.stage = normalizeStage(fd.businessStage || fd.ideaStage || fd.stage);
+            }
+            if (!startup.demo_url && fd.prototypeLink) {
+              updates.demo_url = fd.prototypeLink;
+            }
+            if (fd.externalFundingRaised || fd.fundingRequired) {
+              const parseNum = (v: any): number => {
+                if (typeof v === 'number' && !Number.isNaN(v)) return v;
+                if (typeof v !== 'string') return 0;
+                const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+                return Number.isFinite(n) ? n : 0;
+              };
+              const fVal = parseNum(fd.externalFundingRaised || fd.fundingRequired);
+              if (fVal > 0 && !startup.funding_raised) updates.funding_raised = fVal;
+            }
+            if (fd.revenue12Months || fd.projectedRevenue12M) {
+              const parseNum = (v: any): number => {
+                if (typeof v === 'number' && !Number.isNaN(v)) return v;
+                if (typeof v !== 'string') return 0;
+                const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+                return Number.isFinite(n) ? n : 0;
+              };
+              const revVal = parseNum(fd.revenue12Months || fd.projectedRevenue12M);
+              if (revVal > 0 && !startup.arr) {
+                updates.arr = revVal;
+                updates.annual_revenue = revVal;
+                updates.mrr = Math.round(revVal / 12);
+              }
+            }
+            if (Object.keys(updates).length > 0) {
+              await supabaseAdmin.from('startups').update(updates).eq('id', startup.id);
+              Object.assign(startup, updates);
+            }
+          }
+        } catch (syncErr) {
+          console.warn('[StartupService] Backfill from application error:', syncErr);
+        }
+      }
+
+      // Ensure founder_name is populated from users table if still missing
+      if (startup && (!startup.founder_name || startup.founder_name.toLowerCase() === 'founder') && emailLower) {
+        try {
+          const { data: u } = await supabaseAdmin.from('users').select('full_name').ilike('email', emailLower).maybeSingle();
+          if (u?.full_name && u.full_name.trim()) {
+            await supabaseAdmin.from('startups').update({ founder_name: u.full_name.trim() }).eq('id', startup.id);
+            startup.founder_name = u.full_name.trim();
+          }
+        } catch {}
+      }
+
       let validFounderId: string | null = null;
       if (isValidUUID(user?.id)) {
         const { data: u } = await supabaseAdmin.from('users').select('id').eq('id', user.id).maybeSingle();
@@ -196,18 +298,12 @@ export class StartupService {
 
             const stageVal = normalizeStage(appData.form_data?.businessStage || appData.form_data?.stage);
 
-            const startupPayload: Record<string, any> = {
-              founder_id: validFounderId,
-              founder_email: emailLower,
-              startup_name: startupName,
-              organization_id: targetOrg,
-              founder_phone: appData.applicant_phone || appData.form_data?.phone || null,
-              sector: appData.form_data?.industryVertical || appData.form_data?.sector || 'Technology',
-              stage: stageVal,
-              status: 'active',
-              is_active: true,
-              created_by: validCreatedBy,
-            };
+            const startupPayload = StartupService.buildStartupPayloadFromApplication(appData, {
+              organizationId: targetOrg,
+              founderId: validFounderId,
+              createdBy: validCreatedBy,
+              startupName,
+            });
 
             let { data: created, error: crErr } = await supabaseAdmin
               .from('startups')
@@ -576,13 +672,22 @@ export class StartupService {
         fd.name ||
         `${app?.applicant_name || fd.fullName || 'Startup'}'s Venture`,
       founder_id: opts.founderId || null,
-      founder_name: app?.applicant_name || fd.fullName || null,
+      founder_name: app?.applicant_name || fd.fullName || fd.founderName || fd.founder_name || null,
       founder_email: cleanEmail,
-      founder_phone: app?.applicant_phone || fd.phone || null,
+      founder_phone: app?.applicant_phone || fd.phone || fd.phoneNumber || null,
+      website: fd.website || fd.companyWebsite || fd.websiteUrl || fd.url || fd.prototypeLink || null,
       sector: fd.industryVertical || fd.sector || 'Technology',
       stage: normalizeStage(fd.businessStage || fd.ideaStage || fd.stage),
       tagline: fd.oneSentencePitch || null,
-      description: fd.solutionOverview || fd.businessDescription || fd.oneSentencePitch || null,
+      description:
+        fd.businessDescription ||
+        fd.description ||
+        fd.solutionOverview ||
+        fd.oneSentencePitch ||
+        fd.problemStatement ||
+        fd.problemSolved ||
+        app?.pitch ||
+        null,
       problem_statement: fd.problemStatement || fd.problemSolved || fd.customerProblems || null,
       solution_description: fd.solutionOverview || fd.customerSolutions || fd.oneSentencePitch || null,
       target_market: fd.targetAudience || fd.targetMarket || fd.idealCustomerPersona || null,
@@ -590,7 +695,10 @@ export class StartupService {
       revenue_model: fd.revenueModel || null,
       founded_date: parseDateOnly(fd.startedDate),
       registration_type: fd.legalStatus || null,
-      demo_url: fd.prototypeLink || null,
+      demo_url: fd.prototypeLink || fd.demoUrl || fd.demo_url || null,
+      pitch_deck_url: fd.pitchDeckUrl || fd.pitch_deck_url || null,
+      business_plan_url: fd.businessPlanUrl || fd.business_plan_url || null,
+      one_pager_url: fd.onePagerUrl || fd.one_pager_url || null,
       team_size: Math.max(1, 1 + cofoundersCount),
       customer_count: Math.round(parseNum(fd.payingCustomers || fd.currentUsers)),
       annual_revenue: annualRev,

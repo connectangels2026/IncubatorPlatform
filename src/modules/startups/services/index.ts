@@ -95,8 +95,12 @@ export class StartupService {
       .from('startups')
       .select('*', { count: 'exact' });
 
-    if (realOrgId && orgId !== 'all') {
-      query = query.eq('organization_id', realOrgId);
+    if (orgId !== 'all') {
+      if (realOrgId) {
+        query = query.eq('organization_id', realOrgId);
+      } else {
+        return { startups: [], total: 0 };
+      }
     }
 
     // Filtering
@@ -128,8 +132,12 @@ export class StartupService {
       let retryQuery = supabaseAdmin
         .from('startups')
         .select('*', { count: 'exact' });
-      if (orgId && orgId !== 'all') {
-        retryQuery = retryQuery.eq('organization_id', realOrgId);
+      if (orgId !== 'all') {
+        if (realOrgId) {
+          retryQuery = retryQuery.eq('organization_id', realOrgId);
+        } else {
+          return { startups: [], total: 0 };
+        }
       }
       const retryRes = await retryQuery.range(offset, offset + limit - 1);
       data = retryRes.data;
@@ -203,18 +211,39 @@ export class StartupService {
       monthly_revenue: Number(data.revenue) || 0,
       annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
       status: data.status || 'Active',
-      team_members: [],
     };
 
     if (data.founder_id && isValidUUID(data.founder_id)) {
       insertPayload.founder_id = data.founder_id;
     }
 
-    const { data: createdRow, error } = await supabaseAdmin
+    let { data: createdRow, error } = await supabaseAdmin
       .from('startups')
       .insert(insertPayload)
       .select()
       .single();
+
+    if (error) {
+      if ((error as any).code === '23503' || error.message?.includes('foreign key constraint')) {
+        delete insertPayload.founder_id;
+      }
+      if (error.message?.includes("'startup_name'") || (error as any).code === 'PGRST204') {
+        delete insertPayload.startup_name;
+        insertPayload.name = stName;
+      }
+      if (error.message?.includes("'name'")) {
+        delete insertPayload.name;
+        insertPayload.startup_name = stName;
+      }
+      delete insertPayload.team_members;
+      const retryRes = await supabaseAdmin
+        .from('startups')
+        .insert(insertPayload)
+        .select()
+        .single();
+      createdRow = retryRes.data;
+      error = retryRes.error;
+    }
 
     if (error || !createdRow) {
       // In-memory fallback if insert rejected by schema constraint
