@@ -61,130 +61,6 @@ export interface MentorItem {
   active: boolean;
 }
 
-const INITIAL_FALLBACK_MENTORS: MentorItem[] = [
-  {
-    id: 'm-1',
-    name: 'Dr. Marcus Vance',
-    role: 'VP of Product',
-    company: 'Stripe',
-    handle: '@marcus_vance',
-    email: 'marcus.vance@stripe.com',
-    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
-    expertise: [
-      { name: 'FinTech', type: 'blue' },
-      { name: 'Payments', type: 'blue' },
-      { name: 'GTM Strategy', type: 'purple' },
-    ],
-    rating: 4.9,
-    reviewsCount: 32,
-    sessions: '14 sessions this month (3 upcoming)',
-    sessionsCount: 14,
-    availability: '4 open slots',
-    availStatus: 'Available',
-    matchedCount: 2,
-    matchedStartups: ['PayFlow Finance', 'Aether AI'],
-    maxHoursPerMonth: 6,
-    linkedinUrl: 'https://linkedin.com/in/marcusvance',
-    active: true,
-  },
-  {
-    id: 'm-2',
-    name: 'Sarah Chen',
-    role: 'Ex-CTO',
-    company: 'CloudScale',
-    handle: '@schen_tech',
-    email: 'sarah.chen@cloudscale.io',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    expertise: [
-      { name: 'AI/ML', type: 'emerald' },
-      { name: 'Cloud Architecture', type: 'slate' },
-    ],
-    rating: 5.0,
-    reviewsCount: 48,
-    sessions: '18 sessions this month (5 upcoming)',
-    sessionsCount: 18,
-    availability: '2 open slots',
-    availStatus: 'Available',
-    matchedCount: 3,
-    matchedStartups: ['DataPulse AI', 'VerdeGrid', 'CloudLoom'],
-    maxHoursPerMonth: 8,
-    linkedinUrl: 'https://linkedin.com/in/sarahchen',
-    active: true,
-  },
-  {
-    id: 'm-3',
-    name: 'Aisha Patel',
-    role: 'Head of Legal',
-    company: 'CounselFlow',
-    handle: '@aisha_legal',
-    email: 'aisha@counselflow.law',
-    avatar: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=150&auto=format&fit=crop&q=80',
-    expertise: [
-      { name: 'Legal', type: 'slate' },
-      { name: 'IP & Compliance', type: 'slate' },
-    ],
-    rating: 4.8,
-    reviewsCount: 19,
-    sessions: '8 sessions this month (0 upcoming)',
-    sessionsCount: 8,
-    availability: 'Booked until Oct 12',
-    availStatus: 'Booked',
-    matchedCount: 1,
-    matchedStartups: ['LegalMind AI'],
-    maxHoursPerMonth: 4,
-    linkedinUrl: 'https://linkedin.com/in/aishapatel',
-    active: true,
-  },
-  {
-    id: 'm-4',
-    name: 'Devon Miller',
-    role: 'Growth Director',
-    company: 'Scale AI',
-    handle: '@devon_growth',
-    email: 'devon@scaleai.com',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    expertise: [
-      { name: 'Marketing', type: 'purple' },
-      { name: 'User Acquisition', type: 'purple' },
-    ],
-    rating: 4.9,
-    reviewsCount: 41,
-    sessions: '12 sessions this month (2 upcoming)',
-    sessionsCount: 12,
-    availability: '5 open slots',
-    availStatus: 'Available',
-    matchedCount: 2,
-    matchedStartups: ['ShopPulse', 'NexHealth'],
-    maxHoursPerMonth: 10,
-    linkedinUrl: 'https://linkedin.com/in/devonmiller',
-    active: true,
-  },
-  {
-    id: 'm-5',
-    name: 'Elena Rostova',
-    role: 'Partner',
-    company: 'SeedFund VC',
-    handle: '@elena_vc',
-    email: 'elena@seedfund.vc',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
-    expertise: [
-      { name: 'Fundraising', type: 'amber' },
-      { name: 'Pitch Prep', type: 'amber' },
-    ],
-    rating: 4.7,
-    reviewsCount: 14,
-    sessions: '0 sessions this month',
-    sessionsCount: 0,
-    availability: 'Account Suspended',
-    availStatus: 'Deactivated',
-    matchedCount: 0,
-    matchedStartups: [],
-    maxHoursPerMonth: 5,
-    linkedinUrl: 'https://linkedin.com/in/elenarostova',
-    active: false,
-  },
-];
-
 export default function MentorsHubPage() {
   const router = useRouter();
   const { logout } = useAuth();
@@ -194,8 +70,17 @@ export default function MentorsHubPage() {
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
 
   // Data State
-  const [mentors, setMentors] = useState<MentorItem[]>(INITIAL_FALLBACK_MENTORS);
-  const [isLoading, setIsLoading] = useState(false);
+  const [mentors, setMentors] = useState<MentorItem[]>([]);
+  const [orgStats, setOrgStats] = useState({
+    completedHours: 0,
+    completedSessionsCount: 0,
+    avgFounderRating: 0,
+    totalReviews: 0,
+    matchedStartupsCount: 0,
+    totalStartupsCount: 0,
+    matchVelocityPct: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filters & Search
@@ -212,15 +97,15 @@ export default function MentorsHubPage() {
 
   // Add Mentor Form State
   const [addForm, setAddForm] = useState({
-    email: 'marcus.vance@stripe.com',
-    role: 'VP of Product',
-    company: 'Stripe',
+    email: '',
+    role: '',
+    company: '',
     mentorType: 'General' as 'General' | 'SME',
-    primaryExpertise: 'FinTech',
+    primaryExpertise: '',
     specializationDetails: '',
-    selectedExpertise: ['Tech', 'Finance'],
+    selectedExpertise: [] as string[],
     maxHours: 6,
-    linkedin: 'https://linkedin.com/in/marcusvance',
+    linkedin: '',
   });
 
   // Edit Mentor Form State
@@ -252,16 +137,20 @@ export default function MentorsHubPage() {
     try {
       const res = await apiClient.get('/mentors');
       const apiData = res.data?.data;
-      if (Array.isArray(apiData) && apiData.length > 0) {
+      if (res.data?.org_stats) {
+        setOrgStats(res.data.org_stats);
+      }
+      if (Array.isArray(apiData)) {
         const mapped: MentorItem[] = apiData.map((item: any, idx: number) => {
-          const fallback = INITIAL_FALLBACK_MENTORS[idx % INITIAL_FALLBACK_MENTORS.length];
           const userName = item.user
-            ? `${item.user.first_name || ''} ${item.user.last_name || ''}`.trim() || item.name || fallback.name
-            : item.name || fallback.name;
-          const userEmail = item.user?.email || item.email || fallback.email;
-          const userAvatar = item.user?.profile_picture_url || fallback.avatar;
+            ? item.user.full_name ||
+              `${item.user.first_name || ''} ${item.user.last_name || ''}`.trim() ||
+              item.user.email?.split('@')[0] ||
+              'Mentor'
+            : item.name || 'Mentor';
+          const userEmail = item.user?.email || item.email || '';
+          const userAvatar = item.user?.profile_picture_url || '';
 
-          // Parse expertise areas
           let expArray: MentorExpertise[] = [];
           if (Array.isArray(item.expertise_areas) && item.expertise_areas.length > 0) {
             expArray = item.expertise_areas.map((tag: any) => ({
@@ -270,47 +159,55 @@ export default function MentorsHubPage() {
             }));
           } else if (item.primary_expertise) {
             expArray = [{ name: item.primary_expertise, type: 'emerald' }];
-          } else {
-            expArray = fallback.expertise;
           }
 
-          const isActive = item.is_active !== undefined ? Boolean(item.is_active) : fallback.active;
-          const isAvail = item.is_available !== undefined ? Boolean(item.is_available) : fallback.availStatus === 'Available';
-
+          const isActive = item.is_active !== undefined ? Boolean(item.is_active) : true;
+          const isAvail = item.is_available !== undefined ? Boolean(item.is_available) : true;
           const rawType = item.mentor_type || item.type;
-          const resolvedType = rawType === 'subject_matter_expert' || rawType === 'sme' || rawType === 'SME' ? 'SME' : 'General';
+          const resolvedType =
+            rawType === 'subject_matter_expert' || rawType === 'sme' || rawType === 'SME' ? 'SME' : 'General';
+          const sessionsThisMonth = Number(item.sessions_count || 0);
+          const upcomingCount = Number(item.upcoming_count || 0);
+          const openSlotsCount = Number(item.open_slots_count || 0);
+          const matchedList: string[] = Array.isArray(item.matched_startups) ? item.matched_startups : [];
 
           return {
             id: item.id || `m-${idx}`,
             name: userName,
-            role: item.title || fallback.role,
-            company: item.company || fallback.company,
+            role: item.title || item.job_title || 'Advisor',
+            company: item.company || item.company_background || 'Independent',
             handle: `@${userName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
             email: userEmail,
             avatar: userAvatar,
             mentorType: resolvedType,
             primaryExpertise: item.primary_expertise,
-            specializationDetails: item.specialization_details,
+            specializationDetails: item.sme_specialization || item.specialization_details,
             expertise: expArray,
-            rating: typeof item.average_rating === 'number' ? item.average_rating : fallback.rating,
-            reviewsCount: item.total_reviews || fallback.reviewsCount,
-            sessions: item.sessions_count ? `${item.sessions_count} sessions this month` : fallback.sessions,
-            sessionsCount: item.sessions_count || fallback.sessionsCount,
-            availability: !isActive ? 'Account Suspended' : isAvail ? '4 open slots' : 'Booked',
+            rating: typeof item.average_rating === 'number' ? item.average_rating : 0,
+            reviewsCount: Number(item.total_reviews || 0),
+            sessions: `${sessionsThisMonth} ${sessionsThisMonth === 1 ? 'session' : 'sessions'} this month (${upcomingCount} upcoming)`,
+            sessionsCount: sessionsThisMonth,
+            availability: !isActive
+              ? 'Account Suspended'
+              : !isAvail
+              ? 'Unavailable'
+              : openSlotsCount > 0
+              ? `${openSlotsCount} open slots`
+              : 'Available',
             availStatus: !isActive ? 'Deactivated' : isAvail ? 'Available' : 'Booked',
-            matchedCount: Array.isArray(item.matched_startups) ? item.matched_startups.length : fallback.matchedCount,
-            matchedStartups: Array.isArray(item.matched_startups) ? item.matched_startups : fallback.matchedStartups,
-            maxHoursPerMonth: item.max_hours_per_month || fallback.maxHoursPerMonth,
-            linkedinUrl: item.linkedin_url || fallback.linkedinUrl,
+            matchedCount: item.matched_count ?? matchedList.length,
+            matchedStartups: matchedList,
+            maxHoursPerMonth: item.max_hours_per_month || item.availability_hours_per_month || 10,
+            linkedinUrl: item.linkedin_url || '',
             active: isActive,
           };
         });
         setMentors(mapped);
       } else {
-        setMentors(INITIAL_FALLBACK_MENTORS);
+        setMentors([]);
       }
     } catch {
-      setMentors(INITIAL_FALLBACK_MENTORS);
+      setMentors([]);
     } finally {
       setIsLoading(false);
     }
@@ -574,7 +471,7 @@ export default function MentorsHubPage() {
           />
 
           {/* Main Content Container */}
-          <main className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto px-6 py-6 space-y-6">
+          <main className="flex-1 overflow-y-auto w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
             {/* Page Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -608,21 +505,27 @@ export default function MentorsHubPage() {
               <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
                 <div className="text-xs font-normal text-slate-500">Sessions conducted</div>
                 <div className="text-xl font-semibold text-slate-900 mt-1">
-                  {mentors.reduce((acc, m) => acc + (m.sessionsCount || 0), 0)}
+                  {orgStats.completedSessionsCount || mentors.reduce((acc, m) => acc + (m.sessionsCount || 0), 0)}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">Total completed hours</div>
+                <div className="text-xs text-slate-500 mt-0.5">{orgStats.completedHours} completed hours</div>
               </div>
 
               <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
                 <div className="text-xs font-normal text-slate-500">Avg founder rating</div>
-                <div className="text-xl font-semibold text-slate-900 mt-1">4.9 / 5.0</div>
-                <div className="text-xs text-slate-500 mt-0.5">Across 150+ reviews</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">
+                  {orgStats.avgFounderRating > 0 ? `${orgStats.avgFounderRating.toFixed(1)} / 5.0` : '—'}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Across {orgStats.totalReviews} {orgStats.totalReviews === 1 ? 'review' : 'reviews'}
+                </div>
               </div>
 
               <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs">
                 <div className="text-xs font-normal text-slate-500">Match velocity</div>
-                <div className="text-xl font-semibold text-slate-900 mt-1">92%</div>
-                <div className="text-xs text-slate-500 mt-0.5">Startups paired with mentors</div>
+                <div className="text-xl font-semibold text-slate-900 mt-1">{orgStats.matchVelocityPct}%</div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {orgStats.matchedStartupsCount} / {orgStats.totalStartupsCount} startups paired
+                </div>
               </div>
             </div>
 

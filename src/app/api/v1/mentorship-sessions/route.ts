@@ -4,6 +4,7 @@ import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
+import { logActivity } from '@/backend/services/activityLogger';
 
 const DEFAULT_ORG_ID = '6f0ac9a7-4c1d-48df-81ba-f9d34f1eb279';
 const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -325,6 +326,17 @@ export async function POST(req: NextRequest) {
     } catch (notifErr) {
       console.warn('Failed to dispatch booking notification records:', notifErr);
     }
+
+    await logActivity({
+      organization_id: realOrgId,
+      user_id: user?.id || null,
+      actor_email: user?.email || null,
+      action: 'mentorship_session_requested',
+      entity_type: 'mentorship_session',
+      entity_id: session.id,
+      description: `${startupTitle} requested session "${payload.session_title}" with ${mentorDisplayName}`,
+      details: { startup_id, mentor_id, scheduled_date, start_time },
+    });
 
     return NextResponse.json(
       {

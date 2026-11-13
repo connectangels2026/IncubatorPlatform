@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,18 +27,22 @@ export default function SignupPage() {
   const [isTestMode, setIsTestMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const signingUpRef = useRef(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in (skip while signup submit is actively routing to /auth/choose-role)
   useEffect(() => {
-    if (user) {
-      const role = (user as any)?.role || (user as any)?.user_metadata?.role;
-      if (!role) {
-        router.push('/auth/choose-role');
-      } else {
-        router.push('/incubator');
-      }
+    if (!user || isLoading || signingUpRef.current) return;
+    const role = String((user as any)?.role || (user as any)?.user_metadata?.role || '').toLowerCase();
+    if (!role) {
+      router.replace('/auth/choose-role');
+    } else if (role === 'mentor') {
+      router.replace('/mentor/dashboard');
+    } else if (role === 'startup' || role === 'founder') {
+      router.replace('/startup/dashboard');
+    } else {
+      router.replace('/incubator');
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   const strength = (() => {
     if (!password) return null;
@@ -74,18 +78,21 @@ export default function SignupPage() {
       setError('Please accept terms & privacy policy to continue.');
       return;
     }
+    signingUpRef.current = true;
     setIsLoading(true);
     setError(null);
 
     try {
       const res = await signup(founderName, email, password);
       if (res.success) {
-        router.push('/auth/choose-role');
+        router.replace('/auth/choose-role');
       } else {
+        signingUpRef.current = false;
         setError(res.error || 'Failed to create account');
         setIsLoading(false);
       }
     } catch (err: any) {
+      signingUpRef.current = false;
       setError(err.message || 'An error occurred during signup');
       setIsLoading(false);
     }

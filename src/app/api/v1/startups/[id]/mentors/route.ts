@@ -3,6 +3,7 @@ import { verifyAuth } from '@/backend/middleware/auth';
 import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { StartupService } from '@/modules/startups/services';
+import { logActivity } from '@/backend/services/activityLogger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,6 +46,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       domain: body.domain,
       notes: body.notes || body.feedback,
       allocatedBy: user?.id,
+    });
+    await logActivity({
+      organization_id: orgId,
+      user_id: user?.id || null,
+      actor_email: user?.email || null,
+      action: 'mentor_allocated_to_startup',
+      entity_type: 'startup_mentor',
+      entity_id: alloc?.id || null,
+      description: `Allocated mentor ${mentorId} to startup ${id}`,
+      details: { startup_id: id, mentor_id: mentorId, mentor_type: mentorType },
     });
     return NextResponse.json({ success: true, data: alloc }, { status: 201 });
   } catch (error) {

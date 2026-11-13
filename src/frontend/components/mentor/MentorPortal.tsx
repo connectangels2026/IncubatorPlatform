@@ -104,9 +104,12 @@ export default function MentorPortal({ initialRoute }: MentorPortalProps) {
   const [mentorData, setMentorData] = useState<any>(null);
   const [stats, setStats] = useState({
     sessionsThisMonth: 0,
+    hoursUsedThisMonth: 0,
     upcoming7Days: 0,
     avgRating: 0,
     ratingCount: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } as Record<number, number>,
+    ratingTrend: [] as number[],
     activeStartups: 0,
   });
   const [sessions, setSessions] = useState<any[]>([]);
@@ -184,6 +187,28 @@ export default function MentorPortal({ initialRoute }: MentorPortalProps) {
       loadDashboard();
     }
   }, [authLoading, loadDashboard]);
+
+  // Realtime sync on mentorship_sessions & startup_mentors for live action queue & schedule updates
+  useEffect(() => {
+    if (!mentorData?.id) return;
+    const channel = supabase
+      .channel(`mentor-portal-realtime-${mentorData.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'mentorship_sessions', filter: `mentor_id=eq.${mentorData.id}` },
+        () => loadDashboard()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'startup_mentors', filter: `mentor_id=eq.${mentorData.id}` },
+        () => loadDashboard()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [mentorData?.id, loadDashboard]);
 
   // Cmd+K shortcut
   useEffect(() => {
@@ -408,11 +433,23 @@ export default function MentorPortal({ initialRoute }: MentorPortalProps) {
                       <p className="p-4 text-slate-400 text-center">No unread notifications.</p>
                     ) : (
                       actionQueue.map((item) => (
-                        <div key={item.id} className="p-3 hover:bg-slate-50 transition-colors">
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={async () => {
+                            setNotificationsOpen(false);
+                            if (item.notificationId) {
+                              mutateMentor({ action: 'dismiss_notification', notification_id: item.notificationId }).catch(() => {});
+                              setActionQueue((prev) => prev.filter((q) => q.id !== item.id));
+                            }
+                            if (item.href) router.push(item.href);
+                          }}
+                          className="w-full text-left p-3 hover:bg-slate-50 transition-colors cursor-pointer block"
+                        >
                           <p className="font-medium text-slate-900">{item.title}</p>
                           <p className="text-slate-500 mt-0.5">{item.subtitle}</p>
                           <span className="text-[10px] text-slate-400 mt-1 inline-block">{item.date}</span>
-                        </div>
+                        </button>
                       ))
                     )}
                   </div>
@@ -550,6 +587,7 @@ export default function MentorPortal({ initialRoute }: MentorPortalProps) {
                   mentorData={mentorData}
                   userInfo={userInfo}
                   sessionsCount={stats.sessionsThisMonth}
+                  hoursUsed={stats.hoursUsedThisMonth}
                   onToggleAvailable={handleToggleAvailable}
                   onMutate={mutateMentor}
                   onRefresh={loadDashboard}
@@ -560,6 +598,7 @@ export default function MentorPortal({ initialRoute }: MentorPortalProps) {
                   sessions={sessions}
                   feedbackList={feedbackList}
                   avgRating={stats.avgRating}
+                  ratingDistribution={stats.ratingDistribution}
                   onMutate={mutateMentor}
                   onRefresh={loadDashboard}
                 />
@@ -772,7 +811,7 @@ function DashboardView({
   const [meetingLinkSessionId, setMeetingLinkSessionId] = useState<string | null>(null);
   const [meetingLinkInput, setMeetingLinkInput] = useState('');
 
-  const completeness = mentorData?.completeness ?? 85;
+  const completeness = mentorData?.completeness ?? 0;
   const upcomingSessions = sessions.filter((s: any) => s.status === 'Confirmed' || s.status === 'Pending');
   const nextSession = upcomingSessions[0];
   const weeklyGrid = mentorData?.availability_json?.weekly_grid || EMPTY_GRID;
@@ -895,7 +934,20 @@ function DashboardView({
               </p>
             </div>
             <svg className="w-16 h-8 text-[#2563EB] stroke-current fill-none" viewBox="0 0 60 25">
-              <path d="M 0 20 L 10 18 L 20 19 L 30 12 L 40 10 L 50 4 L 60 6" strokeWidth="2" strokeLinecap="round" />
+              {(() => {
+                const pts: number[] = Array.isArray(stats.ratingTrend) && stats.ratingTrend.length >= 2 ? stats.ratingTrend : [];
+                if (pts.length < 2) {
+                  return <line x1="0" y1="20" x2="60" y2="20" strokeWidth="1.5" strokeDasharray="3 3" className="text-slate-300" />;
+                }
+                const d = pts
+                  .map((val, idx) => {
+                    const x = (idx / (pts.length - 1)) * 60;
+                    const y = 22 - ((Math.min(5, Math.max(1, val)) - 1) / 4) * 18;
+                    return `${idx === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+                  })
+                  .join(' ');
+                return <path d={d} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />;
+              })()}
             </svg>
           </div>
         </div>
@@ -1028,7 +1080,9 @@ function DashboardView({
               <div className="space-y-3">
                 {upcomingSessions.slice(0, 5).map((session: any) => {
                   const diffMs = session.timestamp - Date.now();
-                  const isStartingSoon = diffMs >= -15 * 60000 && diffMs < 30 * 60000;
+                  const durationMs = (Number(session.durationMinutes) || 60) * 60000;
+                  const canJoin = Boolean(session.meetingLink) && diffMs <= 10 * 60000 && diffMs >= -durationMs;
+                  const isStartingSoon = diffMs <= 10 * 60000 && diffMs >= -15 * 60000;
                   return (
                     <div
                       key={session.id}
@@ -1050,7 +1104,7 @@ function DashboardView({
                             </span>
                             {isStartingSoon && (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                                Starting soon
+                                Join open
                               </span>
                             )}
                           </div>
@@ -1059,19 +1113,27 @@ function DashboardView({
 
                       <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-end">
                         {session.meetingLink ? (
-                          <a
-                            href={session.meetingLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 transition-colors ${
-                              isStartingSoon
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                : 'bg-[#2563EB] hover:bg-blue-700 text-white'
-                            }`}
-                          >
-                            <Video className="w-3.5 h-3.5" />
-                            <span>{isStartingSoon ? 'Join session now' : 'Join'}</span>
-                          </a>
+                          canJoin ? (
+                            <a
+                              href={session.meetingLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 transition-colors bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              <Video className="w-3.5 h-3.5" />
+                              <span>Join</span>
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              title="Join unlocks 10 minutes before session start"
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                            >
+                              <Video className="w-3.5 h-3.5" />
+                              <span>Join (10m before)</span>
+                            </button>
+                          )
                         ) : (
                           <Link
                             href="/mentor/sessions"
@@ -1966,7 +2028,7 @@ function StartupsView({ startups, sessions, onScheduleWithStartup }: any) {
 /* ==========================================================================
    PAGE 4: /mentor/availability
    ========================================================================== */
-function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailable, onMutate, onRefresh }: any) {
+function AvailabilityView({ mentorData, userInfo, sessionsCount, hoursUsed = 0, onToggleAvailable, onMutate, onRefresh }: any) {
   const [weeklyGrid, setWeeklyGrid] = useState<Record<string, string[]>>(
     () => mentorData?.availability_json?.weekly_grid || EMPTY_GRID
   );
@@ -2023,7 +2085,8 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
   };
 
   const capacity = hoursPerMonth || mentorData?.availability_hours_per_month || 10;
-  const pct = Math.min(100, Math.round((sessionsCount / capacity) * 100));
+  const usedHrs = Number((hoursUsed || 0).toFixed(1));
+  const pct = Math.min(100, Math.round((usedHrs / Math.max(1, capacity)) * 100));
   const activeDays = DAYS.filter((d) => (weeklyGrid[d] || []).length > 0);
   const previewSlots = DAYS.flatMap((d) =>
     (weeklyGrid[d] || []).slice(0, 2).map((t) => `${d} ${t}`)
@@ -2198,9 +2261,9 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
             <div className="flex items-end justify-between">
               <div>
                 <span className="text-2xl font-bold text-[#1A2151]">
-                  {sessionsCount} / {capacity}
+                  {usedHrs} / {capacity} hrs
                 </span>
-                <span className="text-xs text-slate-500 ml-1">sessions booked</span>
+                <span className="text-xs text-slate-500 ml-1">({sessionsCount} sessions)</span>
               </div>
               <span className="text-xs font-semibold text-[#2563EB]">{pct}%</span>
             </div>
@@ -2208,7 +2271,7 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
               <div className="bg-[#2563EB] h-full rounded-full" style={{ width: `${pct}%` }} />
             </div>
             <p className="text-[11px] text-slate-500">
-              {Math.max(0, capacity - sessionsCount)} hours remaining in monthly capacity.
+              {Math.max(0, Number((capacity - usedHrs).toFixed(1)))} hours remaining in monthly capacity.
             </p>
           </div>
 
@@ -2247,7 +2310,7 @@ function AvailabilityView({ mentorData, userInfo, sessionsCount, onToggleAvailab
 /* ==========================================================================
    PAGE 5: /mentor/feedback
    ========================================================================== */
-function FeedbackView({ sessions, feedbackList, avgRating, onMutate, onRefresh }: any) {
+function FeedbackView({ sessions, feedbackList, avgRating, ratingDistribution, onMutate, onRefresh }: any) {
   const dueSessions = useMemo(
     () => sessions.filter((s: any) => s.status === 'Completed' && !s.mentorFeedback),
     [sessions]
@@ -2274,7 +2337,8 @@ function FeedbackView({ sessions, feedbackList, avgRating, onMutate, onRefresh }
         {
           action: 'submit_feedback',
           session_id: evalSession.id,
-          mentor_feedback: feedbackNote || `Preparedness: ${ratings.preparedness}/5, Progress: ${ratings.progress}/5`,
+          scores: ratings,
+          mentor_feedback: feedbackNote || `Preparedness: ${ratings.preparedness}/5, Clarity: ${ratings.clarity}/5, Progress: ${ratings.progress}/5`,
           action_points: actionPoints.map((text, idx) => ({ id: `ap-${Date.now()}-${idx}`, text, done: false })),
         },
         'Session evaluation submitted'
@@ -2360,10 +2424,28 @@ function FeedbackView({ sessions, feedbackList, avgRating, onMutate, onRefresh }
             {feedbackList.length === 0 ? (
               <p>Founder ratings will appear here once startups complete sessions and leave feedback.</p>
             ) : (
-              <p>
-                Based on <strong className="text-slate-900">{feedbackList.length}</strong> verified founder{' '}
-                {feedbackList.length === 1 ? 'review' : 'reviews'} across your mentorship sessions.
-              </p>
+              <>
+                <p>
+                  Based on <strong className="text-slate-900">{feedbackList.length}</strong> verified founder{' '}
+                  {feedbackList.length === 1 ? 'review' : 'reviews'} across your mentorship sessions.
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = Number(ratingDistribution?.[star] || 0);
+                    const totalRated = feedbackList.filter((f: any) => f.rating).length;
+                    const barPct = totalRated > 0 ? Math.round((count / totalRated) * 100) : 0;
+                    return (
+                      <div key={star} className="flex items-center gap-2 text-[11px]">
+                        <span className="w-8 text-slate-600 font-medium">{star} ★</span>
+                        <div className="flex-1 bg-slate-200 h-2 rounded-full overflow-hidden">
+                          <div className="bg-amber-400 h-full rounded-full" style={{ width: `${barPct}%` }} />
+                        </div>
+                        <span className="w-7 text-right text-slate-500">{count}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </div>
         </div>

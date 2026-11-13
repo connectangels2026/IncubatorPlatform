@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { signUp } from '@/backend/services/auth';
 import { logAuthEvent } from '@/backend/lib/session';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
@@ -232,18 +233,61 @@ export async function POST(req: Request) {
       );
     }
 
-    // Return success response matching criteria
-    return NextResponse.json(
+    // Establish authenticated session + auth cookies immediately for protected routes
+    let activeSession = (data as any)?.session || null;
+    if (!activeSession) {
+      try {
+        const anonClient = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        const { data: signInData } = await anonClient.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+        if (signInData?.session) {
+          activeSession = signInData.session;
+        }
+      } catch {}
+    }
+
+    const response = NextResponse.json(
       {
         success: true,
-        message: 'Signup successful. Please verify your email to continue.',
+        message: 'Signup successful.',
         user_id: userData.id,
         email: trimmedEmail,
         founder_name: founder_name.trim(),
         auth_user_id: data.user.id,
+        session: activeSession
+          ? {
+              access_token: activeSession.access_token,
+              refresh_token: activeSession.refresh_token,
+            }
+          : null,
       },
       { status: 201 }
     );
+
+    if (activeSession?.access_token && activeSession?.refresh_token) {
+      response.cookies.set('refresh_token', activeSession.refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+      response.cookies.set('sb-access-token', activeSession.access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60,
+        path: '/',
+      });
+    }
+
+    return response;
   } catch (err: any) {
     console.error('Signup error:', err);
     return NextResponse.json(
