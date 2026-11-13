@@ -527,7 +527,7 @@ export default function DashboardPage() {
       {/* =========================================================================
           2. HERO & CONTENT SECTION
          ========================================================================= */}
-      <main className="w-full max-w-7xl mx-auto px-6 py-6 space-y-6 relative z-10">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6 relative z-10">
         
         {/* LIGHT HERO CARD (Max 2 buttons, no glow) */}
         <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -538,7 +538,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
               Welcome back, {startupName || founderName}
             </h1>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-xl">
+            <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-3xl">
               {startupName
                 ? `Your startup "${startupName}" is active in the cohort with ${orgName}. Track your milestones, mentorship sessions, and incubation progress.`
                 : 'Cohort #8 is progressing through validation. You have 4 pending startup reviews and 2 mentor syncs scheduled today.'}
@@ -606,7 +606,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           
           {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-lg">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -629,7 +629,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 justify-between sm:justify-end">
             
             {/* Sector Pill Filter */}
-            <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-xs scrollbar-none">
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 scrollbar-none">
               {['All', 'Fintech', 'Healthtech', 'AI/SaaS', 'Clean Energy'].map((sec) => (
                 <button
                   key={sec}
@@ -673,7 +673,7 @@ export default function DashboardPage() {
         </div>
 
         {/* STARTUP PIPELINE BOARD / LIST */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Main Pipeline Column */}
           <div className="lg:col-span-3 space-y-6">
@@ -759,7 +759,7 @@ export default function DashboardPage() {
                                   alt={startup.mentor}
                                   className="w-4 h-4 rounded-full object-cover"
                                 />
-                                <span className="truncate max-w-[100px]">{startup.mentor}</span>
+                                <span className="truncate max-w-[140px]">{startup.mentor}</span>
                               </div>
                               <span className="text-slate-400">{startup.batch}</span>
                             </div>

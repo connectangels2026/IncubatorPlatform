@@ -952,7 +952,7 @@ export default function ApplicationsPage() {
           />
 
           {/* Main Container */}
-          <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-6 space-y-6">
+          <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
             {/* Header Banner */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
