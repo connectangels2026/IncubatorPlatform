@@ -44,13 +44,19 @@ export function StartupProfilePreview({
   onRequestChange,
 }: StartupProfilePreviewProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [videoSubmission, setVideoSubmission] = useState<any>(null);
-  const [videoSignedUrl, setVideoSignedUrl] = useState<string | null>(null);
+  const [videoSubmissions, setVideoSubmissions] = useState<{ demo: any; elevator: any }>({
+    demo: null,
+    elevator: null,
+  });
+  const [videoSignedUrls, setVideoSignedUrls] = useState<{ demo: string | null; elevator: string | null }>({
+    demo: null,
+    elevator: null,
+  });
   const [startupName, setStartupName] = useState<string>(startup?.name || 'Startup');
-  const [isDecidingVideo, setIsDecidingVideo] = useState(false);
+  const [decidingKind, setDecidingKind] = useState<'demo' | 'elevator' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [showRejectInput, setShowRejectInput] = useState(false);
-  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
+  const [rejectingKind, setRejectingKind] = useState<'demo' | 'elevator' | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'image' | 'auto' } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,8 +71,14 @@ export function StartupProfilePreview({
         })
         .then((res) => {
           if (isMounted && res.data?.success) {
-            setVideoSubmission(res.data.submission || null);
-            setVideoSignedUrl(res.data.video_url || null);
+            setVideoSubmissions({
+              demo: res.data.submissions?.demo ?? res.data.submission ?? null,
+              elevator: res.data.submissions?.elevator ?? null,
+            });
+            setVideoSignedUrls({
+              demo: res.data.video_urls?.demo ?? res.data.video_url ?? null,
+              elevator: res.data.video_urls?.elevator ?? null,
+            });
             if (res.data.startup_name) setStartupName(res.data.startup_name);
           }
         })
@@ -79,14 +91,15 @@ export function StartupProfilePreview({
     };
   }, [startup?.id, startup?.organization_id]);
 
-  const handleDecideVideo = async (status: 'approved' | 'rejected') => {
+  const handleDecideVideo = async (kind: 'demo' | 'elevator', status: 'approved' | 'rejected') => {
     if (!startup?.id) return;
     if (status === 'rejected' && !rejectReason.trim()) {
-      alert('Please enter a reason for rejecting the demo video.');
+      alert('Please enter a reason for rejecting the video.');
       return;
     }
 
-    setIsDecidingVideo(true);
+    const sub = videoSubmissions[kind];
+    setDecidingKind(kind);
     try {
       const orgId =
         startup.organization_id ||
@@ -96,6 +109,8 @@ export function StartupProfilePreview({
         `/startups/${startup.id}/video-submission`,
         {
           action: 'decide',
+          kind,
+          submission_id: sub?.id,
           status,
           reason: status === 'rejected' ? rejectReason.trim() : undefined,
         },
@@ -104,17 +119,17 @@ export function StartupProfilePreview({
         }
       );
       if (res.data?.success) {
-        setVideoSubmission(res.data.submission);
+        setVideoSubmissions((prev) => ({ ...prev, [kind]: res.data.submission }));
         if (res.data.published_url) {
-          setVideoSignedUrl(res.data.published_url);
+          setVideoSignedUrls((prev) => ({ ...prev, [kind]: res.data.published_url }));
         }
-        setShowRejectInput(false);
+        setRejectingKind(null);
         setRejectReason('');
       }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to update video submission.');
     } finally {
-      setIsDecidingVideo(false);
+      setDecidingKind(null);
     }
   };
 

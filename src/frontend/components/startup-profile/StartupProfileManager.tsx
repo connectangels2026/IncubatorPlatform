@@ -173,6 +173,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
       } else if (section === 'documents') {
         payload.pitch_deck_url = formData.pitch_deck_url;
         payload.business_plan_url = formData.business_plan_url;
+        payload.one_pager_url = formData.one_pager_url;
         payload.github_url = formData.github_url;
         payload.figma_url = formData.figma_url;
         payload.demo_url = formData.demo_url;
@@ -1590,6 +1591,7 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
             hasChanges={
               (formData.pitch_deck_url || '') !== (startup?.pitch_deck_url || '') ||
               (formData.business_plan_url || '') !== (startup?.business_plan_url || '') ||
+              (formData.one_pager_url || '') !== (startup?.one_pager_url || '') ||
               (formData.github_url || '') !== (startup?.github_url || '') ||
               (formData.figma_url || '') !== (startup?.figma_url || '') ||
               (formData.demo_url || '') !== (startup?.demo_url || '') ||
@@ -1647,6 +1649,35 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                         url: startup.business_plan_url,
                         title: `${startup?.startup_name || startup?.name || 'Startup'} - Business Plan`,
                         type: 'pdf',
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
+                  >
+                    <span>View</span>
+                    <Eye className="w-3 h-3 text-slate-400" />
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 2b. One-pager */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">One-pager</span>
+                    <span className="text-xs text-slate-500 font-normal">Executive summary sheet (PDF / image)</span>
+                  </div>
+                </div>
+                {startup?.one_pager_url ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.one_pager_url,
+                        title: `${startup?.startup_name || startup?.name || 'Startup'} - One-pager`,
+                        type: 'auto',
                       })
                     }
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
@@ -1747,6 +1778,35 @@ export const StartupProfileManager: React.FC<StartupProfileManagerProps> = ({
                       setViewerFile({
                         url: startup.demo_video_url,
                         title: `${startup?.startup_name || startup?.name || 'Startup'} - Video Walkthrough`,
+                        type: 'video',
+                      })
+                    }
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition shrink-0 ml-3 shadow-2xs cursor-pointer"
+                  >
+                    <span>Watch</span>
+                    <Eye className="w-3 h-3 text-slate-400" />
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400 font-normal">Not provided</span>
+                )}
+              </div>
+
+              {/* 7. Elevator pitch video */}
+              <div className="flex items-center justify-between p-3 hover:bg-slate-50/50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Video className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-slate-900 block truncate">Elevator pitch</span>
+                    <span className="text-xs text-slate-500 font-normal">60-second pitch video</span>
+                  </div>
+                </div>
+                {startup?.elevator_video_url ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setViewerFile({
+                        url: startup.elevator_video_url,
+                        title: `${startup?.startup_name || startup?.name || 'Startup'} - Elevator pitch`,
                         type: 'video',
                       })
                     }

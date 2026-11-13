@@ -2172,8 +2172,8 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-dashboard/OverviewTab.tsx": {
-    "mtime": 1794479474.4191458,
-    "seen": 1794479567.755963,
+    "mtime": 1794479599.34537,
+    "seen": 1794480667.7867982,
     "ast_hash": "ec5a71e5b411abff3b0992d2a5461209",
     "semantic_hash": ""
   },
@@ -2304,9 +2304,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startup-profile/StartupProfileManager.tsx": {
-    "mtime": 1794301246.8429947,
-    "seen": 1794302503.788103,
-    "ast_hash": "de36b403bc384477a51de5e95813325e",
+    "mtime": 1794480588.3116457,
+    "seen": 1794480667.7973104,
+    "ast_hash": "c99e99d2e02695146be280e57e59b85a",
     "semantic_hash": ""
   },
   "src/frontend/components/startup-profile/LogoImageUploader.tsx": {
@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "src/backend/services/startupService.ts": {
-    "mtime": 1794204740.7353044,
-    "seen": 1794204761.4951081,
-    "ast_hash": "465bbb7183fc404299a387fee8bf23fa",
+    "mtime": 1794480584.421888,
+    "seen": 1794480667.7667909,
+    "ast_hash": "59067b2a7559ad68a02d5b83294f250f",
     "semantic_hash": ""
   },
   "src/frontend/hooks/useStartup.ts": {
