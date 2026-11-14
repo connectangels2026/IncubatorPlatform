@@ -79,12 +79,12 @@ export async function POST(req: NextRequest) {
       Boolean(val && typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
     let founderId: string | null = null;
+    const founderEmail = (body.founder_email || body.email || '').trim().toLowerCase();
     if (body.founder_id && isValidUUID(body.founder_id)) {
       founderId = body.founder_id;
     } else if (role === 'founder' || role === 'startup') {
       founderId = (user?.id && isValidUUID(user.id)) ? user.id : null;
     } else {
-      const founderEmail = (body.founder_email || body.email || '').trim().toLowerCase();
       if (founderEmail) {
         const { data: founderUser } = await supabaseAdmin
           .from('users')
@@ -92,6 +92,24 @@ export async function POST(req: NextRequest) {
           .ilike('email', founderEmail)
           .maybeSingle();
         if (founderUser?.id && isValidUUID(founderUser.id)) founderId = founderUser.id;
+      }
+    }
+
+    // Guard against duplicate startup registration in this organization (e.g. from double submissions)
+    if (orgId && resolvedName) {
+      let dupQuery = supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('organization_id', orgId)
+        .ilike('name', resolvedName.trim());
+
+      if (founderEmail) {
+        dupQuery = dupQuery.ilike('founder_email', founderEmail);
+      }
+
+      const { data: existingDuplicate } = await dupQuery.limit(1).maybeSingle();
+      if (existingDuplicate) {
+        return NextResponse.json({ success: true, data: existingDuplicate }, { status: 200 });
       }
     }
 

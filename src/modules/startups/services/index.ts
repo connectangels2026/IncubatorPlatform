@@ -224,6 +224,19 @@ export class StartupService {
       .single();
 
     if (error) {
+      // Check if the record actually succeeded inserting (e.g. if error was merely on .single() RLS selection)
+      const { data: alreadyInserted } = await supabaseAdmin
+        .from('startups')
+        .select()
+        .eq('organization_id', realOrgId)
+        .ilike('name', stName)
+        .limit(1)
+        .maybeSingle();
+
+      if (alreadyInserted) {
+        return mapRowToStartup(alreadyInserted);
+      }
+
       if ((error as any).code === '23503' || error.message?.includes('foreign key constraint')) {
         delete insertPayload.founder_id;
       }

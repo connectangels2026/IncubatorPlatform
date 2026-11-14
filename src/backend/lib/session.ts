@@ -18,6 +18,49 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 const memorySessions = new Map<string, ActiveSession>();
 const memoryBlacklist = new Set<string>();
 
+// Circuit breaker & fast timeout for Redis operations so slow/unreachable network never blocks authentication
+let redisFailCount = 0;
+let redisDisabledUntil = 0;
+
+function isRedisReady(): boolean {
+  if (!redisClient) return false;
+  return Date.now() >= redisDisabledUntil;
+}
+
+function handleRedisSuccess() {
+  redisFailCount = 0;
+}
+
+function handleRedisError() {
+  redisFailCount++;
+  if (redisFailCount >= 2) {
+    // Back off for 60 seconds so subsequent requests don't hang
+    redisDisabledUntil = Date.now() + 60000;
+  }
+}
+
+async function withRedisTimeout<T>(operation: () => Promise<T>, timeoutMs: number = 800): Promise<T | null> {
+  if (!isRedisReady()) return null;
+  let timer: NodeJS.Timeout;
+  try {
+    const timeoutPromise = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), timeoutMs);
+    });
+    const result = await Promise.race([operation(), timeoutPromise]);
+    if (result !== null) {
+      handleRedisSuccess();
+    } else {
+      handleRedisError();
+    }
+    return result as T | null;
+  } catch {
+    handleRedisError();
+    return null;
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
 export interface ActiveSession {
   user_id: string;
   access_token: string;
@@ -54,13 +97,11 @@ export const storeActiveToken = async (
 
   memorySessions.set(accessToken, session);
 
-  if (redisClient) {
-    try {
-      await redisClient.set(`session:${accessToken}`, session, { ex: SESSION_EXPIRY_SECONDS });
-      await redisClient.sadd(`user_sessions:${userId}`, accessToken);
-    } catch (e) {
-      console.warn('Redis unavailable, using in-memory session.');
-    }
+  if (redisClient && isRedisReady()) {
+    withRedisTimeout(async () => {
+      await redisClient!.set(`session:${accessToken}`, session, { ex: SESSION_EXPIRY_SECONDS });
+      await redisClient!.sadd(`user_sessions:${userId}`, accessToken);
+    }).catch(() => {});
   }
 };
 
@@ -70,21 +111,21 @@ export const storeActiveToken = async (
 export const isValidToken = async (token: string): Promise<boolean> => {
   if (memoryBlacklist.has(token)) return false;
 
-  if (redisClient) {
-    try {
-      const isBlacklisted = await redisClient.get(`blacklist:${token}`);
-      if (isBlacklisted) return false;
-
-      const session = await redisClient.get<ActiveSession>(`session:${token}`);
-      if (session) return session.is_active !== false;
-    } catch {
-      // fallback to memory
-    }
-  }
-
   const memSession = memorySessions.get(token);
   if (memSession) {
     return Boolean(memSession.is_active);
+  }
+
+  if (redisClient && isRedisReady()) {
+    try {
+      const isBlacklisted = await withRedisTimeout(() => redisClient!.get(`blacklist:${token}`));
+      if (isBlacklisted) return false;
+
+      const session = await withRedisTimeout(() => redisClient!.get<ActiveSession>(`session:${token}`));
+      if (session) return session.is_active !== false;
+    } catch {
+      // fallback to memory/Supabase
+    }
   }
 
   // Cross-runtime verification fallback:
@@ -116,17 +157,15 @@ export const invalidateToken = async (token: string) => {
   }
   memoryBlacklist.add(token);
 
-  if (redisClient) {
-    try {
-      const session = await redisClient.get<ActiveSession>(`session:${token}`);
+  if (redisClient && isRedisReady()) {
+    withRedisTimeout(async () => {
+      const session = await redisClient!.get<ActiveSession>(`session:${token}`);
       if (session) {
         session.is_active = false;
-        await redisClient.set(`session:${token}`, session, { ex: SESSION_EXPIRY_SECONDS });
+        await redisClient!.set(`session:${token}`, session, { ex: SESSION_EXPIRY_SECONDS });
       }
-      await redisClient.set(`blacklist:${token}`, 'true', { ex: SESSION_EXPIRY_SECONDS });
-    } catch (e) {
-      console.warn('Redis error during invalidateToken');
-    }
+      await redisClient!.set(`blacklist:${token}`, 'true', { ex: SESSION_EXPIRY_SECONDS });
+    }).catch(() => {});
   }
 };
 
@@ -141,15 +180,13 @@ export const invalidateAllUserSessions = async (userId: string) => {
     }
   }
 
-  if (redisClient) {
-    try {
-      const tokens = await redisClient.smembers(`user_sessions:${userId}`);
+  if (redisClient && isRedisReady()) {
+    withRedisTimeout(async () => {
+      const tokens = await redisClient!.smembers(`user_sessions:${userId}`);
       for (const token of tokens) {
         await invalidateToken(token as string);
       }
-    } catch (e) {
-      console.warn('Redis error during invalidateAllUserSessions');
-    }
+    }).catch(() => {});
   }
 };
 
@@ -163,9 +200,7 @@ export const logAuthEvent = async (event: 'login' | 'logout' | 'failed_attempt',
     timestamp: new Date().toISOString(),
   };
 
-  if (redisClient) {
-    try {
-      await redisClient.lpush('auth_events', logEntry);
-    } catch {}
+  if (redisClient && isRedisReady()) {
+    withRedisTimeout(() => redisClient!.lpush('auth_events', logEntry)).catch(() => {});
   }
 };

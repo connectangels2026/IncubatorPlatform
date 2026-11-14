@@ -113,12 +113,7 @@ export async function POST(req: Request) {
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Check for duplicate email in auth and public tables
-    const { data: usersData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    const duplicateAuthUser = usersData?.users?.some(
-      (u) => u.email?.toLowerCase() === trimmedEmail
-    );
-
+    // Fast check for duplicate email in users table (indexed query)
     const { data: existingPublicUser } = await supabaseAdmin
       .from('users')
       .select('id')
@@ -126,7 +121,7 @@ export async function POST(req: Request) {
       .limit(1)
       .maybeSingle();
 
-    if (duplicateAuthUser || existingPublicUser) {
+    if (existingPublicUser) {
       return NextResponse.json(
         {
           success: false,
@@ -138,19 +133,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create Supabase Auth user (NO EMAIL SENT - verification disabled)
-    const { data, error } = await signUp(trimmedEmail, password);
+    // Create Supabase Auth user directly (email pre-confirmed, immediate metadata, no email dispatch delay)
+    let authUser: any = null;
+    let authError: any = null;
 
-    if (error) {
-      console.error('Auth user creation failed:', error);
-      await logAuthEvent('failed_attempt');
-      const errorMsg = (error.message || '').toLowerCase();
-      const isRateLimit = errorMsg.includes('rate limit') || errorMsg.includes('too many') || (error as any).status === 429;
-      let userFacingError = error.message || 'Failed to create auth user';
+    const adminCreateResult = await supabaseAdmin.auth.admin.createUser({
+      email: trimmedEmail,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: founder_name.trim(),
+        name: founder_name.trim(),
+        role: null,
+      },
+    });
+
+    if (adminCreateResult.data?.user) {
+      authUser = adminCreateResult.data.user;
+    } else {
+      authError = adminCreateResult.error;
+      const errMsg = (authError?.message || '').toLowerCase();
+      if (errMsg.includes('already registered') || errMsg.includes('already exists') || errMsg.includes('duplicate')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Email already registered',
+            code: 'DUPLICATE_EMAIL',
+            message: 'This email is already in use. Try logging in or use a different email.'
+          },
+          { status: 400 }
+        );
+      }
+
+      // Graceful fallback to signUp
+      const fallbackResult = await signUp(trimmedEmail, password);
+      if (fallbackResult.data?.user) {
+        authUser = fallbackResult.data.user;
+      } else {
+        authError = fallbackResult.error || authError;
+      }
+    }
+
+    if (!authUser) {
+      console.error('Auth user creation failed:', authError);
+      logAuthEvent('failed_attempt').catch(() => {});
+      const errorMsg = (authError?.message || '').toLowerCase();
+      const isRateLimit = errorMsg.includes('rate limit') || errorMsg.includes('too many') || (authError as any)?.status === 429;
+      let userFacingError = authError?.message || 'Failed to create auth user';
       if (isRateLimit) {
         userFacingError = 'Too many email requests sent. Please wait 24hours before requesting a new link.';
       }
-      const statusCode = isRateLimit ? 429 : ((error as any).status && (error as any).status >= 400 && (error as any).status < 600 ? (error as any).status : 400);
+      const statusCode = isRateLimit ? 429 : ((authError as any)?.status && (authError as any).status >= 400 && (authError as any).status < 600 ? (authError as any).status : 400);
       return NextResponse.json(
         {
           success: false,
@@ -162,19 +195,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!data?.user) {
-      console.error('No user returned from auth signup');
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'User creation failed. Please try again.',
-          code: 'AUTH_FAILED',
-          message: 'User creation failed. Please try again.'
-        },
-        { status: 500 }
-      );
-    }
-
     // Create user profile in users table (role = null, organization_id = null)
     const nameArray = founder_name.trim().split(' ');
     const firstName = nameArray[0] || 'User';
@@ -183,18 +203,18 @@ export async function POST(req: Request) {
     let { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
-        id: data.user.id,
-        organization_id: null, // No organization created here
+        id: authUser.id,
+        organization_id: null,
         email: trimmedEmail,
         first_name: firstName,
         last_name: lastName,
         full_name: founder_name.trim(),
         is_active: true,
-        email_verified: true, // Verified by default to bypass email rate limits
-        role: null, // Role is NOT selected yet
+        email_verified: true,
+        role: null,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (userError) {
       const retry = await supabaseAdmin
@@ -210,24 +230,12 @@ export async function POST(req: Request) {
           role: null,
         })
         .select()
-        .single();
+        .maybeSingle();
       userData = retry.data;
       userError = retry.error;
     }
 
-    // Auto-confirm user in Supabase Auth and ensure role is explicitly null until user chooses a role
-    if (data?.user?.id) {
-      await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
-        email_confirm: true,
-        user_metadata: {
-          full_name: founder_name.trim(),
-          name: founder_name.trim(),
-          role: null,
-        },
-      }).catch(() => {});
-    }
-
-    if (userError) {
+    if (userError || !userData || !userData.id) {
       console.error('User profile creation failed:', userError);
       return NextResponse.json(
         {
@@ -235,43 +243,28 @@ export async function POST(req: Request) {
           error: 'Failed to create user profile. Please contact support.',
           code: 'USER_CREATION_FAILED',
           message: 'Failed to create user profile. Please contact support.',
-          details: userError.message,
-        },
-        { status: 500 }
-      );
-    }
-
-    if (!userData || !userData.id) {
-      console.error('User creation returned no data');
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'User creation failed - no data returned.',
-          code: 'USER_CREATION_FAILED',
-          message: 'Failed to create user profile. Please contact support.'
+          details: userError?.message,
         },
         { status: 500 }
       );
     }
 
     // Establish authenticated session + auth cookies immediately for protected routes
-    let activeSession = (data as any)?.session || null;
-    if (!activeSession) {
-      try {
-        const anonClient = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-          { auth: { persistSession: false, autoRefreshToken: false } }
-        );
-        const { data: signInData } = await anonClient.auth.signInWithPassword({
-          email: trimmedEmail,
-          password,
-        });
-        if (signInData?.session) {
-          activeSession = signInData.session;
-        }
-      } catch {}
-    }
+    let activeSession = null;
+    try {
+      const anonClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { data: signInData } = await anonClient.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+      if (signInData?.session) {
+        activeSession = signInData.session;
+      }
+    } catch {}
 
     const response = NextResponse.json(
       {
@@ -280,7 +273,7 @@ export async function POST(req: Request) {
         user_id: userData.id,
         email: trimmedEmail,
         founder_name: founder_name.trim(),
-        auth_user_id: data.user.id,
+        auth_user_id: authUser.id,
         session: activeSession
           ? {
               access_token: activeSession.access_token,

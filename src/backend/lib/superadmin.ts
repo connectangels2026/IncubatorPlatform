@@ -17,25 +17,27 @@ export async function isSuperAdminEmail(email?: string | null): Promise<boolean>
   }
 
   try {
-    // 2. Check superadmin table
-    const { data: saRow, error: saErr } = await supabaseAdmin
-      .from('superadmin')
-      .select('id, email')
-      .ilike('email', cleanEmail)
-      .maybeSingle();
+    // 2. Check superadmin and super_admins tables concurrently to avoid sequential roundtrips
+    const [saRes, legacyRes] = await Promise.allSettled([
+      supabaseAdmin
+        .from('superadmin')
+        .select('id')
+        .ilike('email', cleanEmail)
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('super_admins')
+        .select('id')
+        .ilike('email', cleanEmail)
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-    if (!saErr && saRow?.id) {
+    if (saRes.status === 'fulfilled' && saRes.value.data?.id) {
       return true;
     }
 
-    // 3. Fallback check for super_admins table
-    const { data: legacyRow } = await supabaseAdmin
-      .from('super_admins')
-      .select('id, email')
-      .ilike('email', cleanEmail)
-      .maybeSingle();
-
-    if (legacyRow?.id) {
+    if (legacyRes.status === 'fulfilled' && legacyRes.value.data?.id) {
       return true;
     }
   } catch (err) {

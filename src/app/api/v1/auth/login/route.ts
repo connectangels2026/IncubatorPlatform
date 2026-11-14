@@ -33,15 +33,20 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
 
-    // Query user profile by id or email (case-insensitive) to prevent duplicates
-    let { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, email_verified, role, organization_id')
-      .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
-      .limit(1)
-      .maybeSingle();
+    // Query user profile & superadmin check concurrently to eliminate sequential network latency
+    const [isSuperAdmin, userResult] = await Promise.all([
+      isSuperAdminEmail(cleanEmail),
+      supabaseAdmin
+        .from('users')
+        .select('id, email, email_verified, role, organization_id')
+        .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    let userData = userResult.data;
+    let userError = userResult.error;
 
     // Auto-provision missing public.users record for authenticated Supabase user
     if (!userData && data.user) {
@@ -284,11 +289,9 @@ export async function POST(req: Request) {
       const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
       const userAgent = req.headers.get('user-agent') || 'Unknown';
 
-      // Create active session record & log auth event concurrently
-      await Promise.allSettled([
-        storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent),
-        logAuthEvent('login', data.user.id),
-      ]);
+      // Update local memory session synchronously & record Redis/audit trail asynchronously without blocking login
+      storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent).catch(() => {});
+      logAuthEvent('login', data.user.id).catch(() => {});
 
       // Set httpOnly refresh cookie
       response.cookies.set('refresh_token', data.session.refresh_token, {

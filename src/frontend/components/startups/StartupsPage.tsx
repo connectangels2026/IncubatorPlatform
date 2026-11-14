@@ -300,6 +300,7 @@ export const StartupsPage: React.FC = () => {
   const [preselectedPartnerForAction, setPreselectedPartnerForAction] = useState<any>(null);
   const [isSignMOUModalOpen, setIsSignMOUModalOpen] = useState(false);
   const [isOnboardOpen, setIsOnboardOpen] = useState(false);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
   const [activePartnerForMOU, setActivePartnerForMOU] = useState<CoIncubatorItem | null>(null);
   const [targetStartupForAction, setTargetStartupForAction] = useState<StartupItem | null>(null);
 
@@ -891,6 +892,8 @@ export const StartupsPage: React.FC = () => {
   // Handle Add New Startup
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isOnboardingLoading) return;
+
     if (!onboardForm.name.trim() || !onboardForm.founder.trim() || !onboardForm.founderEmail.trim()) {
       showToast("Please provide Startup Name, Founder Name, and Email.");
       return;
@@ -915,6 +918,7 @@ export const StartupsPage: React.FC = () => {
       return;
     }
 
+    setIsOnboardingLoading(true);
     try {
       const res = await apiClient.post(
         "/startups",
@@ -964,7 +968,17 @@ export const StartupsPage: React.FC = () => {
         coIncubators: [],
       };
 
-      setStartups((prev) => [newStartup, ...prev]);
+      setStartups((prev) => {
+        const isDuplicate = prev.some(
+          (s) =>
+            (created?.id && s.id === created.id) ||
+            (s.name.trim().toLowerCase() === newStartup.name.trim().toLowerCase() &&
+              (s.founderEmail || '').trim().toLowerCase() === (newStartup.founderEmail || '').trim().toLowerCase())
+        );
+        if (isDuplicate) return prev;
+        return [newStartup, ...prev];
+      });
+
       setOnboardForm({
         name: "",
         founder: "",
@@ -982,6 +996,8 @@ export const StartupsPage: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to register startup:", err);
       showToast(err.response?.data?.error || "Failed to register startup. Please try again.");
+    } finally {
+      setIsOnboardingLoading(false);
     }
   };
 
@@ -1472,9 +1488,10 @@ export const StartupsPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm cursor-pointer"
+                  disabled={isOnboardingLoading}
+                  className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors shadow-sm cursor-pointer"
                 >
-                  Add startup
+                  {isOnboardingLoading ? 'Adding...' : 'Add startup'}
                 </button>
               </div>
             </form>

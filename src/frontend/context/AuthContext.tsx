@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
+      async (event, currentSession) => {
         const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
         const currentUser = currentSession?.user
           ? { ...currentSession.user, role: cachedRole || (currentSession.user as any).role }
@@ -116,7 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             localStorage.setItem('access_token', currentSession.access_token);
           }
-          await fetchUserOrg(currentSession.access_token);
+          // Only fetch user org on token refresh or when role is missing, avoiding redundant roundtrips on normal login/signup
+          if (event === 'TOKEN_REFRESHED' || !cachedRole) {
+            await fetchUserOrg(currentSession.access_token);
+          }
         }
         setIsLoading(false);
       }
