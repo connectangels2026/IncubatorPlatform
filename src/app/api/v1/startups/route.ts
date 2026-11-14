@@ -14,6 +14,12 @@ export async function GET(req: NextRequest) {
     if (tenantError) return tenantError;
 
     const url = req.nextUrl;
+    const page = parseInt(url.searchParams.get('page') || '1', 10) || 1;
+    const limit = parseInt(url.searchParams.get('limit') || '5', 10) || 5;
+    const offset = url.searchParams.get('offset')
+      ? parseInt(url.searchParams.get('offset')!, 10)
+      : (page - 1) * limit;
+
     const filter = {
       sector: url.searchParams.get('sector') || undefined,
       stage: url.searchParams.get('stage') || undefined,
@@ -21,8 +27,8 @@ export async function GET(req: NextRequest) {
       search: url.searchParams.get('search') || undefined,
       sort: (url.searchParams.get('sort') as any) || 'created_at',
       order: (url.searchParams.get('order') as any) || 'desc',
-      limit: url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 100,
-      offset: url.searchParams.get('offset') ? parseInt(url.searchParams.get('offset')!, 10) : 0,
+      limit,
+      offset,
     };
 
     const result = await StartupService.getStartups(orgId!, filter);
@@ -30,6 +36,8 @@ export async function GET(req: NextRequest) {
       success: true,
       organization_id: orgId,
       total: result.total,
+      page,
+      limit,
       data: result.startups,
     });
   } catch (error) {

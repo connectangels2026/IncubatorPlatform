@@ -104,17 +104,17 @@ export class StartupService {
     }
 
     // Filtering
-    if (filter.sector) query = query.ilike('sector', `%${filter.sector}%`);
-    if (filter.stage) query = query.ilike('stage', `%${filter.stage}%`);
-    if (filter.status) query = query.ilike('status', `%${filter.status}%`);
+    if (filter.sector && filter.sector !== 'ALL') query = query.ilike('sector', `%${filter.sector}%`);
+    if (filter.stage && filter.stage !== 'ALL') query = query.ilike('stage', `%${filter.stage}%`);
+    if (filter.status && filter.status !== 'all') query = query.ilike('status', `%${filter.status}%`);
 
     // Search
     if (filter.search) {
-      query = query.or(`startup_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      query = query.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
     }
 
     // Sorting
-    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
+    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
     try {
       query = query.order(sortField, { ascending: isAsc });
@@ -139,6 +139,12 @@ export class StartupService {
           return { startups: [], total: 0 };
         }
       }
+      if (filter.sector && filter.sector !== 'ALL') retryQuery = retryQuery.ilike('sector', `%${filter.sector}%`);
+      if (filter.stage && filter.stage !== 'ALL') retryQuery = retryQuery.ilike('stage', `%${filter.stage}%`);
+      if (filter.status && filter.status !== 'all') retryQuery = retryQuery.ilike('status', `%${filter.status}%`);
+      if (filter.search) {
+        retryQuery = retryQuery.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      }
       const retryRes = await retryQuery.range(offset, offset + limit - 1);
       data = retryRes.data;
       count = retryRes.count;
@@ -151,9 +157,7 @@ export class StartupService {
     }
 
     if (!data || data.length === 0) {
-      // No startups found for this organization - return empty
-      // Do NOT return fallback data from other organizations
-      return { startups: [], total: 0 };
+      return { startups: [], total: count ?? 0 };
     }
 
     return {

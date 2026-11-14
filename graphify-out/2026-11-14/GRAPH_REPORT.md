@@ -1,7 +1,7 @@
 # Graph Report - Incubator-WebApp  (2026-11-14)
 
 ## Corpus Check
-- 401 files · ~353,528 words
+- 401 files · ~354,228 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 100 file(s) not represented in the graph (top: .ttf 54, .csv 39, (none) 3)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `936acee0`
+- Built from commit: `906cba05`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

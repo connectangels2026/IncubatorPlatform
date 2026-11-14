@@ -15,6 +15,9 @@ import {
   DollarSign,
   GraduationCap,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/frontend/context/AuthContext";
 import { DashboardLayout } from "@/frontend/components/layouts/DashboardLayout";
@@ -282,12 +285,41 @@ export const StartupsPage: React.FC = () => {
 
   // State
   const { organization, user } = useAuth();
+  const [loading, setLoading] = useState<boolean>(true);
   const [startups, setStartups] = useState<StartupItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
   const [selectedStage, setSelectedStage] = useState("ALL");
   const [selectedCohort, setSelectedCohort] = useState("ALL");
   const [sortBy, setSortBy] = useState("name-asc");
+
+  // Server-side pagination state synced with URL params (?page=1&limit=5)
+  const [page, setPage] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const p = parseInt(sp.get("page") || "1", 10);
+      return p > 0 ? p : 1;
+    }
+    return 1;
+  });
+  const [limit, setLimit] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const l = parseInt(sp.get("limit") || "5", 10);
+      return [5, 15, 30].includes(l) ? l : 5;
+    }
+    return 5;
+  });
+  const [serverTotalCount, setServerTotalCount] = useState<number>(0);
+
+  // Sync page and limit to URL search params
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("limit", String(limit));
+    window.history.replaceState({}, "", url.toString());
+  }, [page, limit]);
 
   // Modals state
   const [selectedStartup, setSelectedStartup] = useState<StartupItem | null>(null);
@@ -328,6 +360,7 @@ export const StartupsPage: React.FC = () => {
   // Load from API with fallback
   useEffect(() => {
     const loadStartups = async () => {
+      setLoading(true);
       try {
         const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
         const orgIdFromUrl = searchParams?.get('org') || searchParams?.get('org_id');
@@ -349,21 +382,39 @@ export const StartupsPage: React.FC = () => {
 
         if (!orgId) {
           setStartups([]);
+          setLoading(false);
           return;
         }
 
+        const statusParam =
+          sectionFilter !== "all" && sectionFilter !== "co-incubated"
+            ? sectionFilter === "queue"
+              ? "pending"
+              : sectionFilter
+            : undefined;
+
         const res = await apiClient.get("/startups", {
-          headers: { 'x-org-id': orgId },
-          params: { org_id: orgId, limit: 100 },
+          headers: { "x-org-id": orgId },
+          params: {
+            org_id: orgId,
+            page,
+            limit,
+            search: searchQuery.trim() || undefined,
+            sector: selectedIndustry !== "ALL" ? selectedIndustry : undefined,
+            stage: selectedStage !== "ALL" ? selectedStage : undefined,
+            status: statusParam,
+          },
         });
 
         let apiData = res.data?.data;
         // Strictly isolate by organization: only show startups assigned to this incubator
         if (Array.isArray(apiData)) {
-          apiData = apiData.filter((item: any) => item.organization_id === orgId);
+          apiData = apiData.filter((item: any) => !item.organization_id || item.organization_id === orgId);
         } else {
           apiData = [];
         }
+
+        setServerTotalCount(typeof res.data?.total === "number" ? res.data.total : apiData.length);
 
         if (Array.isArray(apiData)) {
           if (apiData.length === 0) {
@@ -454,10 +505,12 @@ export const StartupsPage: React.FC = () => {
       } catch (e) {
         console.warn("Error fetching startups", e);
         setStartups([]);
+      } finally {
+        setLoading(false);
       }
     };
     loadStartups();
-  }, [organization?.id, user]);
+  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, sectionFilter]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -499,26 +552,28 @@ export const StartupsPage: React.FC = () => {
   }, [filteredStartups]);
 
   const displayedStartups = useMemo(() => {
-    switch (sectionFilter) {
-      case 'co-incubated':
-        return coIncubatedStartups.filter((s) => {
-          if (!searchQuery) return true;
-          return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (s.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
-        });
-      case 'queue':
-        return queueStartups;
-      case 'active':
-        return activeStartups;
-      case 'inactive':
-        return inactiveStartups;
-      case 'exited':
-        return exitedStartups;
-      case 'all':
-      default:
-        return filteredStartups;
+    if (sectionFilter === 'co-incubated') {
+      const filtered = coIncubatedStartups.filter((s) => {
+        if (!searchQuery) return true;
+        return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (s.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
+      });
+      return filtered.slice((page - 1) * limit, page * limit);
     }
-  }, [sectionFilter, queueStartups, activeStartups, inactiveStartups, exitedStartups, filteredStartups, coIncubatedStartups, searchQuery]);
+    return filteredStartups;
+  }, [sectionFilter, filteredStartups, coIncubatedStartups, searchQuery, page, limit]);
+
+  const effectiveTotal = sectionFilter === 'co-incubated'
+    ? coIncubatedStartups.filter((s) => {
+        if (!searchQuery) return true;
+        return s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (s.industry || '').toLowerCase().includes(searchQuery.toLowerCase());
+      }).length
+    : serverTotalCount;
+
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / limit));
+  const from = effectiveTotal === 0 ? 0 : (page - 1) * limit + 1;
+  const to = Math.min(page * limit, effectiveTotal);
 
   // Handler: Status Change with Database Persistence
   const handleStatusChange = async (
@@ -859,7 +914,7 @@ export const StartupsPage: React.FC = () => {
   };
 
   // Aggregates for KPI banner
-  const totalCount = startups.length;
+  const totalCount = serverTotalCount || startups.length;
   const activeCount = startups.filter((s) => s.status.toLowerCase() === "active").length;
   const graduatedCount = startups.filter((s) => s.status.toLowerCase() === "graduated").length;
   const graduationRate = totalCount > 0 ? Math.round((graduatedCount / totalCount) * 100) : 0;
@@ -1078,7 +1133,10 @@ export const StartupsPage: React.FC = () => {
           {/* Status Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             <button
-              onClick={() => setSectionFilter('all')}
+              onClick={() => {
+                setSectionFilter('all');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'all'
                   ? 'bg-slate-900 text-white shadow-xs'
@@ -1094,7 +1152,10 @@ export const StartupsPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSectionFilter('queue')}
+              onClick={() => {
+                setSectionFilter('queue');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'queue'
                   ? 'bg-amber-600 text-white shadow-xs'
@@ -1111,7 +1172,10 @@ export const StartupsPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSectionFilter('active')}
+              onClick={() => {
+                setSectionFilter('active');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'active'
                   ? 'bg-blue-600 text-white shadow-xs'
@@ -1128,7 +1192,10 @@ export const StartupsPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSectionFilter('inactive')}
+              onClick={() => {
+                setSectionFilter('inactive');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'inactive'
                   ? 'bg-slate-700 text-white shadow-xs'
@@ -1144,7 +1211,10 @@ export const StartupsPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSectionFilter('exited')}
+              onClick={() => {
+                setSectionFilter('exited');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'exited'
                   ? 'bg-slate-700 text-white shadow-xs'
@@ -1160,7 +1230,10 @@ export const StartupsPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSectionFilter('co-incubated')}
+              onClick={() => {
+                setSectionFilter('co-incubated');
+                setPage(1);
+              }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap ${
                 sectionFilter === 'co-incubated'
                   ? 'bg-purple-700 text-white shadow-xs'
@@ -1185,14 +1258,20 @@ export const StartupsPage: React.FC = () => {
                 type="text"
                 placeholder="Search startups..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full text-xs pl-9 pr-3 py-1.5 rounded-lg border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
             <select
               value={selectedIndustry}
-              onChange={(e) => setSelectedIndustry(e.target.value)}
+              onChange={(e) => {
+                setSelectedIndustry(e.target.value);
+                setPage(1);
+              }}
               className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="ALL">All industries</option>
@@ -1205,7 +1284,10 @@ export const StartupsPage: React.FC = () => {
 
             <select
               value={selectedStage}
-              onChange={(e) => setSelectedStage(e.target.value)}
+              onChange={(e) => {
+                setSelectedStage(e.target.value);
+                setPage(1);
+              }}
               className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="ALL">All stages</option>
@@ -1247,7 +1329,14 @@ export const StartupsPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-medium text-slate-900">
-                {displayedStartups.length} {displayedStartups.length === 1 ? 'startup' : 'startups'}
+                {loading ? (
+                  <span className="flex items-center gap-1.5 text-slate-400">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                    <span>Loading startups...</span>
+                  </span>
+                ) : (
+                  `${displayedStartups.length} ${displayedStartups.length === 1 ? 'startup' : 'startups'}`
+                )}
               </h2>
             </div>
               <p className="text-xs text-slate-400 hidden sm:block">
@@ -1259,7 +1348,56 @@ export const StartupsPage: React.FC = () => {
               </p>
             </div>
 
-            {displayedStartups.length === 0 ? (
+            {loading ? (
+              viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: limit }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs animate-pulse space-y-4"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-slate-200" />
+                          <div className="space-y-1.5">
+                            <div className="h-4 w-28 bg-slate-200 rounded" />
+                            <div className="h-3 w-16 bg-slate-100 rounded" />
+                          </div>
+                        </div>
+                        <div className="h-5 w-14 bg-slate-100 rounded-full" />
+                      </div>
+                      <div className="space-y-2 py-1">
+                        <div className="h-3 w-full bg-slate-100 rounded" />
+                        <div className="h-3 w-4/5 bg-slate-100 rounded" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                        <div className="h-7 bg-slate-100 rounded" />
+                        <div className="h-7 bg-slate-100 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {Array.from({ length: limit }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs animate-pulse flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 rounded-lg bg-slate-200" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-4 w-32 bg-slate-200 rounded" />
+                          <div className="h-3 w-20 bg-slate-100 rounded" />
+                        </div>
+                      </div>
+                      <div className="h-5 w-16 bg-slate-100 rounded-full" />
+                      <div className="h-7 w-20 bg-slate-100 rounded" />
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : displayedStartups.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
                 <Rocket className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <h3 className="text-xs font-semibold text-slate-700">No startups found</h3>
@@ -1289,6 +1427,83 @@ export const StartupsPage: React.FC = () => {
                 onCoIncubatorClick={handleTriggerAddCoIncubator}
                 onStatusChange={handleStatusChange}
               />
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && effectiveTotal > 0 && (
+              <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 mt-3">
+                <div className="flex items-center gap-3">
+                  <span>
+                    Showing <span className="font-semibold text-slate-800">{from}–{to}</span> of{" "}
+                    <span className="font-semibold text-slate-800">{effectiveTotal}</span>
+                  </span>
+                  <span className="text-slate-300">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Per page:</span>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="px-2 py-1 rounded border border-slate-200 bg-white text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value={5}>5</option>
+                      <option value={15}>15</option>
+                      <option value={30}>30</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 font-medium transition"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                      if (
+                        totalPages > 6 &&
+                        p !== 1 &&
+                        p !== totalPages &&
+                        Math.abs(p - page) > 1
+                      ) {
+                        if (p === 2 || p === totalPages - 1) {
+                          return <span key={p} className="px-1 text-slate-400">...</span>;
+                        }
+                        return null;
+                      }
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p)}
+                          className={`w-7 h-7 rounded-lg text-xs font-medium cursor-pointer transition ${
+                            p === page
+                              ? "bg-slate-900 text-white font-semibold"
+                              : "border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1 font-medium transition"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 

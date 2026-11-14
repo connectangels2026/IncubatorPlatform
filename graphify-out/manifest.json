@@ -678,9 +678,9 @@
     "semantic_hash": ""
   },
   "src/app/api/v1/startups/route.ts": {
-    "mtime": 1794638210.3080564,
-    "seen": 1794638284.942228,
-    "ast_hash": "5fa4c2a19f135940626715dc27216bb0",
+    "mtime": 1794639170.670818,
+    "seen": 1794641575.4653788,
+    "ast_hash": "db8084365f7ce3c24d040cf95cd5cc6b",
     "semantic_hash": ""
   },
   "src/app/api/v1/super-admin/dashboard/route.ts": {
@@ -1200,9 +1200,9 @@
     "semantic_hash": ""
   },
   "src/modules/startups/services/index.ts": {
-    "mtime": 1794638097.4744613,
-    "seen": 1794638285.1040664,
-    "ast_hash": "22a75d4ef503638d427588772623b58e",
+    "mtime": 1794639170.998564,
+    "seen": 1794641575.5919473,
+    "ast_hash": "fdba265889ac2dc74c2e89fd1b18f07c",
     "semantic_hash": ""
   },
   "src/services/apiClient.ts": {
@@ -1908,9 +1908,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startups/StartupsPage.tsx": {
-    "mtime": 1794638214.929055,
-    "seen": 1794638285.052738,
-    "ast_hash": "738c749b41b713132249c54c1907b7e1",
+    "mtime": 1794644271.7859235,
+    "seen": 1794644373.757761,
+    "ast_hash": "4804f4b0d4ba64feafafa9451e2b576d",
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/BasicInfo.tsx": {
