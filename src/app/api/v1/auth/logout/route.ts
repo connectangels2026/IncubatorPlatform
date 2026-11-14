@@ -21,8 +21,9 @@ export async function POST(req: Request) {
 
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
 
-    // Step 2 & 5: Clear refresh token cookie on logout
-    response.cookies.delete('refresh_token');
+    // Clear both refresh and access cookies on logout
+    response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
+    response.cookies.set('sb-access-token', '', { path: '/', maxAge: 0 });
 
     return response;
   } catch (err: any) {

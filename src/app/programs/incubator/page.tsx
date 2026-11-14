@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/frontend/components/ui/button';
+import { supabase } from '@/backend/lib/supabase';
 
 type FormStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -11,6 +12,7 @@ interface FormData {
   // Section 1 - Idea Evaluation
   businessName: string;
   businessDescription: string;
+  website?: string;
   problemSolved: string;
   targetMarket: string;
   ideaStage: string;
@@ -52,6 +54,7 @@ interface FormData {
   financialAssumptions: string;
 
   // Section 7 - Founder Skills Validation
+  fullName?: string;
   founderBackground: string;
   founderExpertise: string;
   teamCompletion: string;
@@ -62,6 +65,7 @@ interface FormData {
 const INITIAL_FORM_DATA: FormData = {
   businessName: "",
   businessDescription: "",
+  website: "",
   problemSolved: "",
   targetMarket: "",
   ideaStage: "",
@@ -97,6 +101,7 @@ const INITIAL_FORM_DATA: FormData = {
   fundingUse: [],
   financialAssumptions: "",
 
+  fullName: "",
   founderBackground: "",
   founderExpertise: "",
   teamCompletion: "",
@@ -108,11 +113,27 @@ export default function IncubatorForm() {
   const [currentStep, setCurrentStep] = useState<FormStep>(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetch('/api/v1/auth/me', {
+          headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            const name = data?.user?.full_name || session.user.user_metadata?.full_name || '';
+            if (name) {
+              setFormData((prev) => ({ ...prev, fullName: prev.fullName || name }));
+            }
+          })
+          .catch(() => {});
+      }
+    });
   }, []);
 
   const handleNext = () => {
@@ -335,10 +356,42 @@ export default function IncubatorForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateStep(7)) {
-      setSubmitted(true);
-      console.log("Form submitted:", formData);
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        const applicantEmail = session?.user?.email || (typeof window !== 'undefined' ? localStorage.getItem('user_email') || '' : '');
+        const applicantName = (formData.fullName || '').trim() || session?.user?.user_metadata?.full_name || 'Founder';
+
+        await fetch('/api/v1/applications', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            application_type: 'incubator',
+            applicant_name: applicantName,
+            applicant_email: applicantEmail,
+            startup_name: formData.businessName,
+            pitch: formData.businessDescription,
+            form_data: {
+              ...formData,
+              fullName: applicantName,
+              email: applicantEmail,
+              startupName: formData.businessName,
+            },
+          }),
+        });
+      } catch (err) {
+        console.warn('Error submitting incubator application:', err);
+      } finally {
+        setIsSubmitting(false);
+        setSubmitted(true);
+      }
     }
   };
 
@@ -409,10 +462,20 @@ export default function IncubatorForm() {
             ) : (
               <Button
                 onClick={handleSubmit}
-                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                disabled={isSubmitting}
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:opacity-60"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Submit Application
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting Application...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Submit Application
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -676,6 +739,15 @@ function Section1({ formData, setFormData, errors }: any) {
         onChange={(e) => setFormData({ ...formData, businessDescription: e.target.value })}
         placeholder="Describe what your business does in detail..."
         error={errors.businessDescription}
+      />
+
+      <FormInput
+        label="Website or Product Link"
+        required={false}
+        value={formData.website || ''}
+        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+        placeholder="https://yourstartup.com (optional)"
+        error={errors.website}
       />
 
       <FormTextarea
@@ -1017,6 +1089,15 @@ function Section6({ formData, setFormData, errors }: any) {
 function Section7({ formData, setFormData, errors }: any) {
   return (
     <div className="space-y-6">
+      <FormInput
+        label="Founder Full Name"
+        required={false}
+        value={formData.fullName || ''}
+        onChange={(e: any) => setFormData({ ...formData, fullName: e.target.value })}
+        placeholder="e.g. Jane Doe"
+        error={errors.fullName}
+      />
+
       <FormTextarea
         label="Founder Background"
         rows={3}
@@ -1110,11 +1191,18 @@ function SubmissionSuccess() {
           <p className="text-slate-500">
             Keep an eye on your email for updates.
           </p>
-          <Link href="/">
-            <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 px-8 py-6 text-lg">
-              Back to Home
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href="/programs">
+            <Button variant="outline" className="w-full sm:w-auto px-6 py-5 text-sm font-semibold border-slate-300 text-slate-700 hover:bg-slate-50">
+              Explore Programs
             </Button>
           </Link>
+          <Link href="/startup/dashboard">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 px-6 py-5 text-sm font-semibold text-white">
+              Go to Startup Dashboard
+            </Button>
+          </Link>
+        </div>
         </div>
 
         <p className="text-xs text-slate-500 mt-8">

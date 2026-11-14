@@ -154,6 +154,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password?: string) => {
     setError(null);
     setIsLoading(true);
+    setOrganization(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('org_id');
+      localStorage.removeItem('org_founder_name');
+      localStorage.removeItem('org_name');
+      localStorage.removeItem('startup_track');
+      localStorage.removeItem('access_token');
+    }
     try {
       const res = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -166,15 +175,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The API verified the credentials but the user still needs to pick a
         // role. Establish the browser session so /auth/choose-role can call
         // the protected choose-role endpoint.
-        if (data.code === 'ROLE_NOT_SELECTED' && password) {
-          const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
-          if (sessionError) {
-            return {
-              success: false,
-              error: 'Please sign in again to select your role.',
-              code: 'SESSION_FAILED',
-              organization: data.organization,
-            };
+        if (data.code === 'ROLE_NOT_SELECTED') {
+          if (data.session?.access_token && data.session?.refresh_token) {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('access_token', data.session.access_token);
+            }
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            });
+          } else if (password) {
+            const { error: sessionError } = await supabase.auth.signInWithPassword({ email, password });
+            if (sessionError) {
+              return {
+                success: false,
+                error: 'Please sign in again to select your role.',
+                code: 'SESSION_FAILED',
+                organization: data.organization,
+              };
+            }
           }
         }
 
@@ -315,7 +334,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await apiSignOut();
+      const token =
+        session?.access_token ||
+        (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
+      await Promise.allSettled([
+        fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }),
+        apiSignOut(),
+      ]);
       setUser(null);
       setSession(null);
       setOrganization(null);
@@ -325,6 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
         localStorage.removeItem('user_role');
+        localStorage.removeItem('startup_track');
       }
       router.push('/login');
     } catch (err: any) {

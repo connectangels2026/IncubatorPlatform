@@ -4,6 +4,7 @@ import { requireOrg } from '@/backend/middleware/tenant';
 import { handleApiError } from '@/backend/middleware/errorHandler';
 import { supabaseAdmin } from '@/backend/lib/supabaseAdmin';
 import { NotificationService } from '@/backend/services/notificationService';
+import { StartupService } from '@/backend/services/startupService';
 
 const isValidUUID = (s?: string | null): s is string =>
   typeof s === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
@@ -285,21 +286,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             }
           }
 
-          const startupPayload: Record<string, any> = {
-            organization_id: validOrgId,
-            startup_name: startupName,
-            founder_email: applicantEmail,
-            founder_phone: currentApp.applicant_phone || currentApp.form_data?.phone || null,
-            sector: currentApp.form_data?.industryVertical || currentApp.form_data?.sector || 'Technology',
-            stage: normalizeStage(currentApp.form_data?.businessStage || currentApp.form_data?.stage),
-            problem_statement: currentApp.form_data?.problemStatement || null,
-            solution_description: currentApp.form_data?.oneSentencePitch || currentApp.form_data?.solutionOverview || null,
-            target_market: currentApp.form_data?.targetAudience || null,
-            founder_id: validFounderId,
-            status: 'active',
-            is_active: true,
-            created_by: validCreatedBy,
-          };
+          const startupPayload = StartupService.buildStartupPayloadFromApplication(currentApp, {
+            organizationId: validOrgId,
+            founderId: validFounderId,
+            createdBy: validCreatedBy,
+            startupName,
+          });
 
           let { data: newStartupRecord, error: stInsertErr } = await supabaseAdmin
             .from('startups')

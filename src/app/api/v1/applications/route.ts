@@ -218,20 +218,73 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Link to existing startup if founder already has one
+    // Link to existing startup if founder already has one and synchronize application fields
     let startupId: string | null = null;
     try {
       const { data: existingStartup } = await supabaseAdmin
         .from('startups')
-        .select('id')
+        .select('*')
         .ilike('founder_email', cleanEmail)
         .maybeSingle();
 
+      const fd = body.form_data || {};
+      const desc =
+        fd.businessDescription ||
+        fd.description ||
+        fd.solutionOverview ||
+        fd.oneSentencePitch ||
+        fd.problemStatement ||
+        fd.problemSolved ||
+        body.pitch ||
+        null;
+      const founderName = body.applicant_name || fd.fullName || fd.founderName || fd.founder_name || null;
+      const website = fd.website || fd.companyWebsite || fd.websiteUrl || fd.url || fd.prototypeLink || null;
+      const phone = body.applicant_phone || fd.phone || fd.phoneNumber || null;
+      const sector = fd.industryVertical || fd.sector || null;
+
       if (existingStartup?.id) {
         startupId = existingStartup.id;
+        const updates: Record<string, any> = {};
+        if (desc && (!existingStartup.description || existingStartup.description.trim() === '')) updates.description = desc;
+        if (founderName && (!existingStartup.founder_name || existingStartup.founder_name.toLowerCase() === 'founder')) {
+          updates.founder_name = founderName;
+        }
+        if (!updates.founder_name && (!existingStartup.founder_name || existingStartup.founder_name.toLowerCase() === 'founder')) {
+          const { data: uData } = await supabaseAdmin.from('users').select('full_name').ilike('email', cleanEmail).maybeSingle();
+          if (uData?.full_name?.trim() && uData.full_name.trim().toLowerCase() !== 'founder') {
+            updates.founder_name = uData.full_name.trim();
+          }
+        }
+        if (website && (!existingStartup.website || existingStartup.website.trim() === '')) updates.website = website;
+        if (phone) updates.founder_phone = phone;
+        if (sector) updates.sector = sector;
+        if (fd.prototypeLink) updates.demo_url = fd.prototypeLink;
+
+        const funding = fd.externalFundingRaised || fd.fundingRequired;
+        if (funding && (!existingStartup.funding_raised || Number(existingStartup.funding_raised) === 0)) {
+          const parsed = parseFloat(String(funding).replace(/[^0-9.]/g, ''));
+          if (!isNaN(parsed) && parsed > 0) updates.funding_raised = parsed;
+        }
+        const annualRev = fd.revenue12Months || fd.projectedRevenue12M;
+        if (annualRev && (!existingStartup.annual_revenue || Number(existingStartup.annual_revenue) === 0)) {
+          const parsedRev = parseFloat(String(annualRev).replace(/[^0-9.]/g, ''));
+          if (!isNaN(parsedRev) && parsedRev > 0) {
+            updates.annual_revenue = parsedRev;
+            updates.mrr = Math.round(parsedRev / 12);
+            updates.monthly_revenue = Math.round(parsedRev / 12);
+          }
+        }
+        if (fd.ideaStage && (!existingStartup.stage || existingStartup.stage === 'Idea')) {
+          updates.stage = fd.ideaStage;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          updates.updated_at = new Date().toISOString();
+          await supabaseAdmin.from('startups').update(updates).eq('id', startupId);
+        }
       }
     } catch (startupErr) {
-      console.warn('Startup lookup error:', startupErr);
+      console.warn('Startup lookup/sync error:', startupErr);
     }
 
     // Resolve uploaded documents & prototype links

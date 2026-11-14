@@ -357,14 +357,11 @@ export const StartupsPage: React.FC = () => {
         });
 
         let apiData = res.data?.data;
-        if (!Array.isArray(apiData) || apiData.length === 0) {
-          const fallbackRes = await apiClient.get("/startups", {
-            headers: { 'x-org-id': 'all' },
-            params: { org_id: 'all', limit: 100 },
-          }).catch(() => null);
-          if (Array.isArray(fallbackRes?.data?.data) && fallbackRes.data.data.length > 0) {
-            apiData = fallbackRes.data.data;
-          }
+        // Strictly isolate by organization: only show startups assigned to this incubator
+        if (Array.isArray(apiData)) {
+          apiData = apiData.filter((item: any) => item.organization_id === orgId);
+        } else {
+          apiData = [];
         }
 
         if (Array.isArray(apiData)) {
@@ -899,7 +896,20 @@ export const StartupsPage: React.FC = () => {
       return;
     }
 
-    const orgId = organization?.id || (typeof window !== "undefined" ? localStorage.getItem("org_id") : null);
+    let orgId = organization?.id || (typeof window !== "undefined" ? localStorage.getItem("org_id") : null);
+    if (!orgId) {
+      try {
+        const meRes = await fetch('/api/v1/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData?.organization?.id) {
+            orgId = String(meData.organization.id);
+            if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
+          }
+        }
+      } catch {}
+    }
+
     if (!orgId) {
       showToast("Missing organization context. Please refresh or re-login.");
       return;
