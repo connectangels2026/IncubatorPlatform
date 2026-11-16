@@ -33,15 +33,20 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const isSuperAdmin = (await isSuperAdminEmail(cleanEmail));
 
-    // Query user profile by id or email (case-insensitive) to prevent duplicates
-    let { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, email_verified, role, organization_id')
-      .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
-      .limit(1)
-      .maybeSingle();
+    // Query user profile & superadmin check concurrently to eliminate sequential network latency
+    const [isSuperAdmin, userResult] = await Promise.all([
+      isSuperAdminEmail(cleanEmail),
+      supabaseAdmin
+        .from('users')
+        .select('id, email, email_verified, role, organization_id')
+        .or(`id.eq.${data.user.id},email.ilike.${cleanEmail}`)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    let userData = userResult.data;
+    let userError = userResult.error;
 
     // Auto-provision missing public.users record for authenticated Supabase user
     if (!userData && data.user) {
@@ -162,16 +167,39 @@ export async function POST(req: Request) {
 
     // Check if user has selected a role
     if (!isSuperAdmin && !userData.role) {
-      return NextResponse.json(
+      const roleRes = NextResponse.json(
         {
           success: false,
           error: 'Please select your role first',
           code: 'ROLE_NOT_SELECTED',
           user_id: userData.id,
           next_step: '/auth/choose-role',
+          session: data.session
+            ? {
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+              }
+            : null,
         },
         { status: 403 }
       );
+      if (data.session?.access_token && data.session?.refresh_token) {
+        roleRes.cookies.set('refresh_token', data.session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        });
+        roleRes.cookies.set('sb-access-token', data.session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60,
+          path: '/',
+        });
+      }
+      return roleRes;
     }
 
     // Calculate immediate redirect target server-side to avoid client-side waterfalls
@@ -261,11 +289,9 @@ export async function POST(req: Request) {
       const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
       const userAgent = req.headers.get('user-agent') || 'Unknown';
 
-      // Create active session record & log auth event concurrently
-      await Promise.allSettled([
-        storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent),
-        logAuthEvent('login', data.user.id),
-      ]);
+      // Update local memory session synchronously & record Redis/audit trail asynchronously without blocking login
+      storeActiveToken(data.user.id, data.session.access_token, data.session.refresh_token, ip, userAgent).catch(() => {});
+      logAuthEvent('login', data.user.id).catch(() => {});
 
       // Set httpOnly refresh cookie
       response.cookies.set('refresh_token', data.session.refresh_token, {

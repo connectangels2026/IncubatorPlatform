@@ -36,15 +36,9 @@ function LoginForm() {
   const routeUserAfterAuth = async (userEmail?: string, orgId?: string, roleOverride?: string) => {
     if (redirectingToRole.current) return;
 
-    if (redirectTo) {
-      router.push(redirectTo);
-      return;
-    }
-
-    const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
     const cachedOrgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
 
-    let role = (roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
+    let role = (roleOverride || (user as any)?.role || (user as any)?.user_metadata?.role || '').toLowerCase();
     const emailToCheck = (userEmail || user?.email || '').trim().toLowerCase();
     let effectiveOrgId = orgId || cachedOrgId;
 
@@ -65,7 +59,7 @@ function LoginForm() {
       return null;
     };
 
-    // If role is still unknown, fetch with auth token
+    // Always resolve authoritative role via /api/v1/auth/me when missing
     if (!role && emailToCheck && emailToCheck !== 'shadmannc0516@gmail.com') {
       const meData = await fetchMeWithAuth();
       if (meData?.user?.role) {
@@ -79,6 +73,19 @@ function LoginForm() {
 
       if (!role) {
         router.push('/auth/choose-role');
+        return;
+      }
+    }
+
+    if (redirectTo && redirectTo.startsWith('/')) {
+      const allowRedirect =
+        role === 'super-admin' ||
+        role === 'super_admin' ||
+        (role === 'mentor' && redirectTo.startsWith('/mentor')) ||
+        ((role === 'startup' || role === 'founder') && (redirectTo.startsWith('/startup') || redirectTo.startsWith('/programs'))) ||
+        (['admin', 'incubator_admin', 'incubator'].includes(role) && redirectTo.startsWith('/incubator'));
+      if (allowRedirect) {
+        router.push(redirectTo);
         return;
       }
     }

@@ -103,7 +103,17 @@ export default function ChooseRolePage() {
             return;
           }
           if (existingRole === 'mentor') {
-            router.replace('/mentor/dashboard');
+            try {
+              const mRes = await fetch('/api/v1/mentors/apply', {
+                headers: session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+              });
+              if (mRes.ok) {
+                const mData = await mRes.json();
+                router.replace(mData?.existingApplication ? '/mentor/dashboard' : '/mentor/application-form');
+                return;
+              }
+            } catch {}
+            router.replace('/mentor/application-form');
             return;
           }
           router.replace('/incubator');

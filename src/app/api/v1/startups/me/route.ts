@@ -112,18 +112,12 @@ export async function GET(req: NextRequest) {
         if (uData?.id) validCreatedBy = uData.id;
       }
 
-      const startupPayload: Record<string, any> = {
-        organization_id: validOrgId,
-        startup_name: startupName,
-        founder_id: validFounderId,
-        founder_email: emailLower,
-        founder_phone: acceptedApp.form_data?.phone || acceptedApp.applicant_phone || null,
-        sector: acceptedApp.form_data?.industryVertical || acceptedApp.form_data?.sector || 'Technology',
-        stage: normalizeStage(acceptedApp.form_data?.businessStage || acceptedApp.form_data?.stage),
-        status: 'active',
-        is_active: true,
-        created_by: validCreatedBy,
-      };
+      const startupPayload = StartupService.buildStartupPayloadFromApplication(acceptedApp, {
+        organizationId: validOrgId,
+        founderId: validFounderId,
+        createdBy: validCreatedBy,
+        startupName,
+      });
 
       let { data: createdStartup, error: autoErr } = await supabaseAdmin
         .from('startups')
@@ -159,6 +153,21 @@ export async function GET(req: NextRequest) {
         console.error('[startups/me] Auto-provision insert error:', autoErr);
       } else {
         startup = createdStartup;
+        if (startup && (!startup.founder_name || startup.founder_name.trim().toLowerCase() === 'founder') && emailLower) {
+          const { data: uRec } = await supabaseAdmin
+            .from('users')
+            .select('full_name')
+            .ilike('email', emailLower)
+            .maybeSingle();
+          if (uRec?.full_name?.trim() && uRec.full_name.trim().toLowerCase() !== 'founder') {
+            const actualName = uRec.full_name.trim();
+            await supabaseAdmin
+              .from('startups')
+              .update({ founder_name: actualName, updated_at: new Date().toISOString() })
+              .eq('id', startup.id);
+            startup.founder_name = actualName;
+          }
+        }
       }
     } else if (startup?.id) {
       const { data: appData } = await supabaseAdmin
@@ -177,6 +186,92 @@ export async function GET(req: NextRequest) {
           .limit(1)
           .maybeSingle();
         linkedApp = appByEmail;
+      }
+
+      // Hydrate any blank profile fields on existing startup from linked application without overwriting user edits
+      if (linkedApp) {
+        if (!linkedApp.startup_id) {
+          await supabaseAdmin.from('applications').update({ startup_id: startup.id }).eq('id', linkedApp.id);
+        }
+
+        const fromApp = StartupService.buildStartupPayloadFromApplication(linkedApp, {
+          organizationId: startup.organization_id,
+          founderId: startup.founder_id,
+          createdBy: startup.created_by,
+        });
+        const backfillKeys = [
+          'founder_name',
+          'founder_phone',
+          'tagline',
+          'description',
+          'website',
+          'sector',
+          'stage',
+          'problem_statement',
+          'solution_description',
+          'target_market',
+          'business_model',
+          'revenue_model',
+          'founded_date',
+          'registration_type',
+          'demo_url',
+          'pitch_deck_url',
+          'business_plan_url',
+          'one_pager_url',
+        ];
+        const patch: Record<string, any> = {};
+        for (const k of backfillKeys) {
+          const isBlank = startup[k] === null || startup[k] === undefined || startup[k] === '';
+          if (isBlank && fromApp[k]) {
+            patch[k] = fromApp[k];
+          }
+        }
+
+        // Special check for founder_name if currently default "Founder"
+        if (
+          (!startup.founder_name || startup.founder_name.trim().toLowerCase() === 'founder') &&
+          fromApp.founder_name &&
+          fromApp.founder_name.trim().toLowerCase() !== 'founder'
+        ) {
+          patch.founder_name = fromApp.founder_name.trim();
+        }
+
+        // Financial metrics backfill if currently 0 or unset
+        if ((!startup.funding_raised || Number(startup.funding_raised) === 0) && fromApp.funding_raised) {
+          patch.funding_raised = fromApp.funding_raised;
+        }
+        if ((!startup.annual_revenue || Number(startup.annual_revenue) === 0) && fromApp.annual_revenue) {
+          patch.annual_revenue = fromApp.annual_revenue;
+          patch.mrr = fromApp.mrr || Math.round(fromApp.annual_revenue / 12);
+          patch.monthly_revenue = patch.mrr;
+        }
+
+        if (Object.keys(patch).length > 0) {
+          const { data: hydrated } = await supabaseAdmin
+            .from('startups')
+            .update({ ...patch, updated_at: new Date().toISOString() })
+            .eq('id', startup.id)
+            .select()
+            .maybeSingle();
+          if (hydrated) startup = hydrated;
+        }
+      }
+
+      // Ensure founder_name is populated from users table if still missing or generic
+      if ((!startup.founder_name || startup.founder_name.trim().toLowerCase() === 'founder') && emailLower) {
+        const { data: uRec } = await supabaseAdmin
+          .from('users')
+          .select('full_name')
+          .ilike('email', emailLower)
+          .maybeSingle();
+        if (uRec?.full_name?.trim() && uRec.full_name.trim().toLowerCase() !== 'founder') {
+          const actualName = uRec.full_name.trim();
+          await supabaseAdmin
+            .from('startups')
+            .update({ founder_name: actualName, updated_at: new Date().toISOString() })
+            .eq('id', startup.id);
+          startup.founder_name = actualName;
+        }
       }
     } else {
       const { data: appData } = await supabaseAdmin

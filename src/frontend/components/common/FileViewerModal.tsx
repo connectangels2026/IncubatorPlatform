@@ -11,12 +11,13 @@ export interface FileViewerModalProps {
   url?: string | null;
   title?: string;
   subtitle?: string;
-  type?: 'pdf' | 'video' | 'pptx' | 'unsupported' | 'auto';
+  type?: 'pdf' | 'video' | 'image' | 'pptx' | 'unsupported' | 'auto';
 }
 
-function detectFileType(url?: string | null, explicitType?: string): 'pdf' | 'video' | 'unsupported' {
+function detectFileType(url?: string | null, explicitType?: string): 'pdf' | 'video' | 'image' | 'unsupported' {
   if (explicitType && explicitType !== 'auto') {
     if (explicitType === 'video' || explicitType === 'mp4') return 'video';
+    if (explicitType === 'image' || explicitType === 'png' || explicitType === 'jpg') return 'image';
     if (explicitType === 'pdf') return 'pdf';
     return 'unsupported';
   }
@@ -25,6 +26,9 @@ function detectFileType(url?: string | null, explicitType?: string): 'pdf' | 'vi
   const cleanUrl = url.split('?')[0].toLowerCase();
   if (cleanUrl.endsWith('.mp4') || cleanUrl.endsWith('.webm') || cleanUrl.endsWith('.mov') || cleanUrl.includes('video')) {
     return 'video';
+  }
+  if (cleanUrl.endsWith('.png') || cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg') || cleanUrl.endsWith('.webp')) {
+    return 'image';
   }
   if (cleanUrl.endsWith('.pdf') || cleanUrl.includes('.pdf?')) {
     return 'pdf';
@@ -55,11 +59,16 @@ export function FileViewerModal({
   let displaySubtitle = subtitle;
 
   if (fileType === 'video') {
-    displayTitle = 'Product demo video';
-    if (!displaySubtitle && title) {
-      if (title.includes(' - ')) {
-        displaySubtitle = title.split(' - ')[0].trim();
-      } else if (!title.toLowerCase().includes('demo video')) {
+    if (title && title.includes(' - ')) {
+      const parts = title.split(' - ');
+      if (!displaySubtitle) displaySubtitle = parts[0].trim();
+      const rawName = parts.slice(1).join(' - ').trim();
+      displayTitle = rawName.toLowerCase().includes('elevator') ? 'Elevator pitch' : rawName || 'Product demo video';
+    } else if (title && title.toLowerCase().includes('elevator')) {
+      displayTitle = 'Elevator pitch';
+    } else {
+      displayTitle = 'Product demo video';
+      if (!displaySubtitle && title && !title.toLowerCase().includes('demo video')) {
         displaySubtitle = title;
       }
     }
@@ -69,7 +78,7 @@ export function FileViewerModal({
     displayTitle = parts.slice(1).join(' - ').trim();
   }
 
-  // Resolve private storage URL if needed
+  // Resolve private storage URL or storage path if needed
   useEffect(() => {
     if (!isOpen || !url) {
       setResolvedUrl(null);
@@ -84,17 +93,52 @@ export function FileViewerModal({
 
     const resolveUrl = async () => {
       try {
+        const isRelativeStoragePath =
+          !url.startsWith('http://') &&
+          !url.startsWith('https://') &&
+          !url.startsWith('blob:') &&
+          !url.startsWith('data:');
+
+        if (isRelativeStoragePath) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          const res = await fetch(`/api/v1/startups/documents/signed-url?path=${encodeURIComponent(url)}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (isMounted && json?.signed_url) {
+              setResolvedUrl(json.signed_url);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
         if (url.includes('supabase.co/storage/v1/object/') && !url.includes('/public/')) {
           const match = url.match(/\/object\/([^/]+)\/(.+)$/);
           if (match) {
             const bucket = match[1];
             const path = decodeURIComponent(match[2].split('?')[0]);
             const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
-            if (error) throw error;
-            if (isMounted && data?.signedUrl) {
+            if (!error && isMounted && data?.signedUrl) {
               setResolvedUrl(data.signedUrl);
               setIsLoading(false);
               return;
+            }
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData?.session?.access_token;
+            const res = await fetch(
+              `/api/v1/startups/documents/signed-url?path=${encodeURIComponent(path)}&bucket=${encodeURIComponent(bucket)}`,
+              { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+            );
+            if (res.ok) {
+              const json = await res.json();
+              if (isMounted && json?.signed_url) {
+                setResolvedUrl(json.signed_url);
+                setIsLoading(false);
+                return;
+              }
             }
           }
         }
@@ -305,6 +349,25 @@ export function FileViewerModal({
                   Arba360
                 </div>
                 <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/50 backdrop-blur-xs text-[10px] font-mono text-white/50 tracking-wide select-none">
+                  Arba360 &bull; {viewerEmail}
+                </div>
+              </div>
+            </div>
+          ) : fileType === 'image' ? (
+            <div className="w-full h-full relative bg-slate-100 flex items-center justify-center p-4 min-h-[450px]">
+              <img
+                src={resolvedUrl}
+                alt={displayTitle}
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+                className="max-w-full max-h-[75vh] object-contain select-none"
+              />
+              {/* Watermark overlay (image: dark slate/15) */}
+              <div className="absolute inset-0 z-10 pointer-events-none select-none flex items-center justify-center overflow-hidden">
+                <div className="text-slate-900/15 text-5xl sm:text-7xl md:text-8xl font-black tracking-widest uppercase transform -rotate-12 select-none">
+                  Arba360
+                </div>
+                <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/50 backdrop-blur-xs text-[10px] font-mono text-white/80 tracking-wide select-none">
                   Arba360 &bull; {viewerEmail}
                 </div>
               </div>

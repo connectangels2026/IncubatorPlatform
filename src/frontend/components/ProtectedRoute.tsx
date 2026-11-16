@@ -97,6 +97,14 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
               router.push('/startup/application');
               return;
             }
+            if (role === 'mentor') {
+              router.push('/mentor/dashboard');
+              return;
+            }
+            if (role === 'pending_incubator') {
+              router.push('/auth/incubator-plans');
+              return;
+            }
             if (role === 'incubator_admin') {
               router.push('/auth/signup-incubator');
               return;

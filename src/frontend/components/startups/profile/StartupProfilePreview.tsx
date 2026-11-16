@@ -44,13 +44,19 @@ export function StartupProfilePreview({
   onRequestChange,
 }: StartupProfilePreviewProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [videoSubmission, setVideoSubmission] = useState<any>(null);
-  const [videoSignedUrl, setVideoSignedUrl] = useState<string | null>(null);
+  const [videoSubmissions, setVideoSubmissions] = useState<{ demo: any; elevator: any }>({
+    demo: null,
+    elevator: null,
+  });
+  const [videoSignedUrls, setVideoSignedUrls] = useState<{ demo: string | null; elevator: string | null }>({
+    demo: null,
+    elevator: null,
+  });
   const [startupName, setStartupName] = useState<string>(startup?.name || 'Startup');
-  const [isDecidingVideo, setIsDecidingVideo] = useState(false);
+  const [decidingKind, setDecidingKind] = useState<'demo' | 'elevator' | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [showRejectInput, setShowRejectInput] = useState(false);
-  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'auto' } | null>(null);
+  const [rejectingKind, setRejectingKind] = useState<'demo' | 'elevator' | null>(null);
+  const [viewerFile, setViewerFile] = useState<{ url: string; title: string; type?: 'pdf' | 'video' | 'image' | 'auto' } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -65,8 +71,14 @@ export function StartupProfilePreview({
         })
         .then((res) => {
           if (isMounted && res.data?.success) {
-            setVideoSubmission(res.data.submission || null);
-            setVideoSignedUrl(res.data.video_url || null);
+            setVideoSubmissions({
+              demo: res.data.submissions?.demo ?? res.data.submission ?? null,
+              elevator: res.data.submissions?.elevator ?? null,
+            });
+            setVideoSignedUrls({
+              demo: res.data.video_urls?.demo ?? res.data.video_url ?? null,
+              elevator: res.data.video_urls?.elevator ?? null,
+            });
             if (res.data.startup_name) setStartupName(res.data.startup_name);
           }
         })
@@ -79,14 +91,15 @@ export function StartupProfilePreview({
     };
   }, [startup?.id, startup?.organization_id]);
 
-  const handleDecideVideo = async (status: 'approved' | 'rejected') => {
+  const handleDecideVideo = async (kind: 'demo' | 'elevator', status: 'approved' | 'rejected') => {
     if (!startup?.id) return;
     if (status === 'rejected' && !rejectReason.trim()) {
-      alert('Please enter a reason for rejecting the demo video.');
+      alert('Please enter a reason for rejecting the video.');
       return;
     }
 
-    setIsDecidingVideo(true);
+    const sub = videoSubmissions[kind];
+    setDecidingKind(kind);
     try {
       const orgId =
         startup.organization_id ||
@@ -96,6 +109,8 @@ export function StartupProfilePreview({
         `/startups/${startup.id}/video-submission`,
         {
           action: 'decide',
+          kind,
+          submission_id: sub?.id,
           status,
           reason: status === 'rejected' ? rejectReason.trim() : undefined,
         },
@@ -104,17 +119,17 @@ export function StartupProfilePreview({
         }
       );
       if (res.data?.success) {
-        setVideoSubmission(res.data.submission);
+        setVideoSubmissions((prev) => ({ ...prev, [kind]: res.data.submission }));
         if (res.data.published_url) {
-          setVideoSignedUrl(res.data.published_url);
+          setVideoSignedUrls((prev) => ({ ...prev, [kind]: res.data.published_url }));
         }
-        setShowRejectInput(false);
+        setRejectingKind(null);
         setRejectReason('');
       }
     } catch (err: any) {
       alert(err.response?.data?.error || 'Failed to update video submission.');
     } finally {
-      setIsDecidingVideo(false);
+      setDecidingKind(null);
     }
   };
 
@@ -707,190 +722,235 @@ export function StartupProfilePreview({
               <span className="text-xs text-slate-400 font-medium">Under review</span>
             )}
           </div>
-        </div>
 
-        {/* Video review card (Incubator Management) */}
-        <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Video className="w-4 h-4 text-purple-600" />
-              <h5 className="text-xs font-semibold text-slate-900">Video review</h5>
+          {/* One-pager Row */}
+          <div className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-900">One-pager</p>
+                <p className="text-[11px] text-slate-500">Executive summary sheet</p>
+              </div>
             </div>
-            {videoSubmission?.status === 'approved' ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3" />
-                Approved
-              </span>
-            ) : videoSubmission?.status === 'pending' ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                <Clock className="w-3 h-3" />
-                Pending review
-              </span>
-            ) : videoSubmission?.status === 'rejected' ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
-                <AlertCircle className="w-3 h-3" />
-                Rejected
-              </span>
+            {(startup as any).one_pager_url ? (
+              <button
+                type="button"
+                onClick={() =>
+                  setViewerFile({
+                    url: (startup as any).one_pager_url,
+                    title: `${startupName || startup.name || 'Startup'} - One-pager`,
+                    type: 'auto',
+                  })
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>View one-pager</span>
+              </button>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">
-                No submission
-              </span>
+              <span className="text-xs text-slate-400 font-medium">Not provided</span>
             )}
           </div>
+        </div>
 
-          {videoSubmission?.status === 'pending' ? (
-            <div className="space-y-3 pt-1">
-              {/* Startup name and submitted date */}
-              <div className="flex items-center justify-between text-xs text-slate-600 pb-1 border-b border-slate-200/60">
-                <div>
-                  <span className="text-slate-500 text-[11px]">Startup: </span>
-                  <span className="font-semibold text-slate-800">{startupName || startup.name}</span>
-                </div>
-                {videoSubmission.submitted_at && (
-                  <div>
-                    <span className="text-slate-500 text-[11px]">Submitted: </span>
-                    <span className="font-medium text-slate-700">
-                      {new Date(videoSubmission.submitted_at).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+        {/* Video review card (Incubator Management: Elevator pitch & Product demo) */}
+        <div className="mt-4 p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-4">
+          <div className="flex items-center gap-2">
+            <Video className="w-4 h-4 text-indigo-600" />
+            <h5 className="text-xs font-semibold text-slate-900">Video review</h5>
+          </div>
+
+          {(['elevator', 'demo'] as const).map((kind) => {
+            const sub = videoSubmissions[kind];
+            const signedUrl = videoSignedUrls[kind];
+            const kindLabel = kind === 'elevator' ? 'Elevator pitch' : 'Product demo';
+            const isDeciding = decidingKind === kind;
+            const showReject = rejectingKind === kind;
+
+            return (
+              <div key={kind} className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {kindLabel}
                     </span>
+                    {sub?.duration_seconds != null && (
+                      <span className="text-[11px] text-slate-500">{sub.duration_seconds}s</span>
+                    )}
                   </div>
+                  {sub?.status === 'approved' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Approved
+                    </span>
+                  ) : sub?.status === 'pending' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                      <Clock className="w-3 h-3" />
+                      Pending review
+                    </span>
+                  ) : sub?.status === 'rejected' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                      <AlertCircle className="w-3 h-3" />
+                      Rejected
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500">
+                      No submission
+                    </span>
+                  )}
+                </div>
+
+                {sub?.status === 'pending' ? (
+                  <div className="space-y-3">
+                    {sub.submitted_at && (
+                      <p className="text-[11px] text-slate-500">
+                        Submitted:{' '}
+                        <span className="font-medium text-slate-700">
+                          {new Date(sub.submitted_at).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </p>
+                    )}
+
+                    {signedUrl ? (
+                      <div className="rounded-lg overflow-hidden bg-black/90 aspect-video max-h-56 flex items-center justify-center border border-slate-300">
+                        <video
+                          src={signedUrl}
+                          controls
+                          controlsList="nodownload"
+                          disablePictureInPicture
+                          onContextMenu={(e) => e.preventDefault()}
+                          preload="metadata"
+                          className="w-full h-full max-h-56 object-contain"
+                        >
+                          Your browser does not support HTML5 video.
+                        </video>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center text-xs text-slate-500">
+                        <Video className="w-5 h-5 text-slate-400 mx-auto mb-1" />
+                        <span>Loading video stream...</span>
+                      </div>
+                    )}
+
+                    {showReject ? (
+                      <div className="space-y-2 p-3 bg-slate-50 rounded-lg border border-rose-200">
+                        <label className="block text-xs font-semibold text-rose-900">
+                          Reason for rejection (required)
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={rejectReason}
+                          onChange={(e) => setRejectReason(e.target.value)}
+                          placeholder="Explain why the video was not approved and what needs to be improved..."
+                          className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-rose-500 font-sans"
+                        />
+                        <div className="flex justify-end gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRejectingKind(null);
+                              setRejectReason('');
+                            }}
+                            className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-200 rounded cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isDeciding || !rejectReason.trim()}
+                            onClick={() => handleDecideVideo(kind, 'rejected')}
+                            className="px-3 py-1 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded transition cursor-pointer"
+                          >
+                            {isDeciding ? 'Rejecting...' : 'Confirm rejection'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRejectingKind(kind);
+                            setRejectReason('');
+                          }}
+                          disabled={isDeciding}
+                          className="px-3.5 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDecideVideo(kind, 'approved')}
+                          disabled={isDeciding}
+                          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-2xs cursor-pointer"
+                        >
+                          {isDeciding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          <span>Approve</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : sub?.status === 'approved' ? (
+                  <div className="space-y-2 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs text-slate-600">
+                      <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Approved and live
+                      </span>
+                      {sub.reviewed_by && <span className="text-[10px] text-slate-400">By {sub.reviewed_by}</span>}
+                    </div>
+                    {(sub.published_url || signedUrl) && (
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setViewerFile({
+                              url: sub.published_url || signedUrl!,
+                              title: `${startupName || 'Startup'} - ${kindLabel}`,
+                              type: 'video',
+                            })
+                          }
+                          className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:underline cursor-pointer"
+                        >
+                          <span>View video</span>
+                          <Eye className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : sub?.status === 'rejected' ? (
+                  <div className="space-y-2 pt-1 border-t border-slate-100">
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                      <span className="font-semibold block text-[11px]">Reason for rejection:</span>
+                      <span>{sub.reason || 'Video did not meet guidelines.'}</span>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDecideVideo(kind, 'approved')}
+                        disabled={isDeciding}
+                        className="text-xs text-indigo-600 hover:underline font-medium cursor-pointer"
+                      >
+                        Re-evaluate &amp; approve
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    No {kindLabel.toLowerCase()} has been submitted yet.
+                  </p>
                 )}
               </div>
-
-              {/* Video Player with signed URL */}
-              {videoSignedUrl ? (
-                <div className="rounded-lg overflow-hidden bg-black/90 aspect-video max-h-56 flex items-center justify-center border border-slate-300">
-                  <video
-                    src={videoSignedUrl}
-                    controls
-                    controlsList="nodownload"
-                    disablePictureInPicture
-                    onContextMenu={(e) => e.preventDefault()}
-                    preload="metadata"
-                    className="w-full h-full max-h-56 object-contain"
-                  >
-                    Your browser does not support HTML5 video.
-                  </video>
-                </div>
-              ) : (
-                <div className="p-4 bg-white rounded-lg border border-slate-200 text-center text-xs text-slate-500">
-                  <Video className="w-6 h-6 text-slate-400 mx-auto mb-1" />
-                  <span>Loading video stream...</span>
-                </div>
-              )}
-
-              {showRejectInput ? (
-                <div className="space-y-2 p-3 bg-white rounded-lg border border-rose-200">
-                  <label className="block text-xs font-semibold text-rose-900">
-                    Reason for rejection (required)
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Explain why the video was not approved and what needs to be improved..."
-                    className="w-full px-2.5 py-1.5 text-xs rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 font-sans"
-                  />
-                  <div className="flex justify-end gap-1.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRejectInput(false);
-                        setRejectReason('');
-                      }}
-                      className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isDecidingVideo || !rejectReason.trim()}
-                      onClick={() => handleDecideVideo('rejected')}
-                      className="px-3 py-1 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded transition cursor-pointer"
-                    >
-                      {isDecidingVideo ? 'Rejecting...' : 'Confirm rejection'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowRejectInput(true)}
-                    disabled={isDecidingVideo}
-                    className="px-3.5 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-lg transition cursor-pointer"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDecideVideo('approved')}
-                    disabled={isDecidingVideo}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-2xs cursor-pointer"
-                  >
-                    {isDecidingVideo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    <span>Approve</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : videoSubmission?.status === 'approved' ? (
-            <div className="space-y-2 pt-1 border-t border-slate-200/60">
-              <div className="flex items-center justify-between text-xs text-slate-600">
-                <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Published and visible on startup profile &amp; website
-                </span>
-                {videoSubmission.reviewed_by && (
-                  <span className="text-[10px] text-slate-400">By {videoSubmission.reviewed_by}</span>
-                )}
-              </div>
-              {videoSubmission.published_url && (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setViewerFile({
-                        url: videoSubmission.published_url,
-                        title: `${startupName || 'Startup'} - Product Demo Video`,
-                        type: 'video',
-                      })
-                    }
-                    className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:underline cursor-pointer"
-                  >
-                    <span>View public video</span>
-                    <Eye className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : videoSubmission?.status === 'rejected' ? (
-            <div className="space-y-2 pt-1 border-t border-slate-200/60">
-              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
-                <span className="font-semibold block text-[11px]">Reason for rejection:</span>
-                <span>{videoSubmission.reason || 'Video did not meet guidelines.'}</span>
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => handleDecideVideo('approved')}
-                  disabled={isDecidingVideo}
-                  className="text-xs text-indigo-600 hover:underline font-medium cursor-pointer"
-                >
-                  Re-evaluate &amp; approve
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500 py-1">
-              No product demo video has been submitted for review yet.
-            </p>
-          )}
+            );
+          })}
         </div>
       </div>
 
