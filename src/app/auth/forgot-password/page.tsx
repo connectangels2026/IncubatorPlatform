@@ -2,28 +2,47 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { KeyRound, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
-import { resetPassword } from '@/backend/services/auth';
+import { KeyRound, ArrowLeft, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [directResetUrl, setDirectResetUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const { error: resetErr } = await resetPassword(email);
-      if (resetErr) throw resetErr;
+      const res = await fetch('/api/v1/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to send reset link.');
+      }
+
+      if (data?.recovery_link) {
+        setDirectResetUrl(data.recovery_link);
+      }
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset link.');
+      const rawMsg = (err?.message || '').toLowerCase();
+      if (rawMsg.includes('failed to fetch') || rawMsg.includes('network') || rawMsg.includes('load failed')) {
+        setError('Unable to reach the server. Please check your internet connection and try again.');
+      } else {
+        setError(err.message || 'Failed to send reset link.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +60,29 @@ export default function ForgotPasswordPage() {
               Check Your Email
             </h1>
             <p className="text-xs text-slate-500 leading-relaxed">
-              We have sent password reset instructions to <strong className="text-slate-900">{email}</strong>.
+              We have processed password reset instructions for <strong className="text-slate-900">{email}</strong>.
+            </p>
+
+            {directResetUrl && (
+              <div className="p-3 bg-sky-50 border border-sky-100 rounded-xl text-left space-y-2">
+                <p className="text-[11px] text-sky-800 font-medium">
+                  Instant Access Link Ready:
+                </p>
+                <a
+                  href={directResetUrl}
+                  className="inline-flex items-center justify-center gap-1.5 w-full py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-lg shadow-xs transition"
+                >
+                  <span>Reset Password Now</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Not your email? If you don't have an account yet,{' '}
+              <Link href="/signup" className="font-semibold text-blue-600 hover:text-blue-700">
+                create one here
+              </Link>.
             </p>
             <div className="pt-2">
               <Link
