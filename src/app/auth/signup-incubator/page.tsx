@@ -87,6 +87,19 @@ function SignupIncubatorContent() {
   const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'enterprise'>(initialTier);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialBilling);
 
+  // Restore previously selected plan and billing cycle when no explicit tier was passed
+  useEffect(() => {
+    if (searchParams.get('tier')) return;
+    const savedTier = typeof window !== 'undefined' ? localStorage.getItem('org_tier') : null;
+    if (savedTier && ['free', 'pro', 'enterprise'].includes(savedTier)) {
+      setSelectedPlan(savedTier as 'free' | 'pro' | 'enterprise');
+    }
+    const savedBilling = typeof window !== 'undefined' ? localStorage.getItem('org_billing_cycle') : null;
+    if (savedBilling === 'monthly' || savedBilling === 'annual') {
+      setBillingCycle(savedBilling as 'monthly' | 'annual');
+    }
+  }, [searchParams]);
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -253,6 +266,8 @@ function SignupIncubatorContent() {
       const org = res.data?.data;
       if (org?.id && typeof window !== 'undefined') {
         localStorage.setItem('org_id', org.id);
+        localStorage.setItem('org_tier', selectedPlan);
+        localStorage.setItem('org_billing_cycle', billingCycle);
       }
 
       setCreatedOrg({ id: org?.id, slug: org?.slug || formData.slug });
