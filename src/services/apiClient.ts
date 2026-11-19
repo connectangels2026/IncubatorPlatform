@@ -210,6 +210,17 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('org_id');
         localStorage.removeItem('org_founder_name');
         localStorage.removeItem('org_name');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('token_expires_at');
+        localStorage.removeItem('startup_track');
+        // Also drop any leftover Supabase session blob the client may have cached.
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        }
         await supabase.auth.signOut().catch(() => {});
       } catch {}
 
