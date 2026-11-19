@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     let userError: any = null;
     let { data: userDataByAuth, error: authErr } = await supabaseAdmin
       .from('users')
-      .select('id, role, email')
+      .select('id, role, email, full_name, first_name')
       .eq('id', userId)
       .maybeSingle();
     userData = userDataByAuth;
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     if (!userData) {
       const { data: userDataByEmail, error: emailErr } = await supabaseAdmin
         .from('users')
-        .select('id, role, email')
+        .select('id, role, email, full_name, first_name')
         .eq('email', userEmail)
         .maybeSingle();
       if (userDataByEmail) {

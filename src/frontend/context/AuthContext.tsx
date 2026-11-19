@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 2. Auth State Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, currentSession) => {
+      async (event, currentSession) => {
         const cachedRole = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
         const currentUser = currentSession?.user
           ? { ...currentSession.user, role: cachedRole || (currentSession.user as any).role }
@@ -116,7 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             localStorage.setItem('access_token', currentSession.access_token);
           }
-          await fetchUserOrg(currentSession.access_token);
+          // Only fetch user org on token refresh or when role is missing, avoiding redundant roundtrips on normal login/signup
+          if (event === 'TOKEN_REFRESHED' || !cachedRole) {
+            await fetchUserOrg(currentSession.access_token);
+          }
         }
         setIsLoading(false);
       }
@@ -331,33 +334,84 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearAllClientAuthState = () => {
+    setUser(null);
+    setSession(null);
+    setOrganization(null);
+    if (typeof window === 'undefined') return;
+
+    // Every key the app writes to prove/refresh a session must go, otherwise
+    // stale leftovers re-hydrate the "logged in" state on the next page visit.
+    const authKeys = [
+      'access_token',
+      'token',
+      'auth_token',
+      'token_expires_at',
+      'user_role',
+      'org_id',
+      'org_founder_name',
+      'org_name',
+      'startup_track',
+      'user_email',
+      'last_applicant_email',
+      'last_application_id',
+      'incubator_notification_prefs',
+    ];
+    for (const key of authKeys) {
+      localStorage.removeItem(key);
+    }
+
+    // Supabase also persists session blobs under sb-<project-ref>-* keys.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // Non-httpOnly auth cookies the client is allowed to touch.
+    const cookieAuthKeys = ['access_token', 'token', 'auth_token', 'refresh_token', 'sb-access-token'];
+    for (const key of cookieAuthKeys) {
+      document.cookie = `${key}=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
       const token =
         session?.access_token ||
         (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
-      await Promise.allSettled([
-        fetch('/api/v1/auth/logout', {
+
+      // 1. Hit the backend so the access token is blacklisted in Redis and the
+      //    server-side Supabase session is torn down (cookie clearing happens there too).
+      //    Do this FIRST and await it before touching client state so a slow
+      //    network can never leave the client in a half-logged-out state.
+      try {
+        await fetch('/api/v1/auth/logout', {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }),
-        apiSignOut(),
-      ]);
-      setUser(null);
-      setSession(null);
-      setOrganization(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('org_id');
-        localStorage.removeItem('org_founder_name');
-        localStorage.removeItem('org_name');
-        localStorage.removeItem('user_role');
-        localStorage.removeItem('startup_track');
+        });
+      } catch (err) {
+        console.warn('Backend logout blacklist failed, continuing with client cleanup:', err);
       }
+
+      // 2. Tear down the client Supabase session.
+      try {
+        await apiSignOut();
+      } catch (err) {
+        console.warn('Supabase client signOut failed, continuing with client cleanup:', err);
+      }
+
+      // 3. Clear every client-side trace of the session (state, localStorage, cookies).
+      clearAllClientAuthState();
+
       router.push('/login');
     } catch (err: any) {
       console.error('Logout error:', err.message);
+      // Even on unexpected failure, make sure no auth trace survives locally.
+      clearAllClientAuthState();
+      router.push('/login');
     } finally {
       setIsLoading(false);
     }

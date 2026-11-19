@@ -95,22 +95,26 @@ export class StartupService {
       .from('startups')
       .select('*', { count: 'exact' });
 
-    if (realOrgId && orgId !== 'all') {
-      query = query.eq('organization_id', realOrgId);
+    if (orgId !== 'all') {
+      if (realOrgId) {
+        query = query.eq('organization_id', realOrgId);
+      } else {
+        return { startups: [], total: 0 };
+      }
     }
 
     // Filtering
-    if (filter.sector) query = query.ilike('sector', `%${filter.sector}%`);
-    if (filter.stage) query = query.ilike('stage', `%${filter.stage}%`);
-    if (filter.status) query = query.ilike('status', `%${filter.status}%`);
+    if (filter.sector && filter.sector !== 'ALL') query = query.ilike('sector', `%${filter.sector}%`);
+    if (filter.stage && filter.stage !== 'ALL') query = query.ilike('stage', `%${filter.stage}%`);
+    if (filter.status && filter.status !== 'all') query = query.ilike('status', `%${filter.status}%`);
 
     // Search
     if (filter.search) {
-      query = query.or(`startup_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      query = query.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
     }
 
     // Sorting
-    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'startup_name' : filter.sort || 'created_at';
+    const sortField = filter.sort === 'revenue' ? 'monthly_revenue' : filter.sort === 'name' ? 'name' : filter.sort || 'created_at';
     const isAsc = filter.order === 'asc';
     try {
       query = query.order(sortField, { ascending: isAsc });
@@ -128,8 +132,18 @@ export class StartupService {
       let retryQuery = supabaseAdmin
         .from('startups')
         .select('*', { count: 'exact' });
-      if (orgId && orgId !== 'all') {
-        retryQuery = retryQuery.eq('organization_id', realOrgId);
+      if (orgId !== 'all') {
+        if (realOrgId) {
+          retryQuery = retryQuery.eq('organization_id', realOrgId);
+        } else {
+          return { startups: [], total: 0 };
+        }
+      }
+      if (filter.sector && filter.sector !== 'ALL') retryQuery = retryQuery.ilike('sector', `%${filter.sector}%`);
+      if (filter.stage && filter.stage !== 'ALL') retryQuery = retryQuery.ilike('stage', `%${filter.stage}%`);
+      if (filter.status && filter.status !== 'all') retryQuery = retryQuery.ilike('status', `%${filter.status}%`);
+      if (filter.search) {
+        retryQuery = retryQuery.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
       }
       const retryRes = await retryQuery.range(offset, offset + limit - 1);
       data = retryRes.data;
@@ -143,9 +157,7 @@ export class StartupService {
     }
 
     if (!data || data.length === 0) {
-      // No startups found for this organization - return empty
-      // Do NOT return fallback data from other organizations
-      return { startups: [], total: 0 };
+      return { startups: [], total: count ?? 0 };
     }
 
     return {
@@ -203,18 +215,52 @@ export class StartupService {
       monthly_revenue: Number(data.revenue) || 0,
       annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
       status: data.status || 'Active',
-      team_members: [],
     };
 
     if (data.founder_id && isValidUUID(data.founder_id)) {
       insertPayload.founder_id = data.founder_id;
     }
 
-    const { data: createdRow, error } = await supabaseAdmin
+    let { data: createdRow, error } = await supabaseAdmin
       .from('startups')
       .insert(insertPayload)
       .select()
       .single();
+
+    if (error) {
+      // Check if the record actually succeeded inserting (e.g. if error was merely on .single() RLS selection)
+      const { data: alreadyInserted } = await supabaseAdmin
+        .from('startups')
+        .select()
+        .eq('organization_id', realOrgId)
+        .ilike('name', stName)
+        .limit(1)
+        .maybeSingle();
+
+      if (alreadyInserted) {
+        return mapRowToStartup(alreadyInserted);
+      }
+
+      if ((error as any).code === '23503' || error.message?.includes('foreign key constraint')) {
+        delete insertPayload.founder_id;
+      }
+      if (error.message?.includes("'startup_name'") || (error as any).code === 'PGRST204') {
+        delete insertPayload.startup_name;
+        insertPayload.name = stName;
+      }
+      if (error.message?.includes("'name'")) {
+        delete insertPayload.name;
+        insertPayload.startup_name = stName;
+      }
+      delete insertPayload.team_members;
+      const retryRes = await supabaseAdmin
+        .from('startups')
+        .insert(insertPayload)
+        .select()
+        .single();
+      createdRow = retryRes.data;
+      error = retryRes.error;
+    }
 
     if (error || !createdRow) {
       // In-memory fallback if insert rejected by schema constraint
