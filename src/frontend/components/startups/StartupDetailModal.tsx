@@ -309,13 +309,16 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
 
   const activeStartup = fullStartup || startup;
   const displayName = activeStartup.startup_name || activeStartup.name || 'Startup';
-  const displayTagline = activeStartup.tagline || activeStartup.pitch || activeStartup.description || 'Cohort portfolio member';
+  const displayTagline = activeStartup.tagline || activeStartup.pitch || activeStartup.description || (
+    <span className="text-slate-400">Not provided</span>
+  );
 
   // Compute stage progress
   const currentStageKey = (activeStartup.stage || 'Idea').toLowerCase().replace(/\s+/g, '-');
-  const stageProgress = STAGE_PROGRESS_MAP[currentStageKey] || 33;
-  const currentStageIndex = STAGES.findIndex(
-    (s) => s.toLowerCase() === (activeStartup.stage || 'Idea').toLowerCase()
+  const stageProgress = STAGE_PROGRESS_MAP[currentStageKey] ?? 16;
+  const currentStageIndex = Math.max(
+    0,
+    STAGES.findIndex((s) => s.toLowerCase() === (activeStartup.stage || 'Idea').toLowerCase())
   );
 
   // Financial metrics for neutral stat strip
@@ -347,10 +350,10 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                   {displayName}
                 </h2>
                 <span className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-700">
-                  {activeStartup.stage || 'MVP'}
+                  {activeStartup.stage || 'Idea'}
                 </span>
                 <span className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600">
-                  {activeStartup.cohort || 'Cohort 2026'}
+                  {activeStartup.cohort || <span className="text-slate-400">Not provided</span>}
                 </span>
 
                 {/* Status Badge / Dropdown */}
@@ -363,10 +366,24 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70"
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer ${
+                        (activeStartup.status || 'Pending').toLowerCase() === 'active'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70'
+                          : (activeStartup.status || 'Pending').toLowerCase() === 'inactive'
+                          ? 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                          : (activeStartup.status || 'Pending').toLowerCase() === 'exited'
+                          ? 'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100'
+                          : 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100'
+                      }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      <span>{activeStartup.status || 'Active'}</span>
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          (activeStartup.status || 'Pending').toLowerCase() === 'active'
+                            ? 'bg-emerald-600'
+                            : 'bg-amber-600'
+                        }`}
+                      />
+                      <span>{activeStartup.status || 'Pending'}</span>
                       <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                     </button>
 
@@ -435,7 +452,7 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
           <div className="px-6 pt-3.5 pb-2.5">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="font-medium text-slate-500">
-                Development lifecycle: <strong className="text-slate-900 font-semibold">{activeStartup.stage || 'MVP'}</strong>
+                Development lifecycle: <strong className="text-slate-900 font-semibold">{activeStartup.stage || 'Idea'}</strong>
               </span>
               <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
                 {stageProgress}% progress

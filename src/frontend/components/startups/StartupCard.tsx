@@ -161,7 +161,9 @@ export const StartupCard: React.FC<StartupCardProps> = ({
               <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
                 {startup.name}
               </h3>
-              <p className="text-xs text-slate-500 truncate">{startup.industry || "Technology"}</p>
+              <p className="text-xs text-slate-500 truncate">
+                {startup.industry || startup.sector || <span className="text-slate-400">Not provided</span>}
+              </p>
             </div>
           </div>
 
@@ -190,14 +192,18 @@ export const StartupCard: React.FC<StartupCardProps> = ({
 
         {/* Pitch / Tagline */}
         <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
-          {startup.pitch || "Innovative platform accelerating workflows and unlocking scalable efficiencies."}
+          {startup.pitch || startup.tagline || (
+            <span className="text-slate-400">Not provided</span>
+          )}
         </p>
 
         {/* Key Metrics Pill Grid */}
         <div className="grid grid-cols-2 gap-2 py-2.5 px-3 bg-slate-50/70 rounded-lg border border-slate-100 text-xs mb-3">
           <div>
             <span className="text-[10px] text-slate-500 block font-medium">Cohort</span>
-            <span className="text-slate-800 font-medium truncate block">{startup.cohort || "Cohort 2026"}</span>
+            <span className="text-slate-800 font-medium truncate block">
+              {startup.cohort || <span className="text-slate-400 font-normal">Not provided</span>}
+            </span>
           </div>
           <div>
             <span className="text-[10px] text-slate-500 block font-medium">Funding</span>

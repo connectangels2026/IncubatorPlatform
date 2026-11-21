@@ -72,9 +72,9 @@ const mapRowToStartup = (row: any): Startup => {
     founder_phone: row.founder_phone || '',
     email: row.founder_email || '',
     description: row.description || row.problem_statement || '',
-    sector: row.sector || 'General',
+    sector: row.sector || '',
     stage: row.stage || 'Idea',
-    status: row.status || 'active',
+    status: row.status || 'pending',
     admission_status: row.admission_status || null,
     revenue: Number(row.monthly_revenue || row.annual_revenue) || 0,
     organization_id: row.organization_id,
@@ -262,7 +262,7 @@ export class StartupService {
 
     // Valid check constraints in Supabase
     const allowedStages = ['Idea', 'MVP', 'Pre-revenue', 'Revenue', 'Growth', 'Scale'];
-    let validStage = 'MVP';
+    let validStage = 'Idea';
     if (data.stage) {
       const match = allowedStages.find((s) => s.toLowerCase() === data.stage!.toLowerCase());
       if (match) validStage = match;
@@ -273,17 +273,23 @@ export class StartupService {
       organization_id: realOrgId,
       name: stName,
       startup_name: stName,
-      sector: data.sector || 'Tech',
+      sector: data.sector || null,
       stage: validStage,
       founder_name: data.founder_name || 'Founder',
       founder_email: data.email || (data as any).founder_email || 'founder@startup.com',
       founder_phone: (data as any).founder_phone || (data as any).contact || null,
       description: data.description || null,
-      monthly_revenue: Number(data.revenue) || 0,
-      annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
-      status: (data.status || 'active').toLowerCase(),
-      is_active: true,
-      track: (data as any).track || 'incubation',
+      monthly_revenue: (data as any).monthly_revenue != null ? Number((data as any).monthly_revenue) : (data.revenue != null ? Number(data.revenue) : null),
+      annual_revenue: (data as any).annual_revenue != null ? Number((data as any).annual_revenue) : (data.revenue != null ? Number(data.revenue) * 12 : null),
+      status: (data.status || 'pending').toLowerCase(),
+      is_active: data.status ? data.status.toLowerCase() === 'active' : false,
+      track: (data as any).track || null,
+      website: (data as any).website || null,
+      founded_date: (data as any).founded_date || null,
+      problem_statement: (data as any).problem_statement || (data as any).problem || null,
+      solution_description: (data as any).solution_description || (data as any).solution || null,
+      target_market: (data as any).target_market || (data as any).market || null,
+      business_model: (data as any).business_model || (data as any).revenue_model || null,
     };
 
     if (data.founder_id && isValidUUID(data.founder_id)) {

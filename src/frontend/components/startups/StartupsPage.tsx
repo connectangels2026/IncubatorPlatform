@@ -355,11 +355,11 @@ export const StartupsPage: React.FC = () => {
     founder: "",
     founderEmail: "",
     founderPhone: "",
-    industry: "Tech",
-    stage: "MVP",
-    status: "Active" as "Pending" | "Active" | "Inactive" | "Exited",
+    industry: "",
+    stage: "Idea",
+    status: "Pending" as "Pending" | "Active" | "Inactive" | "Exited",
     funding: "$0",
-    cohort: "Cohort 2026",
+    cohort: "",
     pitch: "",
   });
 
@@ -444,10 +444,10 @@ export const StartupsPage: React.FC = () => {
                 startup_name: item.startup_name || item.name || 'Startup',
                 monogram: (item.startup_name || item.name) ? (item.startup_name || item.name).slice(0, 2).toUpperCase() : 'ST',
                 monogramBg: 'bg-blue-600',
-                sector: item.sector || 'General',
-                industry: item.sector || 'General',
+                sector: item.sector || '',
+                industry: item.sector || '',
                 stage: item.stage || 'Idea',
-                status: item.status || 'active',
+                status: item.status || 'Pending',
                 admission_status: item.admission_status || null,
                 mrr: typeof item.revenue === "number" ? item.revenue : 0,
                 arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
@@ -1032,13 +1032,13 @@ export const StartupsPage: React.FC = () => {
           founder_name: onboardForm.founder.trim(),
           email: onboardForm.founderEmail.trim(),
           founder_email: onboardForm.founderEmail.trim(),
-          contact: onboardForm.founderPhone.trim(),
-          founder_phone: onboardForm.founderPhone.trim(),
-          sector: onboardForm.industry,
-          industry: onboardForm.industry,
-          stage: onboardForm.stage,
-          status: "active",
-          description: onboardForm.pitch.trim(),
+          contact: onboardForm.founderPhone.trim() || null,
+          founder_phone: onboardForm.founderPhone.trim() || null,
+          sector: onboardForm.industry.trim() || null,
+          industry: onboardForm.industry.trim() || null,
+          stage: onboardForm.stage || 'Idea',
+          status: (onboardForm.status || 'Pending').toLowerCase(),
+          description: onboardForm.pitch.trim() || null,
           organization_id: orgId,
         },
         {
@@ -1054,22 +1054,22 @@ export const StartupsPage: React.FC = () => {
         name: created?.name || onboardForm.name.trim(),
         monogram: (created?.name || onboardForm.name).slice(0, 2).toUpperCase(),
         monogramBg: "bg-indigo-600",
-        sector: created?.sector || onboardForm.industry,
-        industry: created?.sector || onboardForm.industry,
-        stage: created?.stage || onboardForm.stage,
-        status: "Active",
-        funding: onboardForm.funding || "$0",
-        fundingRaised: onboardForm.funding || "$0",
+        sector: created?.sector || onboardForm.industry || "",
+        industry: created?.sector || onboardForm.industry || "",
+        stage: created?.stage || onboardForm.stage || "Idea",
+        status: (created?.status ? (created.status.charAt(0).toUpperCase() + created.status.slice(1).toLowerCase()) : onboardForm.status) as any,
+        funding: "$0",
+        fundingRaised: "$0",
         mrr: 0,
         arr: 0,
         customers: 0,
-        cohort: onboardForm.cohort,
-        tagline: onboardForm.pitch || "Newly registered startup.",
-        pitch: onboardForm.pitch || "Newly registered startup.",
+        cohort: onboardForm.cohort || "",
+        tagline: onboardForm.pitch || "",
+        pitch: onboardForm.pitch || "",
         founder: created?.founder_name || onboardForm.founder,
         founderEmail: created?.email || created?.founder_email || onboardForm.founderEmail,
-        founderPhone: created?.founder_phone || onboardForm.founderPhone,
-        website: `https://${onboardForm.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
+        founderPhone: created?.founder_phone || onboardForm.founderPhone || "",
+        website: created?.website || "",
         allocatedMentors: [],
         allocatedInvestors: [],
         coIncubators: [],
@@ -1091,11 +1091,11 @@ export const StartupsPage: React.FC = () => {
         founder: "",
         founderEmail: "",
         founderPhone: "",
-        industry: "Tech",
-        stage: "MVP",
-        status: "Active",
+        industry: "",
+        stage: "Idea",
+        status: "Pending",
         funding: "$0",
-        cohort: "Cohort 2026",
+        cohort: "",
         pitch: "",
       });
       setIsOnboardOpen(false);
@@ -1112,7 +1112,7 @@ export const StartupsPage: React.FC = () => {
       console.error("Failed to register startup:", err);
       const errMsg = err.response?.data?.error || err.response?.data?.message || "Failed to register startup. Please try again.";
       setOnboardError(errMsg);
-      showToast(errMsg);
+      showToast(errMsg, "error");
     } finally {
       setIsOnboardingLoading(false);
     }
@@ -1724,6 +1724,7 @@ export const StartupsPage: React.FC = () => {
                     onChange={(e) => setOnboardForm({ ...onboardForm, industry: e.target.value })}
                     className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
+                    <option value="">Select sector (Optional)</option>
                     <option value="Tech">Technology / AI</option>
                     <option value="FinTech">FinTech</option>
                     <option value="HealthTech">HealthTech</option>

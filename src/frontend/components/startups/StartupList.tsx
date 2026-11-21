@@ -180,7 +180,9 @@ export const StartupList: React.FC<StartupListProps> = ({
                           <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
                             {startup.name}
                           </div>
-                          <div className="text-[11px] text-slate-500">{startup.sector || startup.industry || "Technology"}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {startup.sector || startup.industry || <span className="text-slate-400">Not provided</span>}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -208,7 +210,7 @@ export const StartupList: React.FC<StartupListProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-700">
-                      {startup.cohort || "Cohort 2026"}
+                      {startup.cohort || <span className="text-slate-400 font-normal">Not provided</span>}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-emerald-700">
                       {startup.funding || startup.fundingRaised || "$0"}

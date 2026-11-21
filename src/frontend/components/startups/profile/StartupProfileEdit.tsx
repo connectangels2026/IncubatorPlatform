@@ -38,9 +38,9 @@ export function StartupProfileEdit({
   // Form State initialized from current startup
   const [formData, setFormData] = useState({
     name: startup.startup_name || startup.name || '',
-    sector: startup.sector || 'Technology',
-    stage: startup.stage || 'MVP',
-    status: startup.status || 'Active',
+    sector: startup.sector || '',
+    stage: startup.stage || 'Idea',
+    status: startup.status || 'Pending',
     tagline: startup.tagline || startup.description || '',
     website: startup.website || '',
     founder_name: startup.founder_name || startup.founder || '',

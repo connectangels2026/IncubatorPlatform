@@ -208,11 +208,15 @@ export function StartupProfilePreview({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4">
           <div>
             <span className="block text-xs font-medium text-slate-500">Sector & domain</span>
-            <p className="text-sm font-medium text-slate-900 mt-0.5">{startup.sector || '—'}</p>
+            <p className="text-sm font-medium text-slate-900 mt-0.5">
+              {startup.sector || <span className="text-slate-400 font-normal">Not provided</span>}
+            </p>
           </div>
           <div>
             <span className="block text-xs font-medium text-slate-500">Founded date</span>
-            <p className="text-sm font-medium text-slate-900 mt-0.5">{startup.founded_date || '2024'}</p>
+            <p className="text-sm font-medium text-slate-900 mt-0.5">
+              {startup.founded_date || <span className="text-slate-400 font-normal">Not provided</span>}
+            </p>
           </div>
           <div>
             <span className="block text-xs font-medium text-slate-500">Website URL</span>
@@ -227,7 +231,7 @@ export function StartupProfilePreview({
                 <ExternalLink className="w-3 h-3 shrink-0" />
               </a>
             ) : (
-              <p className="text-sm font-medium text-slate-400 mt-0.5">—</p>
+              <p className="text-sm font-normal text-slate-400 mt-0.5">Not provided</p>
             )}
           </div>
         </div>
@@ -237,14 +241,14 @@ export function StartupProfilePreview({
           <div>
             <span className="block text-xs font-medium text-slate-500">Problem statement</span>
             <p className="text-xs sm:text-sm text-slate-800 leading-relaxed mt-1 font-normal">
-              {startup.problem_statement || startup.problem || 'Under validation with pilot partners.'}
+              {startup.problem_statement || startup.problem || <span className="text-slate-400 font-normal">Not provided</span>}
             </p>
           </div>
 
           <div>
             <span className="block text-xs font-medium text-slate-500">Solution description</span>
             <p className="text-xs sm:text-sm text-slate-800 leading-relaxed mt-1 font-normal">
-              {startup.solution_description || startup.solution || startup.pitch || 'Autonomous software architecture and proprietary workflows.'}
+              {startup.solution_description || startup.solution || startup.pitch || <span className="text-slate-400 font-normal">Not provided</span>}
             </p>
           </div>
 
@@ -252,13 +256,13 @@ export function StartupProfilePreview({
             <div>
               <span className="block text-xs font-medium text-slate-500">Target market & TAM</span>
               <p className="text-xs sm:text-sm text-slate-800 leading-relaxed mt-1 font-normal">
-                {startup.target_market || startup.market || 'High-growth Enterprise & B2B Technology.'}
+                {startup.target_market || startup.market || <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Business & revenue model</span>
               <p className="text-xs sm:text-sm text-slate-800 leading-relaxed mt-1 font-normal">
-                {startup.business_model || startup.revenue_model || 'B2B SaaS subscription with annual platform tiers.'}
+                {startup.business_model || startup.revenue_model || <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
           </div>
@@ -373,37 +377,37 @@ export function StartupProfilePreview({
             <div>
               <span className="block text-xs font-medium text-slate-500">Lifecycle stage</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.lifecycle_stage || 'Incubating'}
+                {startup.lifecycle_stage || startup.stage || 'Idea'}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Cohort / batch</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.cohort || startup.batch || 'Cohort 2026'}
+                {startup.cohort || startup.batch || <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Track</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.track || 'General Technology'}
+                {startup.track || <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Program status</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.is_active !== false ? 'Active' : 'Inactive'}
+                {startup.is_active ? 'Active' : (startup.status ? (startup.status.charAt(0).toUpperCase() + startup.status.slice(1).toLowerCase()) : 'Pending')}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">Start date</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.incubation_start_date ? startup.incubation_start_date.split('T')[0] : '2026-01-01'}
+                {startup.incubation_start_date ? startup.incubation_start_date.split('T')[0] : <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
             <div>
               <span className="block text-xs font-medium text-slate-500">End date</span>
               <p className="text-sm font-medium text-slate-900 mt-0.5">
-                {startup.incubation_end_date ? startup.incubation_end_date.split('T')[0] : '2026-12-31'}
+                {startup.incubation_end_date ? startup.incubation_end_date.split('T')[0] : <span className="text-slate-400 font-normal">Not provided</span>}
               </p>
             </div>
             <div className="col-span-2 sm:col-span-4 pt-2 border-t border-slate-100">
