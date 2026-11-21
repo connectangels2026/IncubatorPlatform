@@ -108,7 +108,7 @@ export async function POST(req: Request) {
       if (userData.organization_id) {
         const { data: oData } = await supabaseAdmin
           .from('organizations')
-          .select('id, slug, name, founder_name, founder_email, is_verified')
+          .select('id, slug, name, founder_name, founder_email, is_verified, subscription_tier, billing_cycle, subscription_status')
           .eq('id', userData.organization_id)
           .maybeSingle();
 
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
         // Fallback: lookup incubator by auth_user_id or founder_email in a single query
         const { data: oDataFallback } = await supabaseAdmin
           .from('organizations')
-          .select('id, slug, name, founder_name, founder_email, is_verified')
+          .select('id, slug, name, founder_name, founder_email, is_verified, subscription_tier, billing_cycle, subscription_status')
           .or(`auth_user_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
           .limit(1)
           .maybeSingle();
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
     } else if (userRole === 'admin' || userRole === 'incubator_admin' || userRole === 'incubator') {
       redirectTo = orgData?.id ? `/incubator?org=${orgData.id}` : '/incubator';
     } else if (userRole === 'pending_incubator') {
-      redirectTo = '/auth/incubator-plans';
+      redirectTo = orgData?.id ? `/incubator?org=${orgData.id}` : '/auth/incubator-plans';
     } else if (userRole === 'mentor') {
       const { data: existingMentor } = await supabaseAdmin
         .from('mentors')
@@ -279,6 +279,9 @@ export async function POST(req: Request) {
               founder_name: orgData.founder_name,
               founder_email: orgData.founder_email,
               is_verified: orgData.is_verified,
+              subscription_tier: orgData.subscription_tier || null,
+              billing_cycle: orgData.billing_cycle || null,
+              subscription_status: orgData.subscription_status || null,
             }
           : null,
       },

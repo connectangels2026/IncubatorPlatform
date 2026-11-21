@@ -25,8 +25,11 @@ export default function Home() {
 
   // Read cached role only after mount so SSR HTML matches initial client render (prevents hydration mismatch)
   const cachedRole = mounted ? localStorage.getItem('user_role') : null;
-  const cachedToken = mounted ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
-  const isLoggedIn = mounted && Boolean(user || cachedRole || cachedToken);
+  // The only trustworthy signal for "is this user logged in" is the AuthContext
+  // user/session. localStorage leftovers (user_role, access_token) are written
+  // by application pages as a side effect and are NOT proof of a live session,
+  // so they must never gate the navbar branch — only the real user does.
+  const isLoggedIn = mounted && Boolean(user);
   const userRole = ((user as any)?.role || (user as any)?.user_metadata?.role || cachedRole || '').toLowerCase();
   const emailLower = (user?.email || '').toLowerCase().trim();
   const isSuperAdmin = (user as any)?.is_super_admin === true || userRole === 'super-admin' || userRole === 'super_admin' || emailLower === 'shadmannc0516@gmail.com';

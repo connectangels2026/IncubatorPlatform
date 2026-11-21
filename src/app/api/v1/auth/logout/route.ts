@@ -21,9 +21,23 @@ export async function POST(req: Request) {
 
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
 
-    // Clear both refresh and access cookies on logout
-    response.cookies.set('refresh_token', '', { path: '/', maxAge: 0 });
-    response.cookies.set('sb-access-token', '', { path: '/', maxAge: 0 });
+    // Clear every auth cookie the app and Supabase set. Supabase stores the
+    // session in a JSON blob under sb-<project-ref>-auth-token, so enumerate
+    // the incoming Cookie header and wipe anything matching, plus the named fallbacks.
+    const authCookieNames = new Set([
+      'refresh_token',
+      'sb-access-token',
+      'access_token',
+      'token',
+      'auth_token',
+    ]);
+    const cookieHeader = req.headers.get('cookie') || '';
+    for (const pair of cookieHeader.split(';')) {
+      const name = pair.split('=')[0]?.trim();
+      if (name && (name.startsWith('sb-') || authCookieNames.has(name))) {
+        response.cookies.set(name, '', { path: '/', maxAge: 0 });
+      }
+    }
 
     return response;
   } catch (err: any) {

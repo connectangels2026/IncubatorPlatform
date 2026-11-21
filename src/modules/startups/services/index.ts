@@ -160,8 +160,29 @@ export class StartupService {
       return { startups: [], total: count ?? 0 };
     }
 
+    // Compute founder registration status
+    const emails = data.map((row) => (row.founder_email || '').toLowerCase()).filter(Boolean);
+    const uniqueEmails = Array.from(new Set(emails));
+    let userStatusMap: Record<string, boolean> = {};
+    if (uniqueEmails.length > 0) {
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('email,last_login_at')
+        .in('email', uniqueEmails);
+      if (!userError && userData) {
+        userData.forEach((u: any) => {
+          userStatusMap[u.email.toLowerCase()] = !!u.last_login_at;
+        });
+      }
+    }
+    const startups = data.map((row) => {
+      const startup = mapRowToStartup(row);
+      const email = (row.founder_email || '').toLowerCase();
+      (startup as any).founder_registered = !!userStatusMap[email];
+      return startup;
+    });
     return {
-      startups: data.map(mapRowToStartup),
+      startups,
       total: count ?? data.length,
     };
   }

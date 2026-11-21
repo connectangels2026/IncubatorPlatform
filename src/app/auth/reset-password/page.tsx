@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
@@ -13,7 +13,38 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const router = useRouter();
+
+  // Consume the recovery token from the reset link so Supabase establishes
+  // a temporary session. updateUser() (used below) requires an active session.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token_hash = params.get('token_hash');
+    const type = params.get('type') || 'recovery';
+
+    if (!token_hash) {
+      setReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash,
+        type: type as 'recovery' | 'email' | 'signup',
+      });
+      if (cancelled) return;
+      if (verifyError) {
+        setError(verifyError.message || 'Invalid or expired reset link.');
+      }
+      setReady(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,16 +61,56 @@ export default function ResetPasswordPage() {
     setError(null);
 
     try {
-      const { error: updateErr } = await supabase.auth.updateUser({
-        password,
-      });
-      if (updateErr) throw updateErr;
+      let updated = false;
+      let lastErrMsg = '';
+
+      try {
+        const { error: updateErr } = await supabase.auth.updateUser({
+          password,
+        });
+        if (!updateErr) {
+          updated = true;
+        } else {
+          lastErrMsg = updateErr.message;
+        }
+      } catch (clientErr: any) {
+        lastErrMsg = clientErr?.message || '';
+      }
+
+      // If client-side failed (e.g. Failed to fetch or CORS), fall back to server API route
+      if (!updated) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const email = sessionData?.session?.user?.email;
+
+        const res = await fetch('/api/v1/auth/reset-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ password, email, access_token: token }),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.success) {
+          updated = true;
+        } else {
+          throw new Error(data?.error || lastErrMsg || 'Failed to update password');
+        }
+      }
+
       setSuccess(true);
       setTimeout(() => {
         router.push('/login');
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to update password');
+      const msg = (err?.message || '').toLowerCase();
+      if (msg.includes('failed to fetch') || msg.includes('network')) {
+        setError('Network error updating password. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'Failed to update password');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -74,8 +145,14 @@ export default function ResetPasswordPage() {
             </p>
 
             {error && (
-              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
-                {error}
+              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium space-y-2">
+                <div>{error}</div>
+                <Link
+                  href="/auth/forgot-password"
+                  className="inline-block text-[11px] font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-2"
+                >
+                  Request a new reset link
+                </Link>
               </div>
             )}
 
@@ -119,11 +196,11 @@ export default function ResetPasswordPage() {
 
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5"
+                disabled={isLoading || !ready}
+                className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Reset Password</span>
+                <span>{!ready ? 'Verifying reset link…' : 'Reset Password'}</span>
               </button>
 
               <div className="text-center pt-2">

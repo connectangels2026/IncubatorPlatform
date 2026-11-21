@@ -127,7 +127,20 @@ export default function IncubatorPlansPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | 'enterprise'>('free');
   const [isRoleVerified, setIsRoleVerified] = useState(false);
+
+  // Restore previously selected plan and billing cycle after re-login
+  useEffect(() => {
+    const savedTier = typeof window !== 'undefined' ? localStorage.getItem('org_tier') : null;
+    const savedBilling = typeof window !== 'undefined' ? localStorage.getItem('org_billing_cycle') : null;
+    if (savedTier && ['free', 'pro', 'enterprise'].includes(savedTier)) {
+      setSelectedPlan(savedTier as 'free' | 'pro' | 'enterprise');
+    }
+    if (savedBilling === 'monthly' || savedBilling === 'annual') {
+      setBillingCycle(savedBilling as 'monthly' | 'annual');
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -282,7 +295,7 @@ export default function IncubatorPlansPage() {
               <div
                 key={plan.id}
                 className={`relative flex flex-col justify-between rounded-3xl bg-white p-7 sm:p-8 transition-all duration-300 hover:-translate-y-1.5 ${
-                  isPro
+                  selectedPlan === plan.id || isPro
                     ? 'ring-2 ring-blue-600 scale-100 lg:scale-105 z-10 shadow-2xl shadow-blue-500/15'
                     : 'border border-slate-200/80 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60'
                 }`}
@@ -373,7 +386,7 @@ export default function IncubatorPlansPage() {
                 <div className="pt-2">
                   {plan.ctaStyle === 'gradient' && (
                     <button
-                      onClick={() => handleSelectPlan(plan.id)}
+                      onClick={() => { setSelectedPlan(plan.id); handleSelectPlan(plan.id); }}
                       className="w-full group inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-white font-bold text-sm sm:text-base bg-gradient-to-r from-[#0066ff] to-[#00d4ff] hover:opacity-95 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
                     >
                       <span>{plan.ctaText}</span>
@@ -383,7 +396,7 @@ export default function IncubatorPlansPage() {
 
                   {plan.ctaStyle === 'outline' && (
                     <button
-                      onClick={() => handleSelectPlan(plan.id)}
+                      onClick={() => { setSelectedPlan(plan.id); handleSelectPlan(plan.id); }}
                       className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-[#1A2151] font-bold text-sm sm:text-base border-2 border-slate-300 hover:border-[#1A2151] hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer"
                     >
                       <span>{plan.ctaText}</span>
@@ -392,7 +405,7 @@ export default function IncubatorPlansPage() {
 
                   {plan.ctaStyle === 'navy' && (
                     <button
-                      onClick={() => handleSelectPlan(plan.id)}
+                      onClick={() => { setSelectedPlan(plan.id); handleSelectPlan(plan.id); }}
                       className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl text-white font-bold text-sm sm:text-base bg-[#1A2151] hover:bg-[#252e6d] active:scale-[0.98] transition-all shadow-lg shadow-slate-900/10 cursor-pointer"
                     >
                       <span>{plan.ctaText}</span>

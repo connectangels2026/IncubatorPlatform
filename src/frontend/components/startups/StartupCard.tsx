@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
-import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake } from "lucide-react";
+import React, { useState } from "react";
+import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake, Mail, CheckCircle } from "lucide-react";
 import { StartupItem } from "./types";
 import StartupLogo from "@/frontend/components/ui/StartupLogo";
+import { apiClient } from "@/frontend/lib/apiClient";
 
 interface StartupCardProps {
   startup: StartupItem;
@@ -12,6 +13,7 @@ interface StartupCardProps {
   onAllocateInvestorClick?: (startup: StartupItem) => void;
   onCoIncubatorClick?: (startup: StartupItem) => void;
   onStatusChange?: (startup: StartupItem, status: 'Pending' | 'Active' | 'Inactive' | 'Exited') => void;
+  onInviteFounder?: (startup: StartupItem) => void;
 }
 
 export const StartupCard: React.FC<StartupCardProps> = ({
@@ -21,7 +23,46 @@ export const StartupCard: React.FC<StartupCardProps> = ({
   onAllocateInvestorClick,
   onCoIncubatorClick,
   onStatusChange,
+  onInviteFounder,
 }) => {
+  const [isInviting, setIsInviting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleInviteFounder = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsInviting(true);
+    try {
+      const res = await apiClient(`/api/v1/startups/${startup.id}/invite-founder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.link) {
+          try {
+            await navigator.clipboard.writeText(data.link);
+            showToast("✅ Invitation link copied to clipboard!", "success");
+          } catch {
+            showToast("✅ Invitation sent to founder.", "success");
+          }
+        } else {
+          showToast("✅ Invitation email sent to founder.", "success");
+        }
+        if (onInviteFounder) onInviteFounder(startup);
+      } else {
+        showToast(data.error || "Failed to send invitation", "error");
+      }
+    } catch (err) {
+      showToast("Network error. Please try again.", "error");
+    } finally {
+      setIsInviting(false);
+    }
+  };
   const getStageBadgeColor = (stage: string) => {
     switch (stage?.toLowerCase()) {
       case "idea":
@@ -84,6 +125,17 @@ export const StartupCard: React.FC<StartupCardProps> = ({
       onClick={() => onSelect(startup)}
       className="group bg-white rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between overflow-hidden relative"
     >
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-md ${
+            toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+          }`}
+        >
+          {toast.type === "success" && <CheckCircle className="w-3.5 h-3.5 shrink-0" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
       <div className="p-5">
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -191,6 +243,27 @@ export const StartupCard: React.FC<StartupCardProps> = ({
               className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-white rounded-md border border-transparent hover:border-slate-200 transition-colors"
             >
               <Handshake className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Invite Founder / Already Registered */}
+          {startup.founder_registered ? (
+            <span
+              title="Founder already registered"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium border border-emerald-200 cursor-default select-none"
+            >
+              <CheckCircle className="w-3 h-3" />
+              Registered
+            </span>
+          ) : (
+            <button
+              onClick={handleInviteFounder}
+              disabled={isInviting}
+              title="Invite Founder to set password"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-medium border border-indigo-200 cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-wait"
+            >
+              <Mail className="w-3 h-3" />
+              {isInviting ? "Sending…" : "Invite"}
             </button>
           )}
         </div>

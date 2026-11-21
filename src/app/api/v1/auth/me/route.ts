@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       // 1. Check organization by auth_user_id
       const { data: org } = await supabaseAdmin
         .from('organizations')
-        .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
+        .select('id, slug, name, founder_name, founder_email, is_verified, logo_url, subscription_tier, billing_cycle, subscription_status')
         .eq('auth_user_id', user.id)
         .maybeSingle();
 
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
         if (!orgData && uRec?.organization_id && !['startup', 'founder', 'mentor'].includes(recRole)) {
           const { data: org2 } = await supabaseAdmin
             .from('organizations')
-            .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
+            .select('id, slug, name, founder_name, founder_email, is_verified, logo_url, subscription_tier, billing_cycle, subscription_status')
             .eq('id', uRec.organization_id)
             .maybeSingle();
           orgData = org2;
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         if (!orgData && user.email) {
           const { data: orgByEmail } = await supabaseAdmin
             .from('organizations')
-            .select('id, slug, name, founder_name, founder_email, is_verified, logo_url')
+            .select('id, slug, name, founder_name, founder_email, is_verified, logo_url, subscription_tier, billing_cycle, subscription_status')
             .ilike('founder_email', user.email.trim())
             .maybeSingle();
           if (orgByEmail) orgData = orgByEmail;
