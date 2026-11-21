@@ -87,6 +87,7 @@ export interface StartupFinancials {
 }
 
 export interface StartupItem {
+  founder_registered?: boolean;
   id: string;
   name: string;
   startup_name?: string;

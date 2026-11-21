@@ -13,6 +13,9 @@ export interface Organization {
   founder_name?: string;
   founder_email?: string;
   logo_url?: string;
+  subscription_tier?: string | null;
+  billing_cycle?: string | null;
+  subscription_status?: string | null;
 }
 
 interface AuthContextType {
@@ -65,6 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             if (data.organization.name) {
               localStorage.setItem('org_name', data.organization.name);
+            }
+            if (data.organization.subscription_tier) {
+              localStorage.setItem('org_tier', data.organization.subscription_tier);
+            }
+            if (data.organization.billing_cycle) {
+              localStorage.setItem('org_billing_cycle', data.organization.billing_cycle);
             }
           }
         }
@@ -249,6 +258,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.organization?.name) {
           localStorage.setItem('org_name', data.organization.name);
         }
+        if (data.organization?.subscription_tier) {
+          localStorage.setItem('org_tier', data.organization.subscription_tier);
+        }
+        if (data.organization?.billing_cycle) {
+          localStorage.setItem('org_billing_cycle', data.organization.billing_cycle);
+        }
       }
 
       return {
@@ -351,6 +366,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'org_id',
       'org_founder_name',
       'org_name',
+      'org_tier',
+      'org_billing_cycle',
       'startup_track',
       'user_email',
       'last_applicant_email',

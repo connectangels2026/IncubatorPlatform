@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Logo from '@/frontend/components/ui/Logo';
+import { useAuth } from '@/frontend/context/AuthContext';
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -29,7 +30,7 @@ export interface NavItem {
 
 export const DEFAULT_INCUBATOR_NAV: NavItem[] = [
   { label: 'Home', href: '/incubator', icon: LayoutDashboard },
-  { label: 'Applications', href: '/incubator/applications', icon: ClipboardCheck, count: 42 },
+  { label: 'Applications', href: '/incubator/applications', icon: ClipboardCheck },
   { label: 'Startups', href: '/incubator/startups', icon: Building2 },
   { label: 'Mentors', href: '/incubator/mentors', icon: UserCheck },
   { label: 'Collaborators', href: '/incubator/collaborators', icon: Handshake },
@@ -53,6 +54,63 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+  const [applicationsCount, setApplicationsCount] = useState<number | null>(null);
+
+  let organization: any = null;
+  let user: any = null;
+  try {
+    const auth = useAuth();
+    organization = auth.organization;
+    user = auth.user;
+  } catch {
+    // Graceful fallback if rendered outside AuthProvider
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAppCount = async () => {
+      try {
+        const orgId =
+          organization?.id ||
+          user?.organization_id ||
+          (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+
+        if (!orgId) return;
+
+        const res = await fetch(`/api/v1/applications?org_id=${orgId}&limit=1`);
+        if (res.ok) {
+          const json = await res.json();
+          const total =
+            typeof json.total === 'number'
+              ? json.total
+              : typeof json.count === 'number'
+              ? json.count
+              : Array.isArray(json.data)
+              ? json.data.length
+              : null;
+          if (isMounted && typeof total === 'number') {
+            setApplicationsCount(total);
+          }
+        }
+      } catch {
+        // Fallback silently
+      }
+    };
+
+    fetchAppCount();
+
+    const onAppChange = () => fetchAppCount();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('applications-updated', onAppChange);
+    }
+
+    return () => {
+      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('applications-updated', onAppChange);
+      }
+    };
+  }, [organization?.id, user?.organization_id]);
 
   const handleLogout = () => {
     if (onLogout) {
@@ -157,17 +215,26 @@ export function Sidebar({
                     </span>
                   </div>
 
-                  {item.count !== undefined && (
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all duration-200 ${
-                        isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
-                      } ${
-                        isHovered ? 'opacity-100 ml-auto' : 'opacity-0 max-w-0 overflow-hidden md:hidden'
-                      }`}
-                    >
-                      {item.count}
-                    </span>
-                  )}
+                  {(() => {
+                    const displayCount =
+                      item.label === 'Applications'
+                        ? (applicationsCount !== null ? applicationsCount : item.count)
+                        : item.count;
+
+                    if (displayCount === undefined || displayCount === null) return null;
+
+                    return (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-all duration-200 ${
+                          isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                        } ${
+                          isHovered ? 'opacity-100 ml-auto' : 'opacity-0 max-w-0 overflow-hidden md:hidden'
+                        }`}
+                      >
+                        {displayCount}
+                      </span>
+                    );
+                  })()}
                 </Link>
               );
             })}
