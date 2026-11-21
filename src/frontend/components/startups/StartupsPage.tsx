@@ -34,6 +34,7 @@ import { AllocateMentorModal } from "./AllocateMentorModal";
 import { AllocateInvestorModal } from "./AllocateInvestorModal";
 import { AddCoIncubatorModal } from "./AddCoIncubatorModal";
 import { SignMOUModal } from "./SignMOUModal";
+import { Modal } from "@/frontend/components/ui/Modal";
 import {
   StartupItem,
   AllocatedMentor,
@@ -362,11 +363,15 @@ export const StartupsPage: React.FC = () => {
     pitch: "",
   });
 
+  // Assign Dashboard Confirmation Modal State
+  const [assignModalStartup, setAssignModalStartup] = useState<StartupItem | null>(null);
+  const [isAssigningDashboard, setIsAssigningDashboard] = useState(false);
+
   // Toast
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
   // Load from API with fallback
@@ -443,6 +448,7 @@ export const StartupsPage: React.FC = () => {
                 industry: item.sector || 'General',
                 stage: item.stage || 'Idea',
                 status: item.status || 'active',
+                admission_status: item.admission_status || null,
                 mrr: typeof item.revenue === "number" ? item.revenue : 0,
                 arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
                 customers: item.customer_count || 0,
@@ -956,6 +962,35 @@ export const StartupsPage: React.FC = () => {
     showToast("Preparing Startup Directory PDF printout...");
   };
 
+  // Handle in-place dashboard assignment confirm via Modal
+  const handleConfirmAssignDashboard = async () => {
+    if (!assignModalStartup || isAssigningDashboard) return;
+    setIsAssigningDashboard(true);
+    try {
+      const res = await apiClient.post(
+        `/startups/${assignModalStartup.id}/assign-dashboard`
+      );
+      if (res.data?.success) {
+        showToast("Dashboard access assigned successfully", "success");
+        setStartups((prev) =>
+          prev.map((s) => (s.id === assignModalStartup.id ? { ...s, admission_status: 'dashboard_assigned' } : s))
+        );
+        setAssignModalStartup(null);
+      } else {
+        showToast(res.data?.error || "Failed to assign dashboard access", "error");
+      }
+    } catch (err: any) {
+      const errMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to assign dashboard access";
+      showToast(errMsg, "error");
+    } finally {
+      setIsAssigningDashboard(false);
+    }
+  };
+
   // Handle Add New Startup
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1088,9 +1123,19 @@ export const StartupsPage: React.FC = () => {
       <div className="space-y-6">
         {/* Toast Notification */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-[120] bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-xl animate-in slide-in-from-bottom duration-200 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
-            <span>{toast}</span>
+          <div
+            className={`fixed bottom-6 right-6 z-[120] text-xs px-4 py-2.5 rounded-lg shadow-xl animate-in slide-in-from-bottom duration-200 flex items-center gap-2 ${
+              toast.type === "error"
+                ? "bg-rose-600 text-white"
+                : "bg-slate-900 text-white"
+            }`}
+          >
+            {toast.type === "error" ? (
+              <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
+            ) : (
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <span>{toast.message}</span>
           </div>
         )}
 
@@ -1447,6 +1492,7 @@ export const StartupsPage: React.FC = () => {
                 onAllocateInvestorClick={handleTriggerAllocateInvestor}
                 onCoIncubatorClick={handleTriggerAddCoIncubator}
                 onStatusChange={handleStatusChange}
+                onAssignDashboard={(startup) => setAssignModalStartup(startup)}
               />
             ) : (
               <StartupList
@@ -1456,6 +1502,7 @@ export const StartupsPage: React.FC = () => {
                 onAllocateInvestorClick={handleTriggerAllocateInvestor}
                 onCoIncubatorClick={handleTriggerAddCoIncubator}
                 onStatusChange={handleStatusChange}
+                onAssignDashboard={(startup) => setAssignModalStartup(startup)}
               />
             )}
 
@@ -1598,6 +1645,41 @@ export const StartupsPage: React.FC = () => {
         partner={activePartnerForMOU}
         startupName={targetStartupForAction?.name || "Startup"}
       />
+
+      {/* Assign Dashboard Confirmation Modal */}
+      <Modal
+        isOpen={!!assignModalStartup}
+        onClose={() => {
+          if (!isAssigningDashboard) setAssignModalStartup(null);
+        }}
+        title="Assign dashboard access"
+        maxWidth="sm"
+      >
+        <p className="text-sm text-slate-600 mb-6">
+          Give {assignModalStartup?.name} access to its dashboard?
+        </p>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAssigningDashboard) setAssignModalStartup(null);
+            }}
+            disabled={isAssigningDashboard}
+            className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmAssignDashboard}
+            disabled={isAssigningDashboard}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait shadow-xs cursor-pointer"
+          >
+            {isAssigningDashboard && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            <span>Assign</span>
+          </button>
+        </div>
+      </Modal>
 
       {/* Onboard Startup Modal */}
       {isOnboardOpen && (

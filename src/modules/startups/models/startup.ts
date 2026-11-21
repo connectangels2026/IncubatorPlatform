@@ -10,6 +10,7 @@ export interface Startup {
   sector: string;
   stage: string;
   status: string;
+  admission_status?: string;
   lifecycle_stage?: string;
   revenue: number;
   monthly_revenue?: number;

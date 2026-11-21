@@ -37,14 +37,18 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-2xl shadow-xl border border-slate-200/80 p-6 transition-all duration-200`}
         role="dialog"
       >
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+          className="absolute top-5 right-5 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
           aria-label="Close"
         >
           <X className="w-5 h-5" />

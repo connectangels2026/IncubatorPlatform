@@ -75,6 +75,7 @@ const mapRowToStartup = (row: any): Startup => {
     sector: row.sector || 'General',
     stage: row.stage || 'Idea',
     status: row.status || 'active',
+    admission_status: row.admission_status || null,
     revenue: Number(row.monthly_revenue || row.annual_revenue) || 0,
     organization_id: row.organization_id,
     created_at: row.created_at,
@@ -175,10 +176,55 @@ export class StartupService {
         });
       }
     }
+
+    // Query admission_status from linked applications
+    const startupIds = data.map((row) => row.id).filter(Boolean);
+    let appStatusMap: Record<string, string> = {};
+    if (startupIds.length > 0) {
+      const { data: appData } = await supabaseAdmin
+        .from('applications')
+        .select('startup_id, applicant_email, admission_status')
+        .in('startup_id', startupIds)
+        .order('created_at', { ascending: false });
+
+      if (appData) {
+        appData.forEach((a: any) => {
+          if (a.startup_id && !appStatusMap[a.startup_id]) {
+            appStatusMap[a.startup_id] = a.admission_status || null;
+          }
+        });
+      }
+    }
+    if (uniqueEmails.length > 0) {
+      const { data: emailAppData } = await supabaseAdmin
+        .from('applications')
+        .select('startup_id, applicant_email, admission_status')
+        .in('applicant_email', uniqueEmails)
+        .order('created_at', { ascending: false });
+
+      if (emailAppData) {
+        emailAppData.forEach((a: any) => {
+          if (a.applicant_email) {
+            const em = a.applicant_email.toLowerCase();
+            if (!appStatusMap[em]) {
+              appStatusMap[em] = a.admission_status || null;
+            }
+          }
+        });
+      }
+    }
+
     const startups = data.map((row) => {
       const startup = mapRowToStartup(row);
       const email = (row.founder_email || '').toLowerCase();
       (startup as any).founder_registered = !!userStatusMap[email];
+      const resolvedAdmissionStatus =
+        row.admission_status ||
+        appStatusMap[row.id] ||
+        (email ? appStatusMap[email] : null) ||
+        null;
+      (startup as any).admission_status = resolvedAdmissionStatus;
+      startup.admission_status = resolvedAdmissionStatus;
       return startup;
     });
     return {

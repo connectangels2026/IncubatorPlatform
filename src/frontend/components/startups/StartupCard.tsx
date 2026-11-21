@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake, Mail, CheckCircle } from "lucide-react";
+import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake, Mail, CheckCircle, LayoutDashboard } from "lucide-react";
 import { StartupItem } from "./types";
 import StartupLogo from "@/frontend/components/ui/StartupLogo";
 import { apiClient } from "@/frontend/lib/apiClient";
@@ -14,6 +14,7 @@ interface StartupCardProps {
   onCoIncubatorClick?: (startup: StartupItem) => void;
   onStatusChange?: (startup: StartupItem, status: 'Pending' | 'Active' | 'Inactive' | 'Exited') => void;
   onInviteFounder?: (startup: StartupItem) => void;
+  onAssignDashboard?: (startup: StartupItem) => void;
 }
 
 export const StartupCard: React.FC<StartupCardProps> = ({
@@ -24,6 +25,7 @@ export const StartupCard: React.FC<StartupCardProps> = ({
   onCoIncubatorClick,
   onStatusChange,
   onInviteFounder,
+  onAssignDashboard,
 }) => {
   const [isInviting, setIsInviting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -31,6 +33,14 @@ export const StartupCard: React.FC<StartupCardProps> = ({
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleAssignDashboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (startup.admission_status === 'dashboard_assigned') return;
+    if (onAssignDashboard) {
+      onAssignDashboard(startup);
+    }
   };
 
   const handleInviteFounder = async (e: React.MouseEvent) => {
@@ -264,6 +274,18 @@ export const StartupCard: React.FC<StartupCardProps> = ({
             >
               <Mail className="w-3 h-3" />
               {isInviting ? "Sending…" : "Invite"}
+            </button>
+          )}
+
+          {/* Assign Dashboard Button (hidden if already assigned) */}
+          {startup.admission_status !== 'dashboard_assigned' && (
+            <button
+              onClick={handleAssignDashboard}
+              title="Assign Dashboard Access"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-medium border border-indigo-200 cursor-pointer transition-colors"
+            >
+              <LayoutDashboard className="w-3 h-3" />
+              Assign Dashboard
             </button>
           )}
         </div>
