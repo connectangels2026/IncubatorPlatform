@@ -214,7 +214,9 @@ export class StartupService {
       description: data.description || null,
       monthly_revenue: Number(data.revenue) || 0,
       annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
-      status: data.status || 'Active',
+      status: (data.status || 'active').toLowerCase(),
+      is_active: true,
+      track: (data as any).track || 'incubation',
     };
 
     if (data.founder_id && isValidUUID(data.founder_id)) {
@@ -251,6 +253,12 @@ export class StartupService {
       if (error.message?.includes("'name'")) {
         delete insertPayload.name;
         insertPayload.startup_name = stName;
+      }
+      if (error.message?.includes("'track'")) {
+        delete insertPayload.track;
+      }
+      if (error.message?.includes("'is_active'")) {
+        delete insertPayload.is_active;
       }
       delete insertPayload.team_members;
       const retryRes = await supabaseAdmin

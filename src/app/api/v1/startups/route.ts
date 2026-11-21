@@ -83,52 +83,111 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Validation Error: startup_name and founder_name are required' }, { status: 400 });
     }
 
-    const isValidUUID = (val?: any) =>
-      Boolean(val && typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
-
-    let founderId: string | null = null;
     const founderEmail = (body.founder_email || body.email || '').trim().toLowerCase();
-    if (body.founder_id && isValidUUID(body.founder_id)) {
-      founderId = body.founder_id;
-    } else if (role === 'founder' || role === 'startup') {
-      founderId = (user?.id && isValidUUID(user.id)) ? user.id : null;
-    } else {
-      if (founderEmail) {
-        const { data: founderUser } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .ilike('email', founderEmail)
-          .maybeSingle();
-        if (founderUser?.id && isValidUUID(founderUser.id)) founderId = founderUser.id;
-      }
+    const founderName = (body.founder_name || '').trim();
+
+    if (!founderEmail) {
+      return NextResponse.json({ error: 'Validation Error: founder_email is required' }, { status: 400 });
     }
 
-    // Guard against duplicate startup registration in this organization (e.g. from double submissions)
-    if (orgId && resolvedName) {
-      let dupQuery = supabaseAdmin
-        .from('startups')
-        .select('*')
-        .eq('organization_id', orgId)
-        .ilike('name', resolvedName.trim());
+    // 1. Check if email already exists in users table
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .ilike('email', founderEmail)
+      .limit(1)
+      .maybeSingle();
 
-      if (founderEmail) {
-        dupQuery = dupQuery.ilike('founder_email', founderEmail);
-      }
-
-      const { data: existingDuplicate } = await dupQuery.limit(1).maybeSingle();
-      if (existingDuplicate) {
-        return NextResponse.json({ success: true, data: existingDuplicate }, { status: 200 });
-      }
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Email already registered. A user with this email already exists.' },
+        { status: 400 }
+      );
     }
 
+    // 2. Generate password = <foundername>@123 (lowercase, no spaces)
+    const cleanFounderName = founderName.toLowerCase().replace(/\s+/g, '');
+    const generatedPassword = `${cleanFounderName || 'startup'}@123`;
+
+    // 3. Create founder in Supabase Auth via Admin API
+    const adminCreateResult = await supabaseAdmin.auth.admin.createUser({
+      email: founderEmail,
+      password: generatedPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: founderName,
+        name: founderName,
+        role: 'startup',
+      },
+    });
+
+    if (adminCreateResult.error) {
+      const errMsg = (adminCreateResult.error.message || '').toLowerCase();
+      if (
+        errMsg.includes('already') ||
+        errMsg.includes('exists') ||
+        errMsg.includes('duplicate') ||
+        (adminCreateResult.error as any).status === 422
+      ) {
+        return NextResponse.json(
+          { error: 'Email already registered. A user with this email already exists.' },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: `Auth Error: ${adminCreateResult.error.message}` },
+        { status: 400 }
+      );
+    }
+
+    const authUser = adminCreateResult.data.user;
+    const founderId = authUser.id;
+
+    // 4. Create user profile in users table with role = 'startup', is_active = true, email_verified = true
+    const nameArray = founderName.split(' ');
+    const firstName = nameArray[0] || 'Founder';
+    const lastName = nameArray.slice(1).join(' ') || '';
+
+    await supabaseAdmin
+      .from('users')
+      .upsert({
+        id: founderId,
+        organization_id: orgId,
+        email: founderEmail,
+        first_name: firstName,
+        last_name: lastName,
+        full_name: founderName,
+        is_active: true,
+        email_verified: true,
+        role: 'startup',
+      });
+
+    // 5. Create startup in startups table with status = 'active'
     const created = await StartupService.createStartup({
       ...body,
       startup_name: resolvedName,
       name: resolvedName,
-      founder_id: founderId || undefined,
+      founder_name: founderName,
+      founder_email: founderEmail,
+      email: founderEmail,
+      founder_id: founderId,
       organization_id: orgId,
+      status: 'active',
+      is_active: true,
+      track: body.track || 'incubation',
     });
-    return NextResponse.json({ success: true, data: created }, { status: 201 });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: created,
+        credentials: {
+          email: founderEmail,
+          password: generatedPassword,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
     return handleApiError(error);
   }

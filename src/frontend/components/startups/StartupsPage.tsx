@@ -18,6 +18,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Copy,
+  Check,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/frontend/context/AuthContext";
 import { DashboardLayout } from "@/frontend/components/layouts/DashboardLayout";
@@ -335,6 +338,15 @@ export const StartupsPage: React.FC = () => {
   const [isOnboardingLoading, setIsOnboardingLoading] = useState(false);
   const [activePartnerForMOU, setActivePartnerForMOU] = useState<CoIncubatorItem | null>(null);
   const [targetStartupForAction, setTargetStartupForAction] = useState<StartupItem | null>(null);
+
+  // Newly Created Startup Credentials Modal State
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+    startupName: string;
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<'all' | 'email' | 'password' | null>(null);
+  const [onboardError, setOnboardError] = useState<string | null>(null);
 
   // New Startup Onboard Form State
   const [onboardForm, setOnboardForm] = useState({
@@ -948,8 +960,10 @@ export const StartupsPage: React.FC = () => {
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isOnboardingLoading) return;
+    setOnboardError(null);
 
     if (!onboardForm.name.trim() || !onboardForm.founder.trim() || !onboardForm.founderEmail.trim()) {
+      setOnboardError("Please provide Startup Name, Founder Name, and Email.");
       showToast("Please provide Startup Name, Founder Name, and Email.");
       return;
     }
@@ -969,6 +983,7 @@ export const StartupsPage: React.FC = () => {
     }
 
     if (!orgId) {
+      setOnboardError("Missing organization context. Please refresh or re-login.");
       showToast("Missing organization context. Please refresh or re-login.");
       return;
     }
@@ -987,7 +1002,7 @@ export const StartupsPage: React.FC = () => {
           sector: onboardForm.industry,
           industry: onboardForm.industry,
           stage: onboardForm.stage,
-          status: onboardForm.status,
+          status: "active",
           description: onboardForm.pitch.trim(),
           organization_id: orgId,
         },
@@ -997,6 +1012,8 @@ export const StartupsPage: React.FC = () => {
       );
 
       const created = res.data?.data;
+      const credentials = res.data?.credentials;
+
       const newStartup: StartupItem = {
         id: created?.id || ("st_" + Date.now()),
         name: created?.name || onboardForm.name.trim(),
@@ -1005,7 +1022,7 @@ export const StartupsPage: React.FC = () => {
         sector: created?.sector || onboardForm.industry,
         industry: created?.sector || onboardForm.industry,
         stage: created?.stage || onboardForm.stage,
-        status: created?.status || onboardForm.status,
+        status: "Active",
         funding: onboardForm.funding || "$0",
         fundingRaised: onboardForm.funding || "$0",
         mrr: 0,
@@ -1048,9 +1065,19 @@ export const StartupsPage: React.FC = () => {
       });
       setIsOnboardOpen(false);
       showToast(`Successfully registered ${newStartup.name}!`);
+
+      if (credentials?.email && credentials?.password) {
+        setCreatedCredentials({
+          email: credentials.email,
+          password: credentials.password,
+          startupName: newStartup.name,
+        });
+      }
     } catch (err: any) {
       console.error("Failed to register startup:", err);
-      showToast(err.response?.data?.error || "Failed to register startup. Please try again.");
+      const errMsg = err.response?.data?.error || err.response?.data?.message || "Failed to register startup. Please try again.";
+      setOnboardError(errMsg);
+      showToast(errMsg);
     } finally {
       setIsOnboardingLoading(false);
     }
@@ -1080,7 +1107,10 @@ export const StartupsPage: React.FC = () => {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setIsOnboardOpen(true)}
+              onClick={() => {
+                setOnboardError(null);
+                setIsOnboardOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -1587,6 +1617,12 @@ export const StartupsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleOnboardSubmit} className="p-6 space-y-4">
+              {onboardError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <span>{onboardError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">Startup name *</label>
@@ -1710,6 +1746,140 @@ export const StartupsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Newly Created Startup Credentials Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Startup Registered Successfully</h3>
+                  <p className="text-xs text-slate-500">{createdCredentials.startupName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-800">
+              <p className="font-semibold">Founder Login Credentials Created</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Status is set to <span className="font-semibold text-emerald-700">active</span> with startup dashboard access. Share these login details with the founder:
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Founder Email</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdCredentials.email}
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-mono select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.email);
+                      setCopiedField('email');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+                    title="Copy email"
+                  >
+                    {copiedField === 'email' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Password</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdCredentials.password}
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-mono select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.password);
+                      setCopiedField('password');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+                    title="Copy password"
+                  >
+                    {copiedField === 'password' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-2 justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const text = `Startup: ${createdCredentials.startupName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedField('all');
+                  setTimeout(() => setCopiedField(null), 2000);
+                }}
+                className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                {copiedField === 'all' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-600">All Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Copy All</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreatedCredentials(null)}
+                className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
