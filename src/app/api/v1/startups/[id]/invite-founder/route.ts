@@ -45,39 +45,86 @@ export async function POST(
       );
     }
 
-    // 4. Check if user already exists in Supabase Auth
+    // 4. Look up auth user by lowercased and trimmed email first
     const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
     const existingUser = userList?.users?.find(
-      (u) => u.email?.toLowerCase() === founderEmail
+      (u) => (u.email || '').trim().toLowerCase() === founderEmail
     );
 
-    // 5. If not exists, create a placeholder account first
-    if (!existingUser) {
-      const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
-        email: founderEmail,
-        email_confirm: true,
-        user_metadata: {
-          name: startup.founder_name || '',
-          organization_id: startup.organization_id || '',
-          role: 'founder',
-        },
-      });
-      if (createErr && !createErr.message?.toLowerCase().includes('already registered')) {
-        console.error('[invite-founder] createUser error:', createErr);
-        return NextResponse.json(
-          { error: 'Could not create founder account: ' + createErr.message },
-          { status: 500 }
-        );
-      }
-    }
-
-    // 6. Generate a password-reset / set-password link
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL ||
       req.nextUrl.origin ||
       'http://localhost:3000';
-    const redirectTo = `${siteUrl}/auth/reset-password`;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Acme <onboarding@resend.dev>';
 
+    // 5. If user already exists: reuse user id, link startup, do NOT send set-password email
+    if (existingUser) {
+      await supabaseAdmin
+        .from('startups')
+        .update({
+          founder_id: existingUser.id,
+          founder_email: founderEmail,
+        })
+        .eq('id', startupId);
+
+      let emailSent = false;
+      if (resendApiKey) {
+        try {
+          const resend = new Resend(resendApiKey);
+          const loginUrl = `${siteUrl}/login`;
+          await resend.emails.send({
+            from: fromEmail,
+            to: founderEmail,
+            subject: `You have been added to ${startup.name || 'Startup'}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #1e293b;">New Startup Workspace Assigned</h2>
+                <p>Hi ${startup.founder_name || 'Founder'},</p>
+                <p>Your account has been linked to <strong>${startup.name || 'your startup'}</strong>.</p>
+                <p>You can access this startup by logging in with your existing account:</p>
+                <p style="margin: 24px 0;">
+                  <a href="${loginUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                    Open Dashboard
+                  </a>
+                </p>
+              </div>
+            `,
+          });
+          emailSent = true;
+        } catch (mailErr) {
+          console.error('[invite-founder] Notification email error for existing user:', mailErr);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        existing_user: true,
+        email: founderEmail,
+        message: `Existing user linked to ${startup.name || 'startup'}`,
+        email_sent: emailSent,
+      });
+    }
+
+    // 6. If user doesn't exist: create placeholder account and generate recovery link
+    const { error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: founderEmail,
+      email_confirm: true,
+      user_metadata: {
+        name: startup.founder_name || '',
+        organization_id: startup.organization_id || '',
+        role: 'founder',
+      },
+    });
+    if (createErr && !createErr.message?.toLowerCase().includes('already registered')) {
+      console.error('[invite-founder] createUser error:', createErr);
+      return NextResponse.json(
+        { error: 'Could not create founder account: ' + createErr.message },
+        { status: 500 }
+      );
+    }
+
+    const redirectTo = `${siteUrl}/auth/reset-password`;
     const { data: linkData, error: linkErr } =
       await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
@@ -95,11 +142,9 @@ export async function POST(
 
     const link = linkData.properties.action_link;
 
-    // 7. Dispatch email via Resend
+    // 7. Dispatch invitation email via Resend
     let emailSent = false;
     let emailError: string | null = null;
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Acme <onboarding@resend.dev>';
 
     try {
       const resend = new Resend(resendApiKey);

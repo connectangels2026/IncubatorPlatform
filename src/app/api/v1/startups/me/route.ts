@@ -27,15 +27,40 @@ export async function GET(req: NextRequest) {
 
     const emailLower = user.email.trim().toLowerCase();
 
-    // 1. Fetch startup record linked to this founder
-    let { data: startup, error: stErr } = await supabaseAdmin
-      .from('startups')
-      .select('*')
-      .ilike('founder_email', emailLower)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // 1. Fetch startup record linked to this founder (honoring selected_startup_id if set)
+    const selectedStartupId =
+      req.cookies.get('selected_startup_id')?.value ||
+      req.headers.get('x-startup-id') ||
+      req.nextUrl.searchParams.get('id');
+
+    let startup: any = null;
+    let stErr: any = null;
+
+    if (selectedStartupId) {
+      const selRes = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('id', selectedStartupId)
+        .ilike('founder_email', emailLower)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (selRes.data) {
+        startup = selRes.data;
+      }
+    }
+
+    if (!startup) {
+      const defaultRes = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .ilike('founder_email', emailLower)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      startup = defaultRes.data;
+      stErr = defaultRes.error;
+    }
 
     // 2. If no startup record found, check if user has an accepted application with dashboard assigned
     let linkedApp: any = null;

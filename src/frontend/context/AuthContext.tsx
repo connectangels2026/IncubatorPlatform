@@ -174,6 +174,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('org_name');
       localStorage.removeItem('startup_track');
       localStorage.removeItem('access_token');
+      localStorage.removeItem('selected_startup_id');
+      localStorage.removeItem('selected_startup_name');
+      localStorage.removeItem('founder_startups_count');
     }
     try {
       const res = await fetch('/api/v1/auth/login', {
@@ -293,6 +296,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('org_name');
       localStorage.removeItem('startup_track');
       localStorage.removeItem('access_token');
+      localStorage.removeItem('selected_startup_id');
+      localStorage.removeItem('selected_startup_name');
+      localStorage.removeItem('founder_startups_count');
     }
     try {
       const res = await fetch('/api/v1/auth/signup', {

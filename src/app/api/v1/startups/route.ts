@@ -137,25 +137,39 @@ export async function POST(req: NextRequest) {
       }, { status: 200 });
     }
 
-    // 1. Check if email already exists in users table or auth
+    // 1. Look up auth user by lowercased and trimmed email first
     let founderId: string | null = null;
     let passwordForResponse: string | null = null;
+    let userAlreadyExisted = false;
 
-    const cleanFounderName = founderName.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const basePrefix = cleanFounderName.length >= 4 ? cleanFounderName : `${cleanFounderName || 'startup'}founder`;
-    const generatedPassword = `${basePrefix}@123`;
+    const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+    const existingAuthUser = userList?.users?.find(
+      (u) => (u.email || '').trim().toLowerCase() === founderEmail
+    );
 
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .ilike('email', founderEmail)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingUser) {
-      founderId = existingUser.id;
+    if (existingAuthUser) {
+      founderId = existingAuthUser.id;
+      userAlreadyExisted = true;
     } else {
-      // 2. Create founder in Supabase Auth via Admin API
+      const { data: publicUser } = await supabaseAdmin
+        .from('users')
+        .select('id, email')
+        .ilike('email', founderEmail)
+        .limit(1)
+        .maybeSingle();
+
+      if (publicUser?.id) {
+        founderId = publicUser.id;
+        userAlreadyExisted = true;
+      }
+    }
+
+    if (!founderId) {
+      // 2. User doesn't exist: create founder in Supabase Auth via Admin API
+      const cleanFounderName = founderName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const basePrefix = cleanFounderName.length >= 4 ? cleanFounderName : `${cleanFounderName || 'startup'}founder`;
+      const generatedPassword = `${basePrefix}@123`;
+
       const adminCreateResult = await supabaseAdmin.auth.admin.createUser({
         email: founderEmail,
         password: generatedPassword,
@@ -175,12 +189,13 @@ export async function POST(req: NextRequest) {
           errMsg.includes('duplicate') ||
           (adminCreateResult.error as any).status === 422
         ) {
-          const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
-          const foundAuth = userList?.users?.find(
-            (u) => (u.email || '').toLowerCase() === founderEmail
+          const { data: retryList } = await supabaseAdmin.auth.admin.listUsers();
+          const found = retryList?.users?.find(
+            (u) => (u.email || '').trim().toLowerCase() === founderEmail
           );
-          if (foundAuth) {
-            founderId = foundAuth.id;
+          if (found) {
+            founderId = found.id;
+            userAlreadyExisted = true;
           }
         }
 
@@ -239,10 +254,13 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         data: created,
-        credentials: {
-          email: founderEmail,
-          password: passwordForResponse || generatedPassword,
-        },
+        user_existed: userAlreadyExisted,
+        credentials: passwordForResponse
+          ? {
+              email: founderEmail,
+              password: passwordForResponse,
+            }
+          : undefined,
       },
       { status: 201 }
     );

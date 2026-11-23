@@ -163,6 +163,18 @@ function LoginForm() {
         const data = await res.json();
 
         if (res.ok && data?.has_assigned_dashboard && data?.startup?.id) {
+          // If founder has multiple startups, send to choose-startup
+          try {
+            const fsRes = await fetch('/api/founder/startups', { headers });
+            if (fsRes.ok) {
+              const fsData = await fsRes.json();
+              if ((fsData?.startups?.length || 0) >= 2 || (fsData?.total || 0) >= 2) {
+                router.push('/choose-startup');
+                return;
+              }
+            }
+          } catch {}
+
           if (typeof window !== 'undefined' && data.startup.organization_id) {
             localStorage.setItem('org_id', data.startup.organization_id);
           }
