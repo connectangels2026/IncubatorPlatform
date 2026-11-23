@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake, Mail, CheckCircle, LayoutDashboard } from "lucide-react";
+import { Users, DollarSign, Award, ChevronRight, UserCheck, TrendingUp, Handshake, Mail, CheckCircle, Check, LayoutDashboard } from "lucide-react";
 import { StartupItem } from "./types";
 import StartupLogo from "@/frontend/components/ui/StartupLogo";
 import { apiClient } from "@/frontend/lib/apiClient";
@@ -288,8 +288,16 @@ export const StartupCard: React.FC<StartupCardProps> = ({
             </button>
           )}
 
-          {/* Assign Dashboard Button (hidden if already assigned) */}
-          {startup.admission_status !== 'dashboard_assigned' && (
+          {/* Assign Dashboard Button / Badge */}
+          {startup.admission_status === 'dashboard_assigned' ? (
+            <span
+              title="Dashboard Assigned"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium border border-emerald-200 cursor-default select-none"
+            >
+              <Check className="w-3 h-3 text-emerald-600" />
+              Dashboard Assigned
+            </span>
+          ) : (
             <button
               onClick={handleAssignDashboard}
               title="Assign Dashboard Access"

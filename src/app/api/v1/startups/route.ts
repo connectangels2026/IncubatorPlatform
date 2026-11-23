@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
       order: (url.searchParams.get('order') as any) || 'desc',
       limit,
       offset,
+      dashboard: url.searchParams.get('dashboard') || undefined,
     };
 
     const result = await StartupService.getStartups(orgId!, filter);
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
       success: true,
       organization_id: orgId,
       total: result.total,
+      dashboards_assigned: result.dashboards_assigned ?? 0,
       page,
       limit,
       data: result.startups,

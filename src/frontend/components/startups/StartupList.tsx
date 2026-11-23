@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { StartupItem } from "./types";
-import { UserCheck, TrendingUp, Handshake, Rocket, Mail, CheckCircle, LayoutDashboard } from "lucide-react";
+import { UserCheck, TrendingUp, Handshake, Rocket, Mail, CheckCircle, Check, LayoutDashboard } from "lucide-react";
 import { apiClient } from "@/frontend/lib/apiClient";
 
 interface StartupListProps {
@@ -283,8 +283,16 @@ export const StartupList: React.FC<StartupListProps> = ({
                           </button>
                         )}
 
-                        {/* Assign Dashboard Button (hidden if already assigned) */}
-                        {startup.admission_status !== 'dashboard_assigned' && (
+                        {/* Assign Dashboard Button / Badge */}
+                        {startup.admission_status === 'dashboard_assigned' ? (
+                          <span
+                            title="Dashboard Assigned"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium border border-emerald-200 cursor-default select-none"
+                          >
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            Dashboard Assigned
+                          </span>
+                        ) : (
                           <button
                             onClick={(e) => handleAssignDashboard(e, startup)}
                             title="Assign Dashboard Access"

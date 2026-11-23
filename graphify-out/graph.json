@@ -1795,7 +1795,7 @@
       "file_type": "code",
       "norm_label": "startupservice",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L90"
+      "source_location": "L91"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator",
@@ -7955,7 +7955,7 @@
       "file_type": "code",
       "norm_label": "isvaliduuid()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L54"
+      "source_location": "L55"
     },
     {
       "id": "src_modules_startups_services_index_maprowtostartup",
@@ -7967,7 +7967,7 @@
       "file_type": "code",
       "norm_label": "maprowtostartup()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L64"
+      "source_location": "L65"
     },
     {
       "id": "src_modules_startups_services_index_resolveorgid",
@@ -7979,7 +7979,7 @@
       "file_type": "code",
       "norm_label": "resolveorgid()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L58"
+      "source_location": "L59"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_addteammember",
@@ -7991,7 +7991,7 @@
       "file_type": "code",
       "norm_label": ".addteammember()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L498"
+      "source_location": "L552"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_allocateinvestor",
@@ -8003,7 +8003,7 @@
       "file_type": "code",
       "norm_label": ".allocateinvestor()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L776"
+      "source_location": "L830"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_allocatementor",
@@ -8015,7 +8015,7 @@
       "file_type": "code",
       "norm_label": ".allocatementor()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L621"
+      "source_location": "L675"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_createstartup",
@@ -8027,7 +8027,7 @@
       "file_type": "code",
       "norm_label": ".createstartup()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L260"
+      "source_location": "L314"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_deallocateinvestor",
@@ -8039,7 +8039,7 @@
       "file_type": "code",
       "norm_label": ".deallocateinvestor()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L786"
+      "source_location": "L840"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_deallocatementor",
@@ -8051,7 +8051,7 @@
       "file_type": "code",
       "norm_label": ".deallocatementor()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L766"
+      "source_location": "L820"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getcoincubations",
@@ -8063,7 +8063,7 @@
       "file_type": "code",
       "norm_label": ".getcoincubations()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L789"
+      "source_location": "L843"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getinvestors",
@@ -8075,7 +8075,7 @@
       "file_type": "code",
       "norm_label": ".getinvestors()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L775"
+      "source_location": "L829"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getmentors",
@@ -8087,7 +8087,7 @@
       "file_type": "code",
       "norm_label": ".getmentors()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L554"
+      "source_location": "L608"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getstartupbyid",
@@ -8099,7 +8099,7 @@
       "file_type": "code",
       "norm_label": ".getstartupbyid()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L236"
+      "source_location": "L290"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getstartups",
@@ -8111,7 +8111,7 @@
       "file_type": "code",
       "norm_label": ".getstartups()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L92"
+      "source_location": "L93"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_getteammembers",
@@ -8123,7 +8123,7 @@
       "file_type": "code",
       "norm_label": ".getteammembers()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L474"
+      "source_location": "L528"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_removeteammember",
@@ -8135,7 +8135,7 @@
       "file_type": "code",
       "norm_label": ".removeteammember()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L538"
+      "source_location": "L592"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_softdeletestartup",
@@ -8147,7 +8147,7 @@
       "file_type": "code",
       "norm_label": ".softdeletestartup()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L449"
+      "source_location": "L503"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_updateinvestorallocation",
@@ -8159,7 +8159,7 @@
       "file_type": "code",
       "norm_label": ".updateinvestorallocation()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L777"
+      "source_location": "L831"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_updatementorallocation",
@@ -8171,7 +8171,7 @@
       "file_type": "code",
       "norm_label": ".updatementorallocation()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L750"
+      "source_location": "L804"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_updatestartup",
@@ -8183,7 +8183,7 @@
       "file_type": "code",
       "norm_label": ".updatestartup()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L375"
+      "source_location": "L429"
     },
     {
       "id": "src_modules_startups_services_index_startupservice_updateteammember",
@@ -8195,7 +8195,7 @@
       "file_type": "code",
       "norm_label": ".updateteammember()",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L521"
+      "source_location": "L575"
     },
     {
       "id": "agents_skills_ui_styling_scripts_tests_test_tailwind_config_gen_testtailwindconfiggenerator_test_validate_config_valid",
@@ -10223,7 +10223,7 @@
       "file_type": "code",
       "norm_label": "post()",
       "source_file": "src/app/api/v1/startups/route.ts",
-      "source_location": "L48"
+      "source_location": "L50"
     },
     {
       "id": "src_backend_middleware_errorhandler_handleapierror",
@@ -30031,7 +30031,7 @@
       "file_type": "code",
       "norm_label": "fallbackstartups",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L17"
+      "source_location": "L18"
     },
     {
       "id": "agents_skills_brand_references_color_palette_management",
@@ -52976,7 +52976,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/route.ts",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -52988,7 +52988,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/route.ts",
-      "source_location": "L248",
+      "source_location": "L250",
       "weight": 1.0
     },
     {
@@ -53000,7 +53000,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/v1/startups/route.ts",
-      "source_location": "L50",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -56828,7 +56828,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1249",
+      "source_location": "L1260",
       "weight": 1.0
     },
     {
@@ -56840,7 +56840,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1618",
+      "source_location": "L1645",
       "weight": 1.0
     },
     {
@@ -56852,7 +56852,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1628",
+      "source_location": "L1655",
       "weight": 1.0
     },
     {
@@ -56864,7 +56864,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1718",
+      "source_location": "L1745",
       "weight": 1.0
     },
     {
@@ -56876,7 +56876,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1735",
+      "source_location": "L1762",
       "weight": 1.0
     },
     {
@@ -56888,7 +56888,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1742",
+      "source_location": "L1769",
       "weight": 1.0
     },
     {
@@ -56900,7 +56900,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1749",
+      "source_location": "L1776",
       "weight": 1.0
     },
     {
@@ -56912,7 +56912,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1771",
+      "source_location": "L1798",
       "weight": 1.0
     },
     {
@@ -56924,7 +56924,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1780",
+      "source_location": "L1807",
       "weight": 1.0
     },
     {
@@ -57332,7 +57332,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -57344,7 +57344,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L499",
+      "source_location": "L553",
       "weight": 1.0
     },
     {
@@ -57356,7 +57356,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L511",
+      "source_location": "L565",
       "weight": 1.0
     },
     {
@@ -57368,7 +57368,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L627",
+      "source_location": "L681",
       "weight": 1.0
     },
     {
@@ -57380,7 +57380,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L716",
+      "source_location": "L770",
       "weight": 1.0
     },
     {
@@ -57392,7 +57392,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L261",
+      "source_location": "L315",
       "weight": 1.0
     },
     {
@@ -57404,7 +57404,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L295",
+      "source_location": "L349",
       "weight": 1.0
     },
     {
@@ -57416,7 +57416,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L316",
+      "source_location": "L370",
       "weight": 1.0
     },
     {
@@ -57428,7 +57428,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L767",
+      "source_location": "L821",
       "weight": 1.0
     },
     {
@@ -57440,7 +57440,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L790",
+      "source_location": "L844",
       "weight": 1.0
     },
     {
@@ -57452,7 +57452,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L555",
+      "source_location": "L609",
       "weight": 1.0
     },
     {
@@ -57464,7 +57464,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L237",
+      "source_location": "L291",
       "weight": 1.0
     },
     {
@@ -57476,7 +57476,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L240",
+      "source_location": "L294",
       "weight": 1.0
     },
     {
@@ -57488,7 +57488,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L257",
+      "source_location": "L311",
       "weight": 1.0
     },
     {
@@ -57500,7 +57500,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L218",
+      "source_location": "L271",
       "weight": 1.0
     },
     {
@@ -57512,7 +57512,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L93",
+      "source_location": "L94",
       "weight": 1.0
     },
     {
@@ -57524,7 +57524,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L475",
+      "source_location": "L529",
       "weight": 1.0
     },
     {
@@ -57536,7 +57536,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L539",
+      "source_location": "L593",
       "weight": 1.0
     },
     {
@@ -57548,7 +57548,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L543",
+      "source_location": "L597",
       "weight": 1.0
     },
     {
@@ -57560,7 +57560,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L450",
+      "source_location": "L504",
       "weight": 1.0
     },
     {
@@ -57572,7 +57572,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L452",
+      "source_location": "L506",
       "weight": 1.0
     },
     {
@@ -57584,7 +57584,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L755",
+      "source_location": "L809",
       "weight": 1.0
     },
     {
@@ -57596,7 +57596,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L376",
+      "source_location": "L430",
       "weight": 1.0
     },
     {
@@ -57608,7 +57608,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L425",
+      "source_location": "L479",
       "weight": 1.0
     },
     {
@@ -57620,7 +57620,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L435",
+      "source_location": "L489",
       "weight": 1.0
     },
     {
@@ -57632,7 +57632,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L522",
+      "source_location": "L576",
       "weight": 1.0
     },
     {
@@ -57644,7 +57644,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L528",
+      "source_location": "L582",
       "weight": 1.0
     },
     {
@@ -58700,7 +58700,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L498",
+      "source_location": "L552",
       "weight": 1.0
     },
     {
@@ -58712,7 +58712,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L260",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -58724,7 +58724,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L775",
+      "source_location": "L829",
       "weight": 1.0
     },
     {
@@ -58736,7 +58736,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L236",
+      "source_location": "L290",
       "weight": 1.0
     },
     {
@@ -58748,7 +58748,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L92",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -58760,7 +58760,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L474",
+      "source_location": "L528",
       "weight": 1.0
     },
     {
@@ -58772,7 +58772,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L777",
+      "source_location": "L831",
       "weight": 1.0
     },
     {
@@ -58784,7 +58784,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L750",
+      "source_location": "L804",
       "weight": 1.0
     },
     {
@@ -58796,7 +58796,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L375",
+      "source_location": "L429",
       "weight": 1.0
     },
     {
@@ -58808,7 +58808,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L521",
+      "source_location": "L575",
       "weight": 1.0
     },
     {
@@ -105120,7 +105120,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/api/v1/startups/route.ts",
-      "source_location": "L48",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -110290,7 +110290,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L17",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -110312,7 +110312,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -110323,7 +110323,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L58",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -110334,7 +110334,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0
     },
     {
@@ -110345,7 +110345,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L90",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -113410,7 +113410,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L236",
+      "source_location": "L290",
       "weight": 1.0
     },
     {
@@ -113421,7 +113421,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L260",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -113432,7 +113432,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L375",
+      "source_location": "L429",
       "weight": 1.0
     },
     {
@@ -113443,7 +113443,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L449",
+      "source_location": "L503",
       "weight": 1.0
     },
     {
@@ -113454,7 +113454,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L474",
+      "source_location": "L528",
       "weight": 1.0
     },
     {
@@ -113465,7 +113465,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L498",
+      "source_location": "L552",
       "weight": 1.0
     },
     {
@@ -113476,7 +113476,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L521",
+      "source_location": "L575",
       "weight": 1.0
     },
     {
@@ -113487,7 +113487,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L538",
+      "source_location": "L592",
       "weight": 1.0
     },
     {
@@ -113498,7 +113498,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L554",
+      "source_location": "L608",
       "weight": 1.0
     },
     {
@@ -113509,7 +113509,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L621",
+      "source_location": "L675",
       "weight": 1.0
     },
     {
@@ -113520,7 +113520,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L750",
+      "source_location": "L804",
       "weight": 1.0
     },
     {
@@ -113531,7 +113531,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L766",
+      "source_location": "L820",
       "weight": 1.0
     },
     {
@@ -113542,7 +113542,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L775",
+      "source_location": "L829",
       "weight": 1.0
     },
     {
@@ -113553,7 +113553,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L776",
+      "source_location": "L830",
       "weight": 1.0
     },
     {
@@ -113564,7 +113564,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L777",
+      "source_location": "L831",
       "weight": 1.0
     },
     {
@@ -113575,7 +113575,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L786",
+      "source_location": "L840",
       "weight": 1.0
     },
     {
@@ -113586,7 +113586,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L789",
+      "source_location": "L843",
       "weight": 1.0
     },
     {
@@ -113597,7 +113597,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/modules/startups/services/index.ts",
-      "source_location": "L92",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -116735,5 +116735,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "409440ab58543414420a1b34bcee4461c7f9dbc9"
+  "built_at_commit": "cdb62756b084ac7b3e26ddfa90523d931439a1b1"
 }

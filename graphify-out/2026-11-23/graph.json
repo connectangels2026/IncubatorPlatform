@@ -56708,7 +56708,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupCard.tsx",
-      "source_location": "L159",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -56828,7 +56828,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1242",
+      "source_location": "L1249",
       "weight": 1.0
     },
     {
@@ -56840,7 +56840,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1611",
+      "source_location": "L1618",
       "weight": 1.0
     },
     {
@@ -56852,7 +56852,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1621",
+      "source_location": "L1628",
       "weight": 1.0
     },
     {
@@ -56864,7 +56864,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1711",
+      "source_location": "L1718",
       "weight": 1.0
     },
     {
@@ -56876,7 +56876,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1728",
+      "source_location": "L1735",
       "weight": 1.0
     },
     {
@@ -56888,7 +56888,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1735",
+      "source_location": "L1742",
       "weight": 1.0
     },
     {
@@ -56900,7 +56900,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1742",
+      "source_location": "L1749",
       "weight": 1.0
     },
     {
@@ -56912,7 +56912,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1764",
+      "source_location": "L1771",
       "weight": 1.0
     },
     {
@@ -56924,7 +56924,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1773",
+      "source_location": "L1780",
       "weight": 1.0
     },
     {

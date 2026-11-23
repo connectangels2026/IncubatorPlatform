@@ -295,6 +295,8 @@ export const StartupsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
   const [selectedStage, setSelectedStage] = useState("ALL");
+  const [selectedDashboard, setSelectedDashboard] = useState<string>("all");
+  const [dashboardsAssignedCount, setDashboardsAssignedCount] = useState<number>(0);
   const [selectedCohort, setSelectedCohort] = useState("ALL");
   const [sortBy, setSortBy] = useState("name-asc");
 
@@ -535,6 +537,7 @@ export const StartupsPage: React.FC = () => {
             sector: selectedIndustry !== "ALL" ? selectedIndustry : undefined,
             stage: selectedStage !== "ALL" ? selectedStage : undefined,
             status: statusParam,
+            dashboard: selectedDashboard !== "all" ? selectedDashboard : undefined,
           },
         });
 
@@ -547,6 +550,9 @@ export const StartupsPage: React.FC = () => {
         }
 
         setServerTotalCount(typeof res.data?.total === "number" ? res.data.total : apiData.length);
+        if (typeof res.data?.dashboards_assigned === "number") {
+          setDashboardsAssignedCount(res.data.dashboards_assigned);
+        }
 
         if (Array.isArray(apiData)) {
           if (apiData.length === 0) {
@@ -643,7 +649,7 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, sectionFilter]);
+  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -658,14 +664,18 @@ export const StartupsPage: React.FC = () => {
       const matchIndustry = selectedIndustry === "ALL" || industryVal.toLowerCase().includes(selectedIndustry.toLowerCase());
       const matchStage = selectedStage === "ALL" || s.stage.toLowerCase() === selectedStage.toLowerCase();
       const matchCohort = selectedCohort === "ALL" || (s.cohort || "") === selectedCohort;
+      const matchDashboard =
+        selectedDashboard === "all" ||
+        (selectedDashboard === "assigned" && s.admission_status === "dashboard_assigned") ||
+        (selectedDashboard === "unassigned" && s.admission_status !== "dashboard_assigned");
 
-      return matchSearch && matchIndustry && matchStage && matchCohort;
+      return matchSearch && matchIndustry && matchStage && matchCohort && matchDashboard;
     }).sort((a, b) => {
       if (sortBy === "name-asc") return a.name.localeCompare(b.name);
       if (sortBy === "name-desc") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, sortBy]);
+  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
 
   // Status Partitioning (Queue = Pending, Active = Active, Inactive = Inactive, Exited = Exited)
   const queueStartups = useMemo(() => {
@@ -1090,6 +1100,7 @@ export const StartupsPage: React.FC = () => {
         setStartups((prev) =>
           prev.map((s) => (s.id === assignModalStartup.id ? { ...s, admission_status: 'dashboard_assigned' } : s))
         );
+        setDashboardsAssignedCount((prev) => prev + 1);
         setAssignModalStartup(null);
       } else {
         showToast(res.data?.error || "Failed to assign dashboard access", "error");
@@ -1300,6 +1311,9 @@ export const StartupsPage: React.FC = () => {
             <div className="text-xs font-normal text-slate-500">Total startups</div>
             <div className="text-xl font-semibold text-slate-900 mt-1">{totalCount}</div>
             <div className="text-xs text-slate-500 mt-0.5">{activeCount} active</div>
+            <div className="text-[11px] text-emerald-600 font-medium mt-1">
+              Dashboards assigned: {dashboardsAssignedCount} / {totalCount}
+            </div>
           </div>
 
           <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
@@ -1500,6 +1514,19 @@ export const StartupsPage: React.FC = () => {
               <option value="MVP">MVP</option>
               <option value="Revenue">Revenue</option>
               <option value="Growth">Growth</option>
+            </select>
+
+            <select
+              value={selectedDashboard}
+              onChange={(e) => {
+                setSelectedDashboard(e.target.value);
+                setPage(1);
+              }}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="all">All dashboards</option>
+              <option value="assigned">Assigned</option>
+              <option value="unassigned">Not assigned</option>
             </select>
 
             <div className="border-l border-slate-200 pl-2 flex items-center gap-1">

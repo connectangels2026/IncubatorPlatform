@@ -11,6 +11,7 @@ export interface GetStartupsFilter {
   order?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  dashboard?: string;
 }
 
 // In-memory fallback cache for development & seed references
@@ -89,8 +90,40 @@ const mapRowToStartup = (row: any): Startup => {
 
 export class StartupService {
   // 1. Startup CRUD & Querying directly with Supabase Database
-  static async getStartups(orgId: string, filter: GetStartupsFilter = {}): Promise<{ startups: Startup[]; total: number }> {
+  static async getStartups(orgId: string, filter: GetStartupsFilter = {}): Promise<{ startups: Startup[]; total: number; dashboards_assigned: number }> {
     const realOrgId = resolveOrgId(orgId);
+
+    // Pre-calculate dashboards assigned for this incubator organization
+    const { data: assignedApps } = await supabaseAdmin
+      .from('applications')
+      .select('startup_id, applicant_email')
+      .eq('admission_status', 'dashboard_assigned');
+
+    const assignedIds = new Set<string>();
+    const assignedEmails = new Set<string>();
+    if (assignedApps) {
+      assignedApps.forEach((a: any) => {
+        if (a.startup_id) assignedIds.add(a.startup_id);
+        if (a.applicant_email) assignedEmails.add(a.applicant_email.toLowerCase());
+      });
+    }
+
+    let dashboardsAssignedCount = 0;
+    if (realOrgId) {
+      const { data: orgStartups } = await supabaseAdmin
+        .from('startups')
+        .select('id, founder_email, admission_status')
+        .eq('organization_id', realOrgId)
+        .is('deleted_at', null);
+
+      if (orgStartups) {
+        dashboardsAssignedCount = orgStartups.filter((s: any) =>
+          s.admission_status === 'dashboard_assigned' ||
+          assignedIds.has(s.id) ||
+          (s.founder_email && assignedEmails.has(s.founder_email.toLowerCase()))
+        ).length;
+      }
+    }
 
     let query = supabaseAdmin
       .from('startups')
@@ -100,8 +133,28 @@ export class StartupService {
       if (realOrgId) {
         query = query.eq('organization_id', realOrgId);
       } else {
-        return { startups: [], total: 0 };
+        return { startups: [], total: 0, dashboards_assigned: 0 };
       }
+    }
+
+    // Dashboard filter
+    if (filter.dashboard === 'assigned') {
+      const idsArr = Array.from(assignedIds);
+      const emailsArr = Array.from(assignedEmails);
+      if (idsArr.length === 0 && emailsArr.length === 0) {
+        return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
+      }
+      const clauses: string[] = [];
+      if (idsArr.length > 0) clauses.push(`id.in.(${idsArr.join(',')})`);
+      if (emailsArr.length > 0) clauses.push(`founder_email.in.(${emailsArr.map((e) => `"${e}"`).join(',')})`);
+      clauses.push(`admission_status.eq.dashboard_assigned`);
+      query = query.or(clauses.join(','));
+    } else if (filter.dashboard === 'unassigned') {
+      const idsArr = Array.from(assignedIds);
+      const emailsArr = Array.from(assignedEmails);
+      if (idsArr.length > 0) query = query.not('id', 'in', `(${idsArr.join(',')})`);
+      if (emailsArr.length > 0) query = query.not('founder_email', 'in', `(${emailsArr.map((e) => `"${e}"`).join(',')})`);
+      query = query.or('admission_status.is.null,admission_status.neq.dashboard_assigned');
     }
 
     // Filtering
@@ -119,7 +172,7 @@ export class StartupService {
     const isAsc = filter.order === 'asc';
     try {
       query = query.order(sortField, { ascending: isAsc });
-    } catch {}
+    } catch { }
 
     // Pagination
     const offset = filter.offset ? Number(filter.offset) : 0;
@@ -137,7 +190,7 @@ export class StartupService {
         if (realOrgId) {
           retryQuery = retryQuery.eq('organization_id', realOrgId);
         } else {
-          return { startups: [], total: 0 };
+          return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
         }
       }
       if (filter.sector && filter.sector !== 'ALL') retryQuery = retryQuery.ilike('sector', `%${filter.sector}%`);
@@ -154,11 +207,11 @@ export class StartupService {
 
     if (error) {
       console.error('Error fetching startups:', error);
-      return { startups: [], total: 0 };
+      return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
     }
 
     if (!data || data.length === 0) {
-      return { startups: [], total: count ?? 0 };
+      return { startups: [], total: count ?? 0, dashboards_assigned: dashboardsAssignedCount };
     }
 
     // Compute founder registration status
@@ -230,6 +283,7 @@ export class StartupService {
     return {
       startups,
       total: count ?? data.length,
+      dashboards_assigned: dashboardsAssignedCount,
     };
   }
 
