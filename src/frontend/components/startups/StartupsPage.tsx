@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/frontend/context/AuthContext";
 import { DashboardLayout } from "@/frontend/components/layouts/DashboardLayout";
@@ -362,6 +363,120 @@ export const StartupsPage: React.FC = () => {
     cohort: "",
     pitch: "",
   });
+
+  // Combobox State for Startup Name in Onboard Modal
+  interface StartupOptionItem {
+    id: string;
+    name: string;
+    sector: string;
+    stage: string;
+    founder_name: string;
+    founder_email: string;
+    phone: string;
+    tagline: string;
+  }
+  const [startupOptions, setStartupOptions] = useState<StartupOptionItem[]>([]);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [isOptionsLoading, setIsOptionsLoading] = useState(false);
+  const [isNameLocked, setIsNameLocked] = useState(false);
+  const [selectedStartupId, setSelectedStartupId] = useState<string | null>(null);
+  const comboboxRef = React.useRef<HTMLDivElement>(null);
+
+  const fetchStartupOptions = async (query: string) => {
+    setIsOptionsLoading(true);
+    try {
+      let list: StartupOptionItem[] = [];
+      try {
+        const res = await apiClient.get('/incubator/startups/options', {
+          params: { q: query },
+        });
+        const data = res.data;
+        list = Array.isArray(data) ? data : (data?.data || data?.options || []);
+      } catch {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
+        const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (orgId) headers['x-org-id'] = orgId;
+
+        const res = await fetch(`/api/incubator/startups/options?q=${encodeURIComponent(query)}`, {
+          headers,
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          list = Array.isArray(data) ? data : (data?.data || data?.options || []);
+        }
+      }
+      setStartupOptions(list);
+    } catch (err) {
+      console.error("Failed to fetch startup options:", err);
+    } finally {
+      setIsOptionsLoading(false);
+    }
+  };
+
+  // Debounced search for existing startups in incubator
+  useEffect(() => {
+    if (!isOnboardOpen || isNameLocked) return;
+
+    const timer = setTimeout(() => {
+      fetchStartupOptions(onboardForm.name.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [onboardForm.name, isOnboardOpen, isNameLocked]);
+
+  // Close dropdown on outside click or Esc
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(e.target as Node)) {
+        setIsOptionsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOptionsOpen(false);
+      }
+    };
+
+    if (isOptionsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOptionsOpen]);
+
+  const handleNameFocus = () => {
+    if (isNameLocked) return;
+    setIsOptionsOpen(true);
+    fetchStartupOptions(onboardForm.name.trim());
+  };
+
+  const handleSelectStartupOption = (opt: StartupOptionItem) => {
+    setSelectedStartupId(opt.id);
+    setIsNameLocked(true);
+    setIsOptionsOpen(false);
+    setOnboardForm((prev) => ({
+      ...prev,
+      name: opt.name,
+      industry: opt.sector || "",
+      founder: opt.founder_name || "",
+      founderEmail: opt.founder_email || "",
+      founderPhone: opt.phone || "",
+      stage: opt.stage || "Idea",
+      pitch: opt.tagline || "",
+    }));
+  };
+
+  const handleUnlockName = () => {
+    setIsNameLocked(false);
+    setSelectedStartupId(null);
+    setIsOptionsOpen(true);
+  };
 
   // Assign Dashboard Confirmation Modal State
   const [assignModalStartup, setAssignModalStartup] = useState<StartupItem | null>(null);
@@ -1028,6 +1143,7 @@ export const StartupsPage: React.FC = () => {
       const res = await apiClient.post(
         "/startups",
         {
+          id: selectedStartupId || undefined,
           name: onboardForm.name.trim(),
           founder_name: onboardForm.founder.trim(),
           email: onboardForm.founderEmail.trim(),
@@ -1050,7 +1166,7 @@ export const StartupsPage: React.FC = () => {
       const credentials = res.data?.credentials;
 
       const newStartup: StartupItem = {
-        id: created?.id || ("st_" + Date.now()),
+        id: created?.id || selectedStartupId || ("st_" + Date.now()),
         name: created?.name || onboardForm.name.trim(),
         monogram: (created?.name || onboardForm.name).slice(0, 2).toUpperCase(),
         monogramBg: "bg-indigo-600",
@@ -1076,13 +1192,17 @@ export const StartupsPage: React.FC = () => {
       };
 
       setStartups((prev) => {
-        const isDuplicate = prev.some(
+        const matchIdx = prev.findIndex(
           (s) =>
             (created?.id && s.id === created.id) ||
-            (s.name.trim().toLowerCase() === newStartup.name.trim().toLowerCase() &&
-              (s.founderEmail || '').trim().toLowerCase() === (newStartup.founderEmail || '').trim().toLowerCase())
+            (selectedStartupId && s.id === selectedStartupId) ||
+            (s.name.trim().toLowerCase() === newStartup.name.trim().toLowerCase())
         );
-        if (isDuplicate) return prev;
+        if (matchIdx >= 0) {
+          const next = [...prev];
+          next[matchIdx] = { ...next[matchIdx], ...newStartup };
+          return next;
+        }
         return [newStartup, ...prev];
       });
 
@@ -1098,8 +1218,15 @@ export const StartupsPage: React.FC = () => {
         cohort: "",
         pitch: "",
       });
+      setIsNameLocked(false);
+      setSelectedStartupId(null);
+      setIsOptionsOpen(false);
       setIsOnboardOpen(false);
-      showToast(`Successfully registered ${newStartup.name}!`);
+      showToast(
+        res.data?.is_updated
+          ? `Successfully updated ${newStartup.name}!`
+          : `Successfully registered ${newStartup.name}!`
+      );
 
       if (credentials?.email && credentials?.password) {
         setCreatedCredentials({
@@ -1154,6 +1281,9 @@ export const StartupsPage: React.FC = () => {
             <button
               onClick={() => {
                 setOnboardError(null);
+                setIsNameLocked(false);
+                setSelectedStartupId(null);
+                setIsOptionsOpen(false);
                 setIsOnboardOpen(true);
               }}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
@@ -1691,7 +1821,12 @@ export const StartupsPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-0.5">Register a startup into the incubator cohort</p>
               </div>
               <button
-                onClick={() => setIsOnboardOpen(false)}
+                onClick={() => {
+                  setIsOnboardOpen(false);
+                  setIsNameLocked(false);
+                  setSelectedStartupId(null);
+                  setIsOptionsOpen(false);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -1706,16 +1841,126 @@ export const StartupsPage: React.FC = () => {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">Startup name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. HealthSync AI"
-                    value={onboardForm.name}
-                    onChange={(e) => setOnboardForm({ ...onboardForm, name: e.target.value })}
-                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                <div className="relative" ref={comboboxRef}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-slate-500">Startup name *</label>
+                    {isNameLocked && (
+                      <button
+                        type="button"
+                        onClick={handleUnlockName}
+                        className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HealthSync AI"
+                      value={onboardForm.name}
+                      readOnly={isNameLocked}
+                      onFocus={handleNameFocus}
+                      onChange={(e) => {
+                        setOnboardForm({ ...onboardForm, name: e.target.value });
+                        setSelectedStartupId(null);
+                        setIsOptionsOpen(true);
+                      }}
+                      className={`w-full h-10 text-sm px-3 rounded-lg border text-slate-800 focus:outline-none transition-colors ${
+                        isNameLocked
+                          ? "bg-slate-50 border-slate-200 text-slate-700 pr-8 cursor-default"
+                          : "border-slate-200 focus:ring-2 focus:ring-indigo-500 bg-white"
+                      }`}
+                    />
+                    {isNameLocked && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                    {isOptionsLoading && !isNameLocked && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {isOptionsOpen && !isNameLocked && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-[130] max-h-60 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                      {isOptionsLoading ? (
+                        <div className="p-3 text-xs text-slate-400 flex items-center justify-center gap-2">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                          <span>Searching startups...</span>
+                        </div>
+                      ) : startupOptions.length > 0 ? (
+                        <>
+                          <div className="py-1">
+                            {startupOptions.map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleSelectStartupOption(opt)}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50/60 transition-colors cursor-pointer group flex flex-col gap-0.5"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-slate-800 group-hover:text-indigo-600">
+                                    {opt.name}
+                                  </span>
+                                  {opt.stage && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-medium">
+                                      {opt.stage}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-500 flex items-center gap-2 truncate">
+                                  {opt.sector && <span>{opt.sector}</span>}
+                                  {opt.founder_name && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="truncate">{opt.founder_name}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          {onboardForm.name.trim() && (
+                            <div className="p-1.5 bg-slate-50/70 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsOptionsOpen(false);
+                                  setSelectedStartupId(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-md font-medium flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Create new: <strong>{onboardForm.name.trim()}</strong></span>
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="p-3">
+                          <p className="text-xs text-slate-400 mb-2">No matching startups found</p>
+                          {onboardForm.name.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsOptionsOpen(false);
+                                setSelectedStartupId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-md font-medium flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Create new: <strong>{onboardForm.name.trim()}</strong></span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">Industry sector</label>
@@ -1731,6 +1976,9 @@ export const StartupsPage: React.FC = () => {
                     <option value="CleanTech">CleanTech</option>
                     <option value="AgriTech">AgriTech</option>
                     <option value="SaaS">B2B SaaS</option>
+                    {onboardForm.industry && !["Tech", "FinTech", "HealthTech", "CleanTech", "AgriTech", "SaaS"].includes(onboardForm.industry) && (
+                      <option value={onboardForm.industry}>{onboardForm.industry}</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -1784,6 +2032,9 @@ export const StartupsPage: React.FC = () => {
                     <option value="Revenue">Revenue</option>
                     <option value="Growth">Growth</option>
                     <option value="Scale">Scale</option>
+                    {onboardForm.stage && !["Idea", "MVP", "Pre-revenue", "Revenue", "Growth", "Scale"].includes(onboardForm.stage) && (
+                      <option value={onboardForm.stage}>{onboardForm.stage}</option>
+                    )}
                   </select>
                 </div>
                 <div>

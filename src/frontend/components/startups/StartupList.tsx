@@ -52,10 +52,16 @@ export const StartupList: React.FC<StartupListProps> = ({
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        if (data.link) {
+        if (data.emailSent) {
+          showToast(`✅ Invitation email sent to ${startup.founderEmail || startup.founder_email || "founder"}!`, "success");
+        } else if (data.link) {
           try {
             await navigator.clipboard.writeText(data.link);
-            showToast("✅ Invitation link copied to clipboard! Share it with the founder.", "success");
+            if (data.emailError) {
+              showToast(`⚠️ Email not sent (${data.emailError}). Link copied to clipboard!`, "error");
+            } else {
+              showToast("✅ Invitation link copied to clipboard! Share it with the founder.", "success");
+            }
           } catch {
             showToast("✅ Invitation sent! Link: " + data.link, "success");
           }
@@ -134,11 +140,10 @@ export const StartupList: React.FC<StartupListProps> = ({
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ${
-            toast.type === "success"
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
-          }`}
+          className={`fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ${toast.type === "success"
+            ? "bg-emerald-600 text-white"
+            : "bg-red-600 text-white"
+            }`}
         >
           {toast.type === "success" ? <CheckCircle className="w-4 h-4 shrink-0" /> : null}
           <span>{toast.message}</span>

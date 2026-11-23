@@ -89,6 +89,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Validation Error: founder_email is required' }, { status: 400 });
     }
 
+    // 0. If a startup ID is provided or startup already exists under this incubator, update/link it instead of duplicating
+    const targetStartupId = body.id || body.startup_id;
+    let existingStartupRecord: any = null;
+    if (targetStartupId) {
+      const { data: byId } = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('id', targetStartupId)
+        .maybeSingle();
+      if (byId) existingStartupRecord = byId;
+    }
+
+    if (!existingStartupRecord && resolvedName) {
+      const { data: byName } = await supabaseAdmin
+        .from('startups')
+        .select('*')
+        .eq('organization_id', orgId)
+        .ilike('name', resolvedName)
+        .limit(1)
+        .maybeSingle();
+      if (byName) existingStartupRecord = byName;
+    }
+
+    if (existingStartupRecord) {
+      const updated = await StartupService.updateStartup(existingStartupRecord.id, orgId, {
+        name: resolvedName,
+        startup_name: resolvedName,
+        founder_name: founderName,
+        founder_email: founderEmail,
+        email: founderEmail,
+        organization_id: orgId,
+        stage: body.stage || existingStartupRecord.stage || 'Idea',
+        status: (body.status || existingStartupRecord.status || 'pending').toLowerCase(),
+        sector: body.sector || body.industry || existingStartupRecord.sector || null,
+        industry: body.sector || body.industry || existingStartupRecord.sector || null,
+        description: body.description || existingStartupRecord.description || null,
+        founder_phone: body.founder_phone || body.contact || existingStartupRecord.founder_phone || null,
+      } as any);
+
+      return NextResponse.json({
+        success: true,
+        data: updated || existingStartupRecord,
+        is_updated: true,
+      }, { status: 200 });
+    }
+
     // 1. Check if email already exists in users table or auth
     let founderId: string | null = null;
     let passwordForResponse: string | null = null;

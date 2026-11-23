@@ -53,10 +53,16 @@ export const StartupCard: React.FC<StartupCardProps> = ({
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        if (data.link) {
+        if (data.emailSent) {
+          showToast(`✅ Invitation email sent to ${startup.founderEmail || startup.founder_email || "founder"}!`, "success");
+        } else if (data.link) {
           try {
             await navigator.clipboard.writeText(data.link);
-            showToast("✅ Invitation link copied to clipboard!", "success");
+            if (data.emailError) {
+              showToast(`⚠️ Email not sent (${data.emailError}). Link copied to clipboard!`, "error");
+            } else {
+              showToast("✅ Invitation link copied to clipboard!", "success");
+            }
           } catch {
             showToast("✅ Invitation sent to founder.", "success");
           }
@@ -138,9 +144,8 @@ export const StartupCard: React.FC<StartupCardProps> = ({
       {/* Toast */}
       {toast && (
         <div
-          className={`absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-md ${
-            toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
-          }`}
+          className={`absolute top-2 left-2 right-2 z-10 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-md ${toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white"
+            }`}
         >
           {toast.type === "success" && <CheckCircle className="w-3.5 h-3.5 shrink-0" />}
           <span>{toast.message}</span>
