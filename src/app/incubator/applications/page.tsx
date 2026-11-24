@@ -518,11 +518,15 @@ export default function ApplicationsPage() {
         const json = await res.json();
         const data = json.data || [];
 
+        const cachedOrgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+
         // Match strictly to this user's incubator
         const matched =
-          data.find((o: any) => o.founder_email?.toLowerCase() === userEmail) ||
-          data.find((o: any) => o.id === (user as any)?.organization_id) ||
-          data.find((o: any) => o.id === '32678e97-d281-4de9-b9e8-ec1b711b1648') ||
+          (cachedOrgId ? data.find((o: any) => o.id === cachedOrgId) : null) ||
+          (organization?.id ? data.find((o: any) => o.id === organization.id) : null) ||
+          ((user as any)?.organization_id ? data.find((o: any) => o.id === (user as any).organization_id) : null) ||
+          (userEmail ? data.find((o: any) => o.founder_email?.toLowerCase() === userEmail) : null) ||
+          data.find((o: any) => o.id === '1d96fade-187a-427c-9f92-c120345cad08') ||
           data[0];
 
         if (matched) {
@@ -531,10 +535,11 @@ export default function ApplicationsPage() {
           if (typeof window !== 'undefined') localStorage.setItem('org_id', matched.id);
           fetchApplications(matched.id);
         } else {
-          fetchApplications('32678e97-d281-4de9-b9e8-ec1b711b1648');
+          fetchApplications(cachedOrgId || '1d96fade-187a-427c-9f92-c120345cad08');
         }
       } catch {
-        fetchApplications('32678e97-d281-4de9-b9e8-ec1b711b1648');
+        const cached = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+        fetchApplications(cached || '1d96fade-187a-427c-9f92-c120345cad08');
       }
     };
 
