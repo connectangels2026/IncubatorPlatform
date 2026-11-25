@@ -287,6 +287,8 @@ interface StartupsMemoryCache {
   startups: StartupItem[];
   coIncubatedStartups: StartupItem[];
   totalCount: number;
+  overallTotal: number;
+  statusCounts: Record<string, number>;
   dashboardsAssignedCount: number;
   timestamp: number;
 }
@@ -347,6 +349,8 @@ export const StartupsPage: React.FC = () => {
     return 5;
   });
   const [serverTotalCount, setServerTotalCount] = useState<number>(() => startupsMemoryCache?.totalCount || 0);
+  const [overallTotal, setOverallTotal] = useState<number>(() => startupsMemoryCache?.overallTotal || 0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>(() => startupsMemoryCache?.statusCounts || {});
 
   // Sync page and limit to URL search params
   useEffect(() => {
@@ -554,7 +558,7 @@ export const StartupsPage: React.FC = () => {
             : sectionFilter
           : undefined;
 
-      const currentKey = `${orgId}_${page}_${limit}_${searchQuery.trim()}_${selectedIndustry}_${selectedStage}_${selectedDashboard}_${sectionFilter}`;
+      const currentKey = `${orgId}_${page}_${limit}_${debouncedSearch}_${selectedIndustry}_${selectedStage}_${selectedDashboard}_${sectionFilter}`;
 
       // Prevent unnecessary auto-reloading if data for this exact query was already fetched recently (within 5 mins)
       if (
@@ -578,7 +582,7 @@ export const StartupsPage: React.FC = () => {
             org_id: orgId,
             page,
             limit,
-            search: searchQuery.trim() || undefined,
+            search: debouncedSearch || undefined,
             sector: selectedIndustry !== "ALL" ? selectedIndustry : undefined,
             stage: selectedStage !== "ALL" ? selectedStage : undefined,
             status: statusParam,
@@ -596,9 +600,17 @@ export const StartupsPage: React.FC = () => {
 
         const totalResult = typeof res.data?.total === "number" ? res.data.total : apiData.length;
         const assignedResult = typeof res.data?.dashboards_assigned === "number" ? res.data.dashboards_assigned : 0;
+        const overallResult = typeof res.data?.overall_total === "number"
+          ? res.data.overall_total
+          : totalResult;
+        const countsResult = res.data?.status_counts && typeof res.data.status_counts === "object"
+          ? res.data.status_counts
+          : {};
 
         setServerTotalCount(totalResult);
         setDashboardsAssignedCount(assignedResult);
+        setOverallTotal(overallResult);
+        setStatusCounts(countsResult);
 
         let mergedList: StartupItem[] = [];
         if (Array.isArray(apiData)) {
@@ -697,6 +709,8 @@ export const StartupsPage: React.FC = () => {
           startups: mergedList,
           coIncubatedStartups: coMapped,
           totalCount: totalResult,
+          overallTotal: overallResult,
+          statusCounts: countsResult,
           dashboardsAssignedCount: assignedResult,
           timestamp: Date.now(),
         };
@@ -710,17 +724,17 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id, userOrgId, userId, page, limit, searchQuery, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
+  }, [organization?.id, userOrgId, userId, page, limit, debouncedSearch, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
     return startups.filter((s) => {
       const industryVal = s.industry || s.sector || "";
       const matchSearch =
-        searchQuery === "" ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.founder.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        industryVal.toLowerCase().includes(searchQuery.toLowerCase());
+        debouncedSearch === "" ||
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (s.founder || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (s.founderEmail || "").toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchIndustry = selectedIndustry === "ALL" || industryVal.toLowerCase().includes(selectedIndustry.toLowerCase());
       const matchStage = selectedStage === "ALL" || s.stage.toLowerCase() === selectedStage.toLowerCase();
@@ -736,7 +750,7 @@ export const StartupsPage: React.FC = () => {
       if (sortBy === "name-desc") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
+  }, [startups, debouncedSearch, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
 
   // Status Partitioning (Queue = Pending, Active = Active, Inactive = Inactive, Exited = Exited)
   const queueStartups = useMemo(() => {
@@ -1118,8 +1132,10 @@ export const StartupsPage: React.FC = () => {
   };
 
   // Aggregates for KPI banner
-  const totalCount = serverTotalCount || startups.length;
-  const activeCount = startups.filter((s) => s.status.toLowerCase() === "active").length;
+  const totalCount = overallTotal || serverTotalCount || startups.length;
+  const activeCount = typeof statusCounts.active === "number"
+    ? statusCounts.active
+    : startups.filter((s) => s.status.toLowerCase() === "active").length;
   const graduatedCount = startups.filter((s) => s.status.toLowerCase() === "graduated").length;
   const graduationRate = totalCount > 0 ? Math.round((graduatedCount / totalCount) * 100) : 0;
   const totalMentorsAllocated = startups.reduce((acc, s) => acc + (s.allocatedMentors?.length || 0), 0);
@@ -1292,6 +1308,12 @@ export const StartupsPage: React.FC = () => {
           return next;
         }
         setServerTotalCount((c) => c + 1);
+        setOverallTotal((c) => c + 1);
+        setStatusCounts((counts) => ({
+          ...counts,
+          all: (counts.all || 0) + 1,
+          queue: (counts.queue || 0) + 1,
+        }));
         return [newStartup, ...prev];
       });
 
@@ -1448,7 +1470,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {filteredStartups.length}
+                {statusCounts.all ?? filteredStartups.length}
               </span>
             </button>
 
@@ -1468,7 +1490,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
-                {queueStartups.length}
+                {statusCounts.queue ?? queueStartups.length}
               </span>
             </button>
 
@@ -1488,7 +1510,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'active' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
-                {activeStartups.length}
+                {statusCounts.active ?? activeStartups.length}
               </span>
             </button>
 
@@ -1507,7 +1529,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'inactive' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {inactiveStartups.length}
+                {statusCounts.inactive ?? inactiveStartups.length}
               </span>
             </button>
 
@@ -1526,7 +1548,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'exited' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {exitedStartups.length}
+                {statusCounts.exited ?? exitedStartups.length}
               </span>
             </button>
 
