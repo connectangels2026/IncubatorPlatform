@@ -11,6 +11,7 @@ export interface GetStartupsFilter {
   order?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  dashboard?: string;
 }
 
 // In-memory fallback cache for development & seed references
@@ -72,9 +73,10 @@ const mapRowToStartup = (row: any): Startup => {
     founder_phone: row.founder_phone || '',
     email: row.founder_email || '',
     description: row.description || row.problem_statement || '',
-    sector: row.sector || 'General',
+    sector: row.sector || '',
     stage: row.stage || 'Idea',
-    status: row.status || 'active',
+    status: row.status || 'pending',
+    admission_status: row.admission_status || null,
     revenue: Number(row.monthly_revenue || row.annual_revenue) || 0,
     organization_id: row.organization_id,
     created_at: row.created_at,
@@ -88,8 +90,40 @@ const mapRowToStartup = (row: any): Startup => {
 
 export class StartupService {
   // 1. Startup CRUD & Querying directly with Supabase Database
-  static async getStartups(orgId: string, filter: GetStartupsFilter = {}): Promise<{ startups: Startup[]; total: number }> {
+  static async getStartups(orgId: string, filter: GetStartupsFilter = {}): Promise<{ startups: Startup[]; total: number; dashboards_assigned: number }> {
     const realOrgId = resolveOrgId(orgId);
+
+    // Pre-calculate dashboards assigned for this incubator organization
+    const { data: assignedApps } = await supabaseAdmin
+      .from('applications')
+      .select('startup_id, applicant_email')
+      .eq('admission_status', 'dashboard_assigned');
+
+    const assignedIds = new Set<string>();
+    const assignedEmails = new Set<string>();
+    if (assignedApps) {
+      assignedApps.forEach((a: any) => {
+        if (a.startup_id) assignedIds.add(a.startup_id);
+        if (a.applicant_email) assignedEmails.add(a.applicant_email.toLowerCase());
+      });
+    }
+
+    let dashboardsAssignedCount = 0;
+    if (realOrgId) {
+      const { data: orgStartups } = await supabaseAdmin
+        .from('startups')
+        .select('id, founder_email, admission_status')
+        .eq('organization_id', realOrgId)
+        .is('deleted_at', null);
+
+      if (orgStartups) {
+        dashboardsAssignedCount = orgStartups.filter((s: any) =>
+          s.admission_status === 'dashboard_assigned' ||
+          assignedIds.has(s.id) ||
+          (s.founder_email && assignedEmails.has(s.founder_email.toLowerCase()))
+        ).length;
+      }
+    }
 
     let query = supabaseAdmin
       .from('startups')
@@ -99,8 +133,28 @@ export class StartupService {
       if (realOrgId) {
         query = query.eq('organization_id', realOrgId);
       } else {
-        return { startups: [], total: 0 };
+        return { startups: [], total: 0, dashboards_assigned: 0 };
       }
+    }
+
+    // Dashboard filter
+    if (filter.dashboard === 'assigned') {
+      const idsArr = Array.from(assignedIds);
+      const emailsArr = Array.from(assignedEmails);
+      if (idsArr.length === 0 && emailsArr.length === 0) {
+        return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
+      }
+      const clauses: string[] = [];
+      if (idsArr.length > 0) clauses.push(`id.in.(${idsArr.join(',')})`);
+      if (emailsArr.length > 0) clauses.push(`founder_email.in.(${emailsArr.map((e) => `"${e}"`).join(',')})`);
+      clauses.push(`admission_status.eq.dashboard_assigned`);
+      query = query.or(clauses.join(','));
+    } else if (filter.dashboard === 'unassigned') {
+      const idsArr = Array.from(assignedIds);
+      const emailsArr = Array.from(assignedEmails);
+      if (idsArr.length > 0) query = query.not('id', 'in', `(${idsArr.join(',')})`);
+      if (emailsArr.length > 0) query = query.not('founder_email', 'in', `(${emailsArr.map((e) => `"${e}"`).join(',')})`);
+      query = query.or('admission_status.is.null,admission_status.neq.dashboard_assigned');
     }
 
     // Filtering
@@ -118,7 +172,7 @@ export class StartupService {
     const isAsc = filter.order === 'asc';
     try {
       query = query.order(sortField, { ascending: isAsc });
-    } catch {}
+    } catch { }
 
     // Pagination
     const offset = filter.offset ? Number(filter.offset) : 0;
@@ -136,7 +190,7 @@ export class StartupService {
         if (realOrgId) {
           retryQuery = retryQuery.eq('organization_id', realOrgId);
         } else {
-          return { startups: [], total: 0 };
+          return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
         }
       }
       if (filter.sector && filter.sector !== 'ALL') retryQuery = retryQuery.ilike('sector', `%${filter.sector}%`);
@@ -153,11 +207,11 @@ export class StartupService {
 
     if (error) {
       console.error('Error fetching startups:', error);
-      return { startups: [], total: 0 };
+      return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
     }
 
     if (!data || data.length === 0) {
-      return { startups: [], total: count ?? 0 };
+      return { startups: [], total: count ?? 0, dashboards_assigned: dashboardsAssignedCount };
     }
 
     // Compute founder registration status
@@ -175,15 +229,61 @@ export class StartupService {
         });
       }
     }
+
+    // Query admission_status from linked applications
+    const startupIds = data.map((row) => row.id).filter(Boolean);
+    let appStatusMap: Record<string, string> = {};
+    if (startupIds.length > 0) {
+      const { data: appData } = await supabaseAdmin
+        .from('applications')
+        .select('startup_id, applicant_email, admission_status')
+        .in('startup_id', startupIds)
+        .order('created_at', { ascending: false });
+
+      if (appData) {
+        appData.forEach((a: any) => {
+          if (a.startup_id && !appStatusMap[a.startup_id]) {
+            appStatusMap[a.startup_id] = a.admission_status || null;
+          }
+        });
+      }
+    }
+    if (uniqueEmails.length > 0) {
+      const { data: emailAppData } = await supabaseAdmin
+        .from('applications')
+        .select('startup_id, applicant_email, admission_status')
+        .in('applicant_email', uniqueEmails)
+        .order('created_at', { ascending: false });
+
+      if (emailAppData) {
+        emailAppData.forEach((a: any) => {
+          if (a.applicant_email) {
+            const em = a.applicant_email.toLowerCase();
+            if (!appStatusMap[em]) {
+              appStatusMap[em] = a.admission_status || null;
+            }
+          }
+        });
+      }
+    }
+
     const startups = data.map((row) => {
       const startup = mapRowToStartup(row);
       const email = (row.founder_email || '').toLowerCase();
       (startup as any).founder_registered = !!userStatusMap[email];
+      const resolvedAdmissionStatus =
+        row.admission_status ||
+        appStatusMap[row.id] ||
+        (email ? appStatusMap[email] : null) ||
+        null;
+      (startup as any).admission_status = resolvedAdmissionStatus;
+      startup.admission_status = resolvedAdmissionStatus;
       return startup;
     });
     return {
       startups,
       total: count ?? data.length,
+      dashboards_assigned: dashboardsAssignedCount,
     };
   }
 
@@ -216,7 +316,7 @@ export class StartupService {
 
     // Valid check constraints in Supabase
     const allowedStages = ['Idea', 'MVP', 'Pre-revenue', 'Revenue', 'Growth', 'Scale'];
-    let validStage = 'MVP';
+    let validStage = 'Idea';
     if (data.stage) {
       const match = allowedStages.find((s) => s.toLowerCase() === data.stage!.toLowerCase());
       if (match) validStage = match;
@@ -227,15 +327,23 @@ export class StartupService {
       organization_id: realOrgId,
       name: stName,
       startup_name: stName,
-      sector: data.sector || 'Tech',
+      sector: data.sector || null,
       stage: validStage,
       founder_name: data.founder_name || 'Founder',
       founder_email: data.email || (data as any).founder_email || 'founder@startup.com',
       founder_phone: (data as any).founder_phone || (data as any).contact || null,
       description: data.description || null,
-      monthly_revenue: Number(data.revenue) || 0,
-      annual_revenue: Number(data.revenue) ? Number(data.revenue) * 12 : 0,
-      status: data.status || 'Active',
+      monthly_revenue: (data as any).monthly_revenue != null ? Number((data as any).monthly_revenue) : (data.revenue != null ? Number(data.revenue) : null),
+      annual_revenue: (data as any).annual_revenue != null ? Number((data as any).annual_revenue) : (data.revenue != null ? Number(data.revenue) * 12 : null),
+      status: (data.status || 'pending').toLowerCase(),
+      is_active: data.status ? data.status.toLowerCase() === 'active' : false,
+      track: (data as any).track || null,
+      website: (data as any).website || null,
+      founded_date: (data as any).founded_date || null,
+      problem_statement: (data as any).problem_statement || (data as any).problem || null,
+      solution_description: (data as any).solution_description || (data as any).solution || null,
+      target_market: (data as any).target_market || (data as any).market || null,
+      business_model: (data as any).business_model || (data as any).revenue_model || null,
     };
 
     if (data.founder_id && isValidUUID(data.founder_id)) {
@@ -272,6 +380,12 @@ export class StartupService {
       if (error.message?.includes("'name'")) {
         delete insertPayload.name;
         insertPayload.startup_name = stName;
+      }
+      if (error.message?.includes("'track'")) {
+        delete insertPayload.track;
+      }
+      if (error.message?.includes("'is_active'")) {
+        delete insertPayload.is_active;
       }
       delete insertPayload.team_members;
       const retryRes = await supabaseAdmin

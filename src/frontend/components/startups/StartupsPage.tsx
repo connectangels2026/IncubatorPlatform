@@ -18,6 +18,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Copy,
+  Check,
+  AlertCircle,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/frontend/context/AuthContext";
 import { DashboardLayout } from "@/frontend/components/layouts/DashboardLayout";
@@ -31,6 +35,7 @@ import { AllocateMentorModal } from "./AllocateMentorModal";
 import { AllocateInvestorModal } from "./AllocateInvestorModal";
 import { AddCoIncubatorModal } from "./AddCoIncubatorModal";
 import { SignMOUModal } from "./SignMOUModal";
+import { Modal } from "@/frontend/components/ui/Modal";
 import {
   StartupItem,
   AllocatedMentor,
@@ -290,6 +295,8 @@ export const StartupsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
   const [selectedStage, setSelectedStage] = useState("ALL");
+  const [selectedDashboard, setSelectedDashboard] = useState<string>("all");
+  const [dashboardsAssignedCount, setDashboardsAssignedCount] = useState<number>(0);
   const [selectedCohort, setSelectedCohort] = useState("ALL");
   const [sortBy, setSortBy] = useState("name-asc");
 
@@ -336,25 +343,152 @@ export const StartupsPage: React.FC = () => {
   const [activePartnerForMOU, setActivePartnerForMOU] = useState<CoIncubatorItem | null>(null);
   const [targetStartupForAction, setTargetStartupForAction] = useState<StartupItem | null>(null);
 
+  // Newly Created Startup Credentials Modal State
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+    startupName: string;
+  } | null>(null);
+  const [copiedField, setCopiedField] = useState<'all' | 'email' | 'password' | null>(null);
+  const [onboardError, setOnboardError] = useState<string | null>(null);
+
   // New Startup Onboard Form State
   const [onboardForm, setOnboardForm] = useState({
     name: "",
     founder: "",
     founderEmail: "",
     founderPhone: "",
-    industry: "Tech",
-    stage: "MVP",
-    status: "Active" as "Pending" | "Active" | "Inactive" | "Exited",
+    industry: "",
+    stage: "Idea",
+    status: "Pending" as "Pending" | "Active" | "Inactive" | "Exited",
     funding: "$0",
-    cohort: "Cohort 2026",
+    cohort: "",
     pitch: "",
   });
 
+  // Combobox State for Startup Name in Onboard Modal
+  interface StartupOptionItem {
+    id: string;
+    name: string;
+    sector: string;
+    stage: string;
+    founder_name: string;
+    founder_email: string;
+    phone: string;
+    tagline: string;
+  }
+  const [startupOptions, setStartupOptions] = useState<StartupOptionItem[]>([]);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [isOptionsLoading, setIsOptionsLoading] = useState(false);
+  const [isNameLocked, setIsNameLocked] = useState(false);
+  const [selectedStartupId, setSelectedStartupId] = useState<string | null>(null);
+  const comboboxRef = React.useRef<HTMLDivElement>(null);
+
+  const fetchStartupOptions = async (query: string) => {
+    setIsOptionsLoading(true);
+    try {
+      let list: StartupOptionItem[] = [];
+      try {
+        const res = await apiClient.get('/incubator/startups/options', {
+          params: { q: query },
+        });
+        const data = res.data;
+        list = Array.isArray(data) ? data : (data?.data || data?.options || []);
+      } catch {
+        const token = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || localStorage.getItem('token')) : null;
+        const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        if (orgId) headers['x-org-id'] = orgId;
+
+        const res = await fetch(`/api/incubator/startups/options?q=${encodeURIComponent(query)}`, {
+          headers,
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          list = Array.isArray(data) ? data : (data?.data || data?.options || []);
+        }
+      }
+      setStartupOptions(list);
+    } catch (err) {
+      console.error("Failed to fetch startup options:", err);
+    } finally {
+      setIsOptionsLoading(false);
+    }
+  };
+
+  // Debounced search for existing startups in incubator
+  useEffect(() => {
+    if (!isOnboardOpen || isNameLocked) return;
+
+    const timer = setTimeout(() => {
+      fetchStartupOptions(onboardForm.name.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [onboardForm.name, isOnboardOpen, isNameLocked]);
+
+  // Close dropdown on outside click or Esc
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(e.target as Node)) {
+        setIsOptionsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOptionsOpen(false);
+      }
+    };
+
+    if (isOptionsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOptionsOpen]);
+
+  const handleNameFocus = () => {
+    if (isNameLocked) return;
+    setIsOptionsOpen(true);
+    fetchStartupOptions(onboardForm.name.trim());
+  };
+
+  const handleSelectStartupOption = (opt: StartupOptionItem) => {
+    setSelectedStartupId(opt.id);
+    setIsNameLocked(true);
+    setIsOptionsOpen(false);
+    setOnboardForm((prev) => ({
+      ...prev,
+      name: opt.name,
+      industry: opt.sector || "",
+      founder: opt.founder_name || "",
+      founderEmail: opt.founder_email || "",
+      founderPhone: opt.phone || "",
+      stage: opt.stage || "Idea",
+      pitch: opt.tagline || "",
+    }));
+  };
+
+  const handleUnlockName = () => {
+    setIsNameLocked(false);
+    setSelectedStartupId(null);
+    setIsOptionsOpen(true);
+  };
+
+  // Assign Dashboard Confirmation Modal State
+  const [assignModalStartup, setAssignModalStartup] = useState<StartupItem | null>(null);
+  const [isAssigningDashboard, setIsAssigningDashboard] = useState(false);
+
   // Toast
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
   // Load from API with fallback
@@ -403,6 +537,7 @@ export const StartupsPage: React.FC = () => {
             sector: selectedIndustry !== "ALL" ? selectedIndustry : undefined,
             stage: selectedStage !== "ALL" ? selectedStage : undefined,
             status: statusParam,
+            dashboard: selectedDashboard !== "all" ? selectedDashboard : undefined,
           },
         });
 
@@ -415,6 +550,9 @@ export const StartupsPage: React.FC = () => {
         }
 
         setServerTotalCount(typeof res.data?.total === "number" ? res.data.total : apiData.length);
+        if (typeof res.data?.dashboards_assigned === "number") {
+          setDashboardsAssignedCount(res.data.dashboards_assigned);
+        }
 
         if (Array.isArray(apiData)) {
           if (apiData.length === 0) {
@@ -427,10 +565,11 @@ export const StartupsPage: React.FC = () => {
                 startup_name: item.startup_name || item.name || 'Startup',
                 monogram: (item.startup_name || item.name) ? (item.startup_name || item.name).slice(0, 2).toUpperCase() : 'ST',
                 monogramBg: 'bg-blue-600',
-                sector: item.sector || 'General',
-                industry: item.sector || 'General',
+                sector: item.sector || '',
+                industry: item.sector || '',
                 stage: item.stage || 'Idea',
-                status: item.status || 'active',
+                status: item.status || 'Pending',
+                admission_status: item.admission_status || null,
                 mrr: typeof item.revenue === "number" ? item.revenue : 0,
                 arr: typeof item.revenue === "number" ? item.revenue * 12 : 0,
                 customers: item.customer_count || 0,
@@ -510,7 +649,7 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, sectionFilter]);
+  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -525,14 +664,18 @@ export const StartupsPage: React.FC = () => {
       const matchIndustry = selectedIndustry === "ALL" || industryVal.toLowerCase().includes(selectedIndustry.toLowerCase());
       const matchStage = selectedStage === "ALL" || s.stage.toLowerCase() === selectedStage.toLowerCase();
       const matchCohort = selectedCohort === "ALL" || (s.cohort || "") === selectedCohort;
+      const matchDashboard =
+        selectedDashboard === "all" ||
+        (selectedDashboard === "assigned" && s.admission_status === "dashboard_assigned") ||
+        (selectedDashboard === "unassigned" && s.admission_status !== "dashboard_assigned");
 
-      return matchSearch && matchIndustry && matchStage && matchCohort;
+      return matchSearch && matchIndustry && matchStage && matchCohort && matchDashboard;
     }).sort((a, b) => {
       if (sortBy === "name-asc") return a.name.localeCompare(b.name);
       if (sortBy === "name-desc") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, sortBy]);
+  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
 
   // Status Partitioning (Queue = Pending, Active = Active, Inactive = Inactive, Exited = Exited)
   const queueStartups = useMemo(() => {
@@ -944,12 +1087,44 @@ export const StartupsPage: React.FC = () => {
     showToast("Preparing Startup Directory PDF printout...");
   };
 
+  // Handle in-place dashboard assignment confirm via Modal
+  const handleConfirmAssignDashboard = async () => {
+    if (!assignModalStartup || isAssigningDashboard) return;
+    setIsAssigningDashboard(true);
+    try {
+      const res = await apiClient.post(
+        `/startups/${assignModalStartup.id}/assign-dashboard`
+      );
+      if (res.data?.success) {
+        showToast("Dashboard access assigned successfully", "success");
+        setStartups((prev) =>
+          prev.map((s) => (s.id === assignModalStartup.id ? { ...s, admission_status: 'dashboard_assigned' } : s))
+        );
+        setDashboardsAssignedCount((prev) => prev + 1);
+        setAssignModalStartup(null);
+      } else {
+        showToast(res.data?.error || "Failed to assign dashboard access", "error");
+      }
+    } catch (err: any) {
+      const errMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to assign dashboard access";
+      showToast(errMsg, "error");
+    } finally {
+      setIsAssigningDashboard(false);
+    }
+  };
+
   // Handle Add New Startup
   const handleOnboardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isOnboardingLoading) return;
+    setOnboardError(null);
 
     if (!onboardForm.name.trim() || !onboardForm.founder.trim() || !onboardForm.founderEmail.trim()) {
+      setOnboardError("Please provide Startup Name, Founder Name, and Email.");
       showToast("Please provide Startup Name, Founder Name, and Email.");
       return;
     }
@@ -969,6 +1144,7 @@ export const StartupsPage: React.FC = () => {
     }
 
     if (!orgId) {
+      setOnboardError("Missing organization context. Please refresh or re-login.");
       showToast("Missing organization context. Please refresh or re-login.");
       return;
     }
@@ -978,17 +1154,18 @@ export const StartupsPage: React.FC = () => {
       const res = await apiClient.post(
         "/startups",
         {
+          id: selectedStartupId || undefined,
           name: onboardForm.name.trim(),
           founder_name: onboardForm.founder.trim(),
           email: onboardForm.founderEmail.trim(),
           founder_email: onboardForm.founderEmail.trim(),
-          contact: onboardForm.founderPhone.trim(),
-          founder_phone: onboardForm.founderPhone.trim(),
-          sector: onboardForm.industry,
-          industry: onboardForm.industry,
-          stage: onboardForm.stage,
-          status: onboardForm.status,
-          description: onboardForm.pitch.trim(),
+          contact: onboardForm.founderPhone.trim() || null,
+          founder_phone: onboardForm.founderPhone.trim() || null,
+          sector: onboardForm.industry.trim() || null,
+          industry: onboardForm.industry.trim() || null,
+          stage: onboardForm.stage || 'Idea',
+          status: (onboardForm.status || 'Pending').toLowerCase(),
+          description: onboardForm.pitch.trim() || null,
           organization_id: orgId,
         },
         {
@@ -997,40 +1174,46 @@ export const StartupsPage: React.FC = () => {
       );
 
       const created = res.data?.data;
+      const credentials = res.data?.credentials;
+
       const newStartup: StartupItem = {
-        id: created?.id || ("st_" + Date.now()),
+        id: created?.id || selectedStartupId || ("st_" + Date.now()),
         name: created?.name || onboardForm.name.trim(),
         monogram: (created?.name || onboardForm.name).slice(0, 2).toUpperCase(),
         monogramBg: "bg-indigo-600",
-        sector: created?.sector || onboardForm.industry,
-        industry: created?.sector || onboardForm.industry,
-        stage: created?.stage || onboardForm.stage,
-        status: created?.status || onboardForm.status,
-        funding: onboardForm.funding || "$0",
-        fundingRaised: onboardForm.funding || "$0",
+        sector: created?.sector || onboardForm.industry || "",
+        industry: created?.sector || onboardForm.industry || "",
+        stage: created?.stage || onboardForm.stage || "Idea",
+        status: (created?.status ? (created.status.charAt(0).toUpperCase() + created.status.slice(1).toLowerCase()) : onboardForm.status) as any,
+        funding: "$0",
+        fundingRaised: "$0",
         mrr: 0,
         arr: 0,
         customers: 0,
-        cohort: onboardForm.cohort,
-        tagline: onboardForm.pitch || "Newly registered startup.",
-        pitch: onboardForm.pitch || "Newly registered startup.",
+        cohort: onboardForm.cohort || "",
+        tagline: onboardForm.pitch || "",
+        pitch: onboardForm.pitch || "",
         founder: created?.founder_name || onboardForm.founder,
         founderEmail: created?.email || created?.founder_email || onboardForm.founderEmail,
-        founderPhone: created?.founder_phone || onboardForm.founderPhone,
-        website: `https://${onboardForm.name.toLowerCase().replace(/[^a-z0-9]/g, "")}.com`,
+        founderPhone: created?.founder_phone || onboardForm.founderPhone || "",
+        website: created?.website || "",
         allocatedMentors: [],
         allocatedInvestors: [],
         coIncubators: [],
       };
 
       setStartups((prev) => {
-        const isDuplicate = prev.some(
+        const matchIdx = prev.findIndex(
           (s) =>
             (created?.id && s.id === created.id) ||
-            (s.name.trim().toLowerCase() === newStartup.name.trim().toLowerCase() &&
-              (s.founderEmail || '').trim().toLowerCase() === (newStartup.founderEmail || '').trim().toLowerCase())
+            (selectedStartupId && s.id === selectedStartupId) ||
+            (s.name.trim().toLowerCase() === newStartup.name.trim().toLowerCase())
         );
-        if (isDuplicate) return prev;
+        if (matchIdx >= 0) {
+          const next = [...prev];
+          next[matchIdx] = { ...next[matchIdx], ...newStartup };
+          return next;
+        }
         return [newStartup, ...prev];
       });
 
@@ -1039,18 +1222,35 @@ export const StartupsPage: React.FC = () => {
         founder: "",
         founderEmail: "",
         founderPhone: "",
-        industry: "Tech",
-        stage: "MVP",
-        status: "Active",
+        industry: "",
+        stage: "Idea",
+        status: "Pending",
         funding: "$0",
-        cohort: "Cohort 2026",
+        cohort: "",
         pitch: "",
       });
+      setIsNameLocked(false);
+      setSelectedStartupId(null);
+      setIsOptionsOpen(false);
       setIsOnboardOpen(false);
-      showToast(`Successfully registered ${newStartup.name}!`);
+      showToast(
+        res.data?.is_updated
+          ? `Successfully updated ${newStartup.name}!`
+          : `Successfully registered ${newStartup.name}!`
+      );
+
+      if (credentials?.email && credentials?.password) {
+        setCreatedCredentials({
+          email: credentials.email,
+          password: credentials.password,
+          startupName: newStartup.name,
+        });
+      }
     } catch (err: any) {
       console.error("Failed to register startup:", err);
-      showToast(err.response?.data?.error || "Failed to register startup. Please try again.");
+      const errMsg = err.response?.data?.error || err.response?.data?.message || "Failed to register startup. Please try again.";
+      setOnboardError(errMsg);
+      showToast(errMsg, "error");
     } finally {
       setIsOnboardingLoading(false);
     }
@@ -1061,9 +1261,19 @@ export const StartupsPage: React.FC = () => {
       <div className="space-y-6">
         {/* Toast Notification */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-[120] bg-slate-900 text-white text-xs px-4 py-2.5 rounded-lg shadow-xl animate-in slide-in-from-bottom duration-200 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400" />
-            <span>{toast}</span>
+          <div
+            className={`fixed bottom-6 right-6 z-[120] text-xs px-4 py-2.5 rounded-lg shadow-xl animate-in slide-in-from-bottom duration-200 flex items-center gap-2 ${
+              toast.type === "error"
+                ? "bg-rose-600 text-white"
+                : "bg-slate-900 text-white"
+            }`}
+          >
+            {toast.type === "error" ? (
+              <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
+            ) : (
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+            )}
+            <span>{toast.message}</span>
           </div>
         )}
 
@@ -1080,7 +1290,13 @@ export const StartupsPage: React.FC = () => {
 
           <div className="flex items-center gap-2.5">
             <button
-              onClick={() => setIsOnboardOpen(true)}
+              onClick={() => {
+                setOnboardError(null);
+                setIsNameLocked(false);
+                setSelectedStartupId(null);
+                setIsOptionsOpen(false);
+                setIsOnboardOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -1095,6 +1311,9 @@ export const StartupsPage: React.FC = () => {
             <div className="text-xs font-normal text-slate-500">Total startups</div>
             <div className="text-xl font-semibold text-slate-900 mt-1">{totalCount}</div>
             <div className="text-xs text-slate-500 mt-0.5">{activeCount} active</div>
+            <div className="text-[11px] text-emerald-600 font-medium mt-1">
+              Dashboards assigned: {dashboardsAssignedCount} / {totalCount}
+            </div>
           </div>
 
           <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
@@ -1297,6 +1516,19 @@ export const StartupsPage: React.FC = () => {
               <option value="Growth">Growth</option>
             </select>
 
+            <select
+              value={selectedDashboard}
+              onChange={(e) => {
+                setSelectedDashboard(e.target.value);
+                setPage(1);
+              }}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="all">All dashboards</option>
+              <option value="assigned">Assigned</option>
+              <option value="unassigned">Not assigned</option>
+            </select>
+
             <div className="border-l border-slate-200 pl-2 flex items-center gap-1">
               <button
                 onClick={() => setViewMode("grid")}
@@ -1417,6 +1649,7 @@ export const StartupsPage: React.FC = () => {
                 onAllocateInvestorClick={handleTriggerAllocateInvestor}
                 onCoIncubatorClick={handleTriggerAddCoIncubator}
                 onStatusChange={handleStatusChange}
+                onAssignDashboard={(startup) => setAssignModalStartup(startup)}
               />
             ) : (
               <StartupList
@@ -1426,6 +1659,7 @@ export const StartupsPage: React.FC = () => {
                 onAllocateInvestorClick={handleTriggerAllocateInvestor}
                 onCoIncubatorClick={handleTriggerAddCoIncubator}
                 onStatusChange={handleStatusChange}
+                onAssignDashboard={(startup) => setAssignModalStartup(startup)}
               />
             )}
 
@@ -1569,6 +1803,41 @@ export const StartupsPage: React.FC = () => {
         startupName={targetStartupForAction?.name || "Startup"}
       />
 
+      {/* Assign Dashboard Confirmation Modal */}
+      <Modal
+        isOpen={!!assignModalStartup}
+        onClose={() => {
+          if (!isAssigningDashboard) setAssignModalStartup(null);
+        }}
+        title="Assign dashboard access"
+        maxWidth="sm"
+      >
+        <p className="text-sm text-slate-600 mb-6">
+          Give {assignModalStartup?.name} access to its dashboard?
+        </p>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isAssigningDashboard) setAssignModalStartup(null);
+            }}
+            disabled={isAssigningDashboard}
+            className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirmAssignDashboard}
+            disabled={isAssigningDashboard}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait shadow-xs cursor-pointer"
+          >
+            {isAssigningDashboard && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            <span>Assign</span>
+          </button>
+        </div>
+      </Modal>
+
       {/* Onboard Startup Modal */}
       {isOnboardOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
@@ -1579,7 +1848,12 @@ export const StartupsPage: React.FC = () => {
                 <p className="text-xs text-slate-500 mt-0.5">Register a startup into the incubator cohort</p>
               </div>
               <button
-                onClick={() => setIsOnboardOpen(false)}
+                onClick={() => {
+                  setIsOnboardOpen(false);
+                  setIsNameLocked(false);
+                  setSelectedStartupId(null);
+                  setIsOptionsOpen(false);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -1587,17 +1861,133 @@ export const StartupsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleOnboardSubmit} className="p-6 space-y-4">
+              {onboardError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                  <span>{onboardError}</span>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">Startup name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. HealthSync AI"
-                    value={onboardForm.name}
-                    onChange={(e) => setOnboardForm({ ...onboardForm, name: e.target.value })}
-                    className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                <div className="relative" ref={comboboxRef}>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-slate-500">Startup name *</label>
+                    {isNameLocked && (
+                      <button
+                        type="button"
+                        onClick={handleUnlockName}
+                        className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HealthSync AI"
+                      value={onboardForm.name}
+                      readOnly={isNameLocked}
+                      onFocus={handleNameFocus}
+                      onChange={(e) => {
+                        setOnboardForm({ ...onboardForm, name: e.target.value });
+                        setSelectedStartupId(null);
+                        setIsOptionsOpen(true);
+                      }}
+                      className={`w-full h-10 text-sm px-3 rounded-lg border text-slate-800 focus:outline-none transition-colors ${
+                        isNameLocked
+                          ? "bg-slate-50 border-slate-200 text-slate-700 pr-8 cursor-default"
+                          : "border-slate-200 focus:ring-2 focus:ring-indigo-500 bg-white"
+                      }`}
+                    />
+                    {isNameLocked && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                    {isOptionsLoading && !isNameLocked && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {isOptionsOpen && !isNameLocked && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-[130] max-h-60 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                      {isOptionsLoading ? (
+                        <div className="p-3 text-xs text-slate-400 flex items-center justify-center gap-2">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                          <span>Searching startups...</span>
+                        </div>
+                      ) : startupOptions.length > 0 ? (
+                        <>
+                          <div className="py-1">
+                            {startupOptions.map((opt) => (
+                              <button
+                                key={opt.id}
+                                type="button"
+                                onClick={() => handleSelectStartupOption(opt)}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-indigo-50/60 transition-colors cursor-pointer group flex flex-col gap-0.5"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-semibold text-slate-800 group-hover:text-indigo-600">
+                                    {opt.name}
+                                  </span>
+                                  {opt.stage && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-medium">
+                                      {opt.stage}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-500 flex items-center gap-2 truncate">
+                                  {opt.sector && <span>{opt.sector}</span>}
+                                  {opt.founder_name && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="truncate">{opt.founder_name}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          {onboardForm.name.trim() && (
+                            <div className="p-1.5 bg-slate-50/70 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsOptionsOpen(false);
+                                  setSelectedStartupId(null);
+                                }}
+                                className="w-full text-left px-2.5 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-md font-medium flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Create new: <strong>{onboardForm.name.trim()}</strong></span>
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="p-3">
+                          <p className="text-xs text-slate-400 mb-2">No matching startups found</p>
+                          {onboardForm.name.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsOptionsOpen(false);
+                                setSelectedStartupId(null);
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 text-xs text-indigo-600 hover:bg-indigo-50 rounded-md font-medium flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Create new: <strong>{onboardForm.name.trim()}</strong></span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs text-slate-500 mb-1">Industry sector</label>
@@ -1606,12 +1996,16 @@ export const StartupsPage: React.FC = () => {
                     onChange={(e) => setOnboardForm({ ...onboardForm, industry: e.target.value })}
                     className="w-full h-10 text-sm px-3 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
+                    <option value="">Select sector (Optional)</option>
                     <option value="Tech">Technology / AI</option>
                     <option value="FinTech">FinTech</option>
                     <option value="HealthTech">HealthTech</option>
                     <option value="CleanTech">CleanTech</option>
                     <option value="AgriTech">AgriTech</option>
                     <option value="SaaS">B2B SaaS</option>
+                    {onboardForm.industry && !["Tech", "FinTech", "HealthTech", "CleanTech", "AgriTech", "SaaS"].includes(onboardForm.industry) && (
+                      <option value={onboardForm.industry}>{onboardForm.industry}</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -1665,6 +2059,9 @@ export const StartupsPage: React.FC = () => {
                     <option value="Revenue">Revenue</option>
                     <option value="Growth">Growth</option>
                     <option value="Scale">Scale</option>
+                    {onboardForm.stage && !["Idea", "MVP", "Pre-revenue", "Revenue", "Growth", "Scale"].includes(onboardForm.stage) && (
+                      <option value={onboardForm.stage}>{onboardForm.stage}</option>
+                    )}
                   </select>
                 </div>
                 <div>
@@ -1710,6 +2107,140 @@ export const StartupsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Newly Created Startup Credentials Modal */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">Startup Registered Successfully</h3>
+                  <p className="text-xs text-slate-500">{createdCredentials.startupName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCreatedCredentials(null)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-800">
+              <p className="font-semibold">Founder Login Credentials Created</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Status is set to <span className="font-semibold text-emerald-700">active</span> with startup dashboard access. Share these login details with the founder:
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Founder Email</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdCredentials.email}
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-mono select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.email);
+                      setCopiedField('email');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+                    title="Copy email"
+                  >
+                    {copiedField === 'email' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-700 block mb-1">Password</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={createdCredentials.password}
+                    className="flex-1 text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-slate-800 font-mono select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(createdCredentials.password);
+                      setCopiedField('password');
+                      setTimeout(() => setCopiedField(null), 2000);
+                    }}
+                    className="px-2.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+                    title="Copy password"
+                  >
+                    {copiedField === 'password' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-2 justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const text = `Startup: ${createdCredentials.startupName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
+                  navigator.clipboard.writeText(text);
+                  setCopiedField('all');
+                  setTimeout(() => setCopiedField(null), 2000);
+                }}
+                className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-medium text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                {copiedField === 'all' ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-600">All Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Copy All</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreatedCredentials(null)}
+                className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

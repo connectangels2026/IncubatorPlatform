@@ -1,7 +1,8 @@
 export interface Startup {
   id: string;
   startup_name?: string;
-  name: string;
+  name?: string;
+
   founder_name: string;
   founder_id?: string;
   founder_phone?: string;
@@ -10,6 +11,7 @@ export interface Startup {
   sector: string;
   stage: string;
   status: string;
+  admission_status?: string;
   lifecycle_stage?: string;
   revenue: number;
   monthly_revenue?: number;

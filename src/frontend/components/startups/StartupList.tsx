@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { StartupItem } from "./types";
-import { UserCheck, TrendingUp, Handshake, Rocket, Mail, CheckCircle } from "lucide-react";
+import { UserCheck, TrendingUp, Handshake, Rocket, Mail, CheckCircle, Check, LayoutDashboard } from "lucide-react";
 import { apiClient } from "@/frontend/lib/apiClient";
 
 interface StartupListProps {
@@ -13,6 +13,7 @@ interface StartupListProps {
   onCoIncubatorClick: (startup: StartupItem) => void;
   onStatusChange?: (startup: StartupItem, status: "Pending" | "Active" | "Inactive" | "Exited") => void;
   onInviteFounder?: (startup: StartupItem) => void;
+  onAssignDashboard?: (startup: StartupItem) => void;
 }
 
 export const StartupList: React.FC<StartupListProps> = ({
@@ -23,6 +24,7 @@ export const StartupList: React.FC<StartupListProps> = ({
   onCoIncubatorClick,
   onStatusChange,
   onInviteFounder,
+  onAssignDashboard,
 }) => {
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -30,6 +32,14 @@ export const StartupList: React.FC<StartupListProps> = ({
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleAssignDashboard = (e: React.MouseEvent, startup: StartupItem) => {
+    e.stopPropagation();
+    if (startup.admission_status === 'dashboard_assigned') return;
+    if (onAssignDashboard) {
+      onAssignDashboard(startup);
+    }
   };
 
   const handleInviteFounder = async (e: React.MouseEvent, startup: StartupItem) => {
@@ -42,10 +52,16 @@ export const StartupList: React.FC<StartupListProps> = ({
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        if (data.link) {
+        if (data.emailSent) {
+          showToast(`✅ Invitation email sent to ${startup.founderEmail || startup.founder_email || "founder"}!`, "success");
+        } else if (data.link) {
           try {
             await navigator.clipboard.writeText(data.link);
-            showToast("✅ Invitation link copied to clipboard! Share it with the founder.", "success");
+            if (data.emailError) {
+              showToast(`⚠️ Email not sent (${data.emailError}). Link copied to clipboard!`, "error");
+            } else {
+              showToast("✅ Invitation link copied to clipboard! Share it with the founder.", "success");
+            }
           } catch {
             showToast("✅ Invitation sent! Link: " + data.link, "success");
           }
@@ -124,11 +140,10 @@ export const StartupList: React.FC<StartupListProps> = ({
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ${
-            toast.type === "success"
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
-          }`}
+          className={`fixed top-5 right-5 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ${toast.type === "success"
+            ? "bg-emerald-600 text-white"
+            : "bg-red-600 text-white"
+            }`}
         >
           {toast.type === "success" ? <CheckCircle className="w-4 h-4 shrink-0" /> : null}
           <span>{toast.message}</span>
@@ -170,7 +185,9 @@ export const StartupList: React.FC<StartupListProps> = ({
                           <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
                             {startup.name}
                           </div>
-                          <div className="text-[11px] text-slate-500">{startup.sector || startup.industry || "Technology"}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {startup.sector || startup.industry || <span className="text-slate-400">Not provided</span>}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -198,7 +215,7 @@ export const StartupList: React.FC<StartupListProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-700">
-                      {startup.cohort || "Cohort 2026"}
+                      {startup.cohort || <span className="text-slate-400 font-normal">Not provided</span>}
                     </td>
                     <td className="py-3.5 px-4 font-semibold text-emerald-700">
                       {startup.funding || startup.fundingRaised || "$0"}
@@ -263,6 +280,26 @@ export const StartupList: React.FC<StartupListProps> = ({
                           >
                             <Mail className="w-3 h-3" />
                             {isInviting ? "Sending…" : "Invite"}
+                          </button>
+                        )}
+
+                        {/* Assign Dashboard Button / Badge */}
+                        {startup.admission_status === 'dashboard_assigned' ? (
+                          <span
+                            title="Dashboard Assigned"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium border border-emerald-200 cursor-default select-none"
+                          >
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            Dashboard Assigned
+                          </span>
+                        ) : (
+                          <button
+                            onClick={(e) => handleAssignDashboard(e, startup)}
+                            title="Assign Dashboard Access"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-medium border border-indigo-200 cursor-pointer transition-colors"
+                          >
+                            <LayoutDashboard className="w-3 h-3" />
+                            Assign Dashboard
                           </button>
                         )}
                       </div>

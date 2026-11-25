@@ -12035,7 +12035,7 @@
       "file_type": "code",
       "norm_label": "startupspage()",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L279"
+      "source_location": "L280"
     },
     {
       "id": "src_app_api_v1_startup_reviews_id_route_delete",
@@ -35798,7 +35798,7 @@
       "file_type": "code",
       "norm_label": "initial_startups",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L40"
+      "source_location": "L41"
     },
     {
       "id": "src_frontend_components_startups_types",
@@ -56656,7 +56656,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1054",
+      "source_location": "L1060",
       "weight": 1.0
     },
     {
@@ -56668,7 +56668,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1351",
+      "source_location": "L1413",
       "weight": 1.0
     },
     {
@@ -56680,7 +56680,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1360",
+      "source_location": "L1422",
       "weight": 1.0
     },
     {
@@ -56692,7 +56692,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1449",
+      "source_location": "L1511",
       "weight": 1.0
     },
     {
@@ -56704,7 +56704,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1466",
+      "source_location": "L1528",
       "weight": 1.0
     },
     {
@@ -56716,7 +56716,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1473",
+      "source_location": "L1535",
       "weight": 1.0
     },
     {
@@ -56728,7 +56728,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1480",
+      "source_location": "L1542",
       "weight": 1.0
     },
     {
@@ -56740,7 +56740,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L1502",
+      "source_location": "L1564",
       "weight": 1.0
     },
     {
@@ -56752,7 +56752,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L286",
+      "source_location": "L287",
       "weight": 1.0
     },
     {
@@ -67601,7 +67601,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -67613,7 +67613,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -67625,7 +67625,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -67637,7 +67637,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -67649,7 +67649,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -67661,7 +67661,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -67673,7 +67673,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -67685,7 +67685,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -67697,7 +67697,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -67709,7 +67709,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -67721,7 +67721,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -67733,7 +67733,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -67745,7 +67745,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -67757,7 +67757,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -80322,7 +80322,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -80334,7 +80334,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -80346,7 +80346,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -80358,7 +80358,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1.0
     },
     {
@@ -80370,24 +80370,12 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L27",
-      "weight": 1.0
-    },
-    {
-      "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_startupdetailmodal",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/frontend/components/startups/StartupsPage.tsx",
       "source_location": "L28",
       "weight": 1.0
     },
     {
       "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_allocatementormodal",
+      "target": "src_frontend_components_startups_startupdetailmodal",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -80411,7 +80399,7 @@
     },
     {
       "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_allocateinvestormodal",
+      "target": "src_frontend_components_startups_allocatementormodal",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -80423,7 +80411,7 @@
     },
     {
       "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_addcoincubatormodal",
+      "target": "src_frontend_components_startups_allocateinvestormodal",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -80435,7 +80423,7 @@
     },
     {
       "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_signmoumodal",
+      "target": "src_frontend_components_startups_addcoincubatormodal",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -80447,7 +80435,7 @@
     },
     {
       "source": "src_frontend_components_startups_startupspage",
-      "target": "src_frontend_components_startups_types",
+      "target": "src_frontend_components_startups_signmoumodal",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -80455,6 +80443,18 @@
       "context": "import",
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
       "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "src_frontend_components_startups_startupspage",
+      "target": "src_frontend_components_startups_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/frontend/components/startups/StartupsPage.tsx",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -108699,7 +108699,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L279",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -108710,7 +108710,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/frontend/components/startups/StartupsPage.tsx",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {

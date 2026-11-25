@@ -1908,9 +1908,9 @@
     "semantic_hash": ""
   },
   "src/frontend/components/startups/StartupsPage.tsx": {
-    "mtime": 1794641504.0588577,
-    "seen": 1794641575.554633,
-    "ast_hash": "565dc40590971dd732a4a3d6c3ba89e1",
+    "mtime": 1794644271.7859235,
+    "seen": 1794644373.757761,
+    "ast_hash": "4804f4b0d4ba64feafafa9451e2b576d",
     "semantic_hash": ""
   },
   "src/frontend/components/startups/profile/BasicInfo.tsx": {

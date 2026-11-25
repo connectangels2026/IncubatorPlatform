@@ -32,6 +32,7 @@ import {
   Pencil,
   Check,
   AlertCircle,
+  ArrowLeftRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/frontend/components/ui/Logo';
@@ -57,6 +58,44 @@ export default function StartupDashboard({
   const [isStartupModalOpen, setIsStartupModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<'more' | 'profile' | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Track founder startups count for multi-startup switching
+  const [startupsCount, setStartupsCount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('founder_startups_count');
+      if (stored) return parseInt(stored, 10) || 0;
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkStartupsCount() {
+      if (!user?.email) return;
+      try {
+        const res = await apiClient.get('/startups/my-startups');
+        if (isMounted && res.data?.success && typeof res.data?.total === 'number') {
+          setStartupsCount(res.data.total);
+          localStorage.setItem('founder_startups_count', String(res.data.total));
+          return;
+        }
+      } catch {
+        // Fallback to cached count if API not reachable
+      }
+      if (isMounted && typeof window !== 'undefined') {
+        const stored = localStorage.getItem('founder_startups_count');
+        if (stored) {
+          setStartupsCount(parseInt(stored, 10) || 0);
+        }
+      }
+    }
+    checkStartupsCount();
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const hasMultipleStartups = startupsCount >= 2;
 
   // Single Source of Truth via SWR hook
   const {
@@ -390,6 +429,17 @@ export default function StartupDashboard({
             <span className="hidden sm:inline-block text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">
               {profile.track === 'both' ? 'DeepTech' : `${profile.track} Track`}
             </span>
+            {hasMultipleStartups && !readOnly && (
+              <Link
+                href="/choose-startup"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50/80 hover:bg-blue-100/80 border border-blue-200/60 transition cursor-pointer shrink-0"
+                title="Switch startup dashboard"
+              >
+                <ArrowLeftRight className="w-3 h-3" />
+                <span className="hidden sm:inline">Switch startup</span>
+                <span className="sm:hidden">Switch</span>
+              </Link>
+            )}
             {saveSuccess && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 animate-in fade-in duration-200 shrink-0">
                 <Check className="w-3 h-3 text-emerald-600" />

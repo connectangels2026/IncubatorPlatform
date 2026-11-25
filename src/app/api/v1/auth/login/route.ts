@@ -221,35 +221,56 @@ export async function POST(req: Request) {
         .maybeSingle();
       redirectTo = existingMentor ? '/mentor/dashboard' : '/mentor/application-form';
     } else {
-      // Startup or applicant: verify active record in startups table
-      const { data: startupRow } = await supabaseAdmin
-        .from('startups')
-        .select('id, organization_id, track')
-        .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+      // Check if founder email has multiple accounts / startups
+      const [allStartupsRes, assignedAppsRes] = await Promise.all([
+        supabaseAdmin
+          .from('startups')
+          .select('id, organization_id, track, status, is_active, founder_id, founder_email')
+          .or(`founder_id.eq.${data.user.id},founder_email.ilike.${cleanEmail}`)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false }),
+        supabaseAdmin
+          .from('applications')
+          .select('id, startup_id')
+          .ilike('applicant_email', cleanEmail)
+          .or('admission_status.eq.dashboard_assigned,form_data->>dashboard_access_granted.eq.true'),
+      ]);
 
-      if (startupRow) {
-        let hasTrack = Boolean(startupRow.track);
-        if (!hasTrack) {
-          const { data: appRow } = await supabaseAdmin
-            .from('applications')
-            .select('form_data')
-            .ilike('applicant_email', cleanEmail)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      const allStartups = allStartupsRes.data || [];
+      const assignedAppIds = new Set((assignedAppsRes.data || []).map((a: any) => a.startup_id).filter(Boolean));
+      const hasAssignedApp = (assignedAppsRes.data || []).length > 0;
 
-          if (appRow?.form_data?.startup_track) {
-            hasTrack = true;
-          }
-        }
+      const assignedStartups = allStartups.filter(
+        (s: any) => assignedAppIds.has(s.id) || s.status === 'active' || s.is_active === true || allStartups.length >= 2 || (hasAssignedApp && allStartups.length === 1)
+      );
 
-        redirectTo = hasTrack ? '/startup/dashboard' : '/choose-role';
-        acceptedOrgId = startupRow.organization_id || null;
+      if (allStartups.length >= 2 || assignedStartups.length >= 2) {
+        redirectTo = '/choose-startup';
       } else {
-        redirectTo = '/programs/preincubator/status';
+        // 0 or 1 assigned startup: keep the current behavior
+        const startupRow = assignedStartups[0] || allStartups[0] || null;
+
+        if (startupRow) {
+          let hasTrack = Boolean(startupRow.track);
+          if (!hasTrack) {
+            const { data: appRow } = await supabaseAdmin
+              .from('applications')
+              .select('form_data')
+              .ilike('applicant_email', cleanEmail)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (appRow?.form_data?.startup_track) {
+              hasTrack = true;
+            }
+          }
+
+          redirectTo = hasTrack ? '/startup/dashboard' : '/choose-role';
+          acceptedOrgId = startupRow.organization_id || null;
+        } else {
+          redirectTo = '/programs/preincubator/status';
+        }
       }
     }
 
@@ -314,6 +335,11 @@ export async function POST(req: Request) {
         path: '/',
       });
       response.headers.set('x-access-token', data.session.access_token);
+    }
+
+    if (redirectTo === '/choose-startup') {
+      response.cookies.delete('selected_startup_id');
+      response.cookies.set('selected_startup_id', '', { path: '/', maxAge: 0 });
     }
 
     return response;
