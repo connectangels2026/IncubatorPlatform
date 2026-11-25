@@ -90,14 +90,23 @@ const mapRowToStartup = (row: any): Startup => {
 
 export class StartupService {
   // 1. Startup CRUD & Querying directly with Supabase Database
-  static async getStartups(orgId: string, filter: GetStartupsFilter = {}): Promise<{ startups: Startup[]; total: number; dashboards_assigned: number }> {
+  static async getStartups(
+    orgId: string,
+    filter: GetStartupsFilter = {}
+  ): Promise<{
+    startups: Startup[];
+    total: number;
+    dashboards_assigned: number;
+    status_counts: Record<string, number>;
+    overall_total: number;
+  }> {
     const realOrgId = resolveOrgId(orgId);
 
     // Pre-calculate dashboards assigned for this incubator organization
     const { data: assignedApps } = await supabaseAdmin
       .from('applications')
-      .select('startup_id, applicant_email')
-      .eq('admission_status', 'dashboard_assigned');
+      .select('startup_id, applicant_email, admission_status, form_data')
+      .or('admission_status.eq.dashboard_assigned,form_data->>dashboard_access_granted.eq.true');
 
     const assignedIds = new Set<string>();
     const assignedEmails = new Set<string>();
@@ -108,22 +117,65 @@ export class StartupService {
       });
     }
 
-    let dashboardsAssignedCount = 0;
-    if (realOrgId) {
-      const { data: orgStartups } = await supabaseAdmin
-        .from('startups')
-        .select('id, founder_email, admission_status')
-        .eq('organization_id', realOrgId)
-        .is('deleted_at', null);
+    const isAssignedRow = (s: any) =>
+      assignedIds.has(s?.id) ||
+      Boolean(s?.founder_email && assignedEmails.has(s.founder_email.toLowerCase()));
 
-      if (orgStartups) {
-        dashboardsAssignedCount = orgStartups.filter((s: any) =>
-          s.admission_status === 'dashboard_assigned' ||
-          assignedIds.has(s.id) ||
-          (s.founder_email && assignedEmails.has(s.founder_email.toLowerCase()))
-        ).length;
-      }
+    let orgQuery = supabaseAdmin
+      .from('startups')
+      .select('id, startup_name, founder_name, founder_email, sector, stage, status');
+    if (orgId !== 'all' && realOrgId) {
+      orgQuery = orgQuery.eq('organization_id', realOrgId);
     }
+    const { data: orgStartups } = await orgQuery;
+    const allOrgStartups: any[] = Array.isArray(orgStartups) ? orgStartups : [];
+
+    const dashboardsAssignedCount = allOrgStartups.filter(isAssignedRow).length;
+    const overallTotal = allOrgStartups.length;
+
+    const statusCounts: Record<string, number> = {
+      all: 0,
+      queue: 0,
+      active: 0,
+      inactive: 0,
+      exited: 0,
+    };
+    const searchTerm = filter.search?.trim().replace(/['"]/g, '').toLowerCase();
+
+    allOrgStartups.forEach((s: any) => {
+      if (
+        filter.sector && filter.sector !== 'ALL' &&
+        !String(s.sector || '').toLowerCase().includes(filter.sector.toLowerCase())
+      ) return;
+      if (
+        filter.stage && filter.stage !== 'ALL' &&
+        !String(s.stage || '').toLowerCase().includes(filter.stage.toLowerCase())
+      ) return;
+      if (filter.dashboard === 'assigned' && !isAssignedRow(s)) return;
+      if (filter.dashboard === 'unassigned' && isAssignedRow(s)) return;
+      if (searchTerm) {
+        const haystack = [s.startup_name, s.founder_name, s.founder_email]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(searchTerm)) return;
+      }
+
+      statusCounts.all += 1;
+      const status = String(s.status || '').toLowerCase();
+      if (status === 'pending') statusCounts.queue += 1;
+      else if (status === 'active') statusCounts.active += 1;
+      else if (status === 'inactive') statusCounts.inactive += 1;
+      else if (status === 'exited') statusCounts.exited += 1;
+    });
+
+    const emptyResult = (total: number) => ({
+      startups: [] as Startup[],
+      total,
+      dashboards_assigned: dashboardsAssignedCount,
+      status_counts: statusCounts,
+      overall_total: overallTotal,
+    });
 
     let query = supabaseAdmin
       .from('startups')
@@ -133,7 +185,7 @@ export class StartupService {
       if (realOrgId) {
         query = query.eq('organization_id', realOrgId);
       } else {
-        return { startups: [], total: 0, dashboards_assigned: 0 };
+        return emptyResult(0);
       }
     }
 
@@ -142,19 +194,17 @@ export class StartupService {
       const idsArr = Array.from(assignedIds);
       const emailsArr = Array.from(assignedEmails);
       if (idsArr.length === 0 && emailsArr.length === 0) {
-        return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
+        return emptyResult(0);
       }
       const clauses: string[] = [];
       if (idsArr.length > 0) clauses.push(`id.in.(${idsArr.join(',')})`);
       if (emailsArr.length > 0) clauses.push(`founder_email.in.(${emailsArr.map((e) => `"${e}"`).join(',')})`);
-      clauses.push(`admission_status.eq.dashboard_assigned`);
       query = query.or(clauses.join(','));
     } else if (filter.dashboard === 'unassigned') {
       const idsArr = Array.from(assignedIds);
       const emailsArr = Array.from(assignedEmails);
       if (idsArr.length > 0) query = query.not('id', 'in', `(${idsArr.join(',')})`);
       if (emailsArr.length > 0) query = query.not('founder_email', 'in', `(${emailsArr.map((e) => `"${e}"`).join(',')})`);
-      query = query.or('admission_status.is.null,admission_status.neq.dashboard_assigned');
     }
 
     // Filtering
@@ -163,8 +213,14 @@ export class StartupService {
     if (filter.status && filter.status !== 'all') query = query.ilike('status', `%${filter.status}%`);
 
     // Search
-    if (filter.search) {
-      query = query.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+    if (filter.search && filter.search.trim()) {
+      const term = filter.search.trim().replace(/['"]/g, '');
+      const searchClauses = [
+        `startup_name.ilike."%${term}%"`,
+        `founder_name.ilike."%${term}%"`,
+        `founder_email.ilike."%${term}%"`,
+      ];
+      query = query.or(searchClauses.join(','));
     }
 
     // Sorting
@@ -190,14 +246,15 @@ export class StartupService {
         if (realOrgId) {
           retryQuery = retryQuery.eq('organization_id', realOrgId);
         } else {
-          return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
+          return emptyResult(0);
         }
       }
       if (filter.sector && filter.sector !== 'ALL') retryQuery = retryQuery.ilike('sector', `%${filter.sector}%`);
       if (filter.stage && filter.stage !== 'ALL') retryQuery = retryQuery.ilike('stage', `%${filter.stage}%`);
       if (filter.status && filter.status !== 'all') retryQuery = retryQuery.ilike('status', `%${filter.status}%`);
-      if (filter.search) {
-        retryQuery = retryQuery.or(`name.ilike.%${filter.search}%,founder_name.ilike.%${filter.search}%,founder_email.ilike.%${filter.search}%`);
+      if (filter.search && filter.search.trim()) {
+        const term = filter.search.trim().replace(/['"]/g, '');
+        retryQuery = retryQuery.or(`startup_name.ilike."%${term}%",founder_name.ilike."%${term}%",founder_email.ilike."%${term}%"`);
       }
       const retryRes = await retryQuery.range(offset, offset + limit - 1);
       data = retryRes.data;
@@ -207,11 +264,11 @@ export class StartupService {
 
     if (error) {
       console.error('Error fetching startups:', error);
-      return { startups: [], total: 0, dashboards_assigned: dashboardsAssignedCount };
+      return emptyResult(0);
     }
 
     if (!data || data.length === 0) {
-      return { startups: [], total: count ?? 0, dashboards_assigned: dashboardsAssignedCount };
+      return emptyResult(count ?? 0);
     }
 
     // Compute founder registration status
@@ -236,14 +293,19 @@ export class StartupService {
     if (startupIds.length > 0) {
       const { data: appData } = await supabaseAdmin
         .from('applications')
-        .select('startup_id, applicant_email, admission_status')
+        .select('startup_id, applicant_email, admission_status, form_data')
         .in('startup_id', startupIds)
         .order('created_at', { ascending: false });
 
       if (appData) {
         appData.forEach((a: any) => {
+          const isAssigned =
+            a.admission_status === 'dashboard_assigned' ||
+            a.form_data?.dashboard_access_granted === true ||
+            a.form_data?.dashboard_access_granted === 'true';
+          const status = isAssigned ? 'dashboard_assigned' : (a.admission_status || null);
           if (a.startup_id && !appStatusMap[a.startup_id]) {
-            appStatusMap[a.startup_id] = a.admission_status || null;
+            appStatusMap[a.startup_id] = status;
           }
         });
       }
@@ -251,7 +313,7 @@ export class StartupService {
     if (uniqueEmails.length > 0) {
       const { data: emailAppData } = await supabaseAdmin
         .from('applications')
-        .select('startup_id, applicant_email, admission_status')
+        .select('startup_id, applicant_email, admission_status, form_data')
         .in('applicant_email', uniqueEmails)
         .order('created_at', { ascending: false });
 
@@ -259,8 +321,13 @@ export class StartupService {
         emailAppData.forEach((a: any) => {
           if (a.applicant_email) {
             const em = a.applicant_email.toLowerCase();
+            const isAssigned =
+              a.admission_status === 'dashboard_assigned' ||
+              a.form_data?.dashboard_access_granted === true ||
+              a.form_data?.dashboard_access_granted === 'true';
+            const status = isAssigned ? 'dashboard_assigned' : (a.admission_status || null);
             if (!appStatusMap[em]) {
-              appStatusMap[em] = a.admission_status || null;
+              appStatusMap[em] = status;
             }
           }
         });
@@ -271,19 +338,26 @@ export class StartupService {
       const startup = mapRowToStartup(row);
       const email = (row.founder_email || '').toLowerCase();
       (startup as any).founder_registered = !!userStatusMap[email];
+      const isAssigned = assignedIds.has(row.id) || (email && assignedEmails.has(email));
       const resolvedAdmissionStatus =
-        row.admission_status ||
         appStatusMap[row.id] ||
         (email ? appStatusMap[email] : null) ||
-        null;
+        (isAssigned ? 'dashboard_assigned' : null) ||
+        undefined;
       (startup as any).admission_status = resolvedAdmissionStatus;
       startup.admission_status = resolvedAdmissionStatus;
       return startup;
     });
+
+    const pageAssignedCount = startups.filter((s) => s.admission_status === 'dashboard_assigned').length;
+    const finalDashboardsAssigned = Math.max(dashboardsAssignedCount, pageAssignedCount);
+
     return {
       startups,
       total: count ?? data.length,
-      dashboards_assigned: dashboardsAssignedCount,
+      dashboards_assigned: finalDashboardsAssigned,
+      status_counts: statusCounts,
+      overall_total: overallTotal,
     };
   }
 
