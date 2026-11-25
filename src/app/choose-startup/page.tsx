@@ -74,10 +74,39 @@ function ChooseStartupContent() {
   const [isAvatarDropdownOpen, setIsAvatarDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Protect /choose-startup for logged-in founders only
+  // Protect /choose-startup strictly for startup founders only (no incubator, organization, or super-admin)
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+    if (!user) {
       router.replace('/login?redirect=/choose-startup');
+      return;
+    }
+
+    const role = (
+      (user as any)?.role ||
+      user?.user_metadata?.role ||
+      (typeof window !== 'undefined' ? localStorage.getItem('user_role') : '') ||
+      ''
+    ).toLowerCase();
+
+    if (role === 'super-admin' || role === 'super_admin') {
+      router.replace('/super-admin/dashboard');
+      return;
+    }
+    if (
+      role === 'admin' ||
+      role === 'incubator' ||
+      role === 'incubator_admin' ||
+      role === 'organization' ||
+      role === 'pending_incubator'
+    ) {
+      const orgId = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+      router.replace(orgId ? `/incubator?org=${orgId}` : '/incubator');
+      return;
+    }
+    if (role === 'mentor') {
+      router.replace('/mentor/dashboard');
+      return;
     }
   }, [user, authLoading, router]);
 
@@ -101,6 +130,25 @@ function ChooseStartupContent() {
   }, []);
 
   const fetchStartups = useCallback(async () => {
+    const role = (
+      (user as any)?.role ||
+      user?.user_metadata?.role ||
+      (typeof window !== 'undefined' ? localStorage.getItem('user_role') : '') ||
+      ''
+    ).toLowerCase();
+
+    if (
+      role === 'super-admin' ||
+      role === 'super_admin' ||
+      role === 'admin' ||
+      role === 'incubator' ||
+      role === 'incubator_admin' ||
+      role === 'organization'
+    ) {
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 

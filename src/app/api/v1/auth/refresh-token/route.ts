@@ -31,9 +31,18 @@ export async function POST(req: Request) {
       }, { status: 200 });
     }
 
-    const { data, error } = await refreshToken(tokenStr);
+    const timeoutPromise = new Promise<{ data: any; error: any }>((_, reject) =>
+      setTimeout(() => reject(new Error('Session refresh timed out')), 3500)
+    );
 
-    if (error || !data.session) {
+    const refreshResult = await Promise.race([
+      refreshToken(tokenStr),
+      timeoutPromise,
+    ]).catch((err) => ({ data: { session: null, user: null }, error: err }));
+
+    const { data, error } = refreshResult;
+
+    if (error || !data?.session) {
       return NextResponse.json({ error: error?.message || 'Invalid session' }, { status: 401 });
     }
 

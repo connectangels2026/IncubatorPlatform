@@ -79,8 +79,7 @@ export default function Home() {
                     onClick={async () => {
                       await logout();
                     }}
-                    className="text-sm font-semibold text-white px-5 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
-                    style={{ backgroundColor: '#DC2626' }}
+                    className="text-sm font-semibold bg-transparent text-red-600 border border-red-600/30 hover:bg-red-50 px-5 py-2.5 rounded-full transition-all duration-200 hover:-translate-y-0.5 flex items-center gap-2"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Logout</span>
@@ -117,7 +116,7 @@ export default function Home() {
 
               {/* Left */}
               <div className="lg:col-span-6 px-6 sm:px-8 lg:px-12 py-12 lg:py-20 flex flex-col justify-center animate-fade-in-up">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#2563EB]/30 text-[#2563EB] text-xs font-semibold shadow-sm mb-6">
+                <div className="inline-flex w-fit items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-[#2563EB]/30 text-[#2563EB] text-xs font-semibold shadow-sm mb-6">
                   <Sparkles className="w-3.5 h-3.5 text-[#2563EB]" />
                   <span>Innovation &amp; Incubation Platform</span>
                 </div>
@@ -188,8 +187,8 @@ export default function Home() {
                       </div>
                       {[
                         { name: 'NexaAi Tech', sub: 'Dr. Sarah K.', sector: 'Fintech', badge: 'Incubating', bg: 'bg-emerald-100', text: 'text-emerald-800' },
-                        { name: 'BioHealth Labs', sub: 'Mark Reynolds', sector: 'Fintech', badge: 'Seed Funded', bg: 'bg-blue-100', text: 'text-blue-800' },
-                        { name: 'CleanGrid Power', sub: 'Elena Rostova', sector: 'Fintech', badge: 'Co-Incubation', bg: 'bg-purple-100', text: 'text-purple-800' },
+                        { name: 'BioHealth Labs', sub: 'Mark Reynolds', sector: 'Healthtech', badge: 'Seed Funded', bg: 'bg-blue-100', text: 'text-blue-800' },
+                        { name: 'CleanGrid Power', sub: 'Elena Rostova', sector: 'Cleantech', badge: 'Co-Incubation', bg: 'bg-purple-100', text: 'text-purple-800' },
                       ].map((r) => (
                         <div key={r.name} className="grid grid-cols-3 items-center p-1.5 rounded-lg hover:bg-slate-50 transition-colors text-xs mb-0.5">
                           <div>
