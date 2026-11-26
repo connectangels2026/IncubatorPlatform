@@ -52,6 +52,7 @@ apiClient.interceptors.request.use(
             const refreshRes = await fetch('/api/v1/auth/refresh-token', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
             });
             if (refreshRes.ok) {
               const rData = await refreshRes.json();
@@ -168,6 +169,7 @@ apiClient.interceptors.response.use(
           const rRes = await fetch('/api/v1/auth/refresh-token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
           });
           if (rRes.ok) {
             const rData = await rRes.json();

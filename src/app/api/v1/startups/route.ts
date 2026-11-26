@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
       success: true,
       organization_id: orgId,
       total: result.total,
+      overall_total: result.overall_total ?? result.total,
+      status_counts: result.status_counts ?? {},
       dashboards_assigned: result.dashboards_assigned ?? 0,
       page,
       limit,

@@ -282,23 +282,54 @@ const INITIAL_STARTUPS: StartupItem[] = [
   },
 ];
 
+interface StartupsMemoryCache {
+  key: string;
+  startups: StartupItem[];
+  coIncubatedStartups: StartupItem[];
+  totalCount: number;
+  overallTotal: number;
+  statusCounts: Record<string, number>;
+  dashboardsAssignedCount: number;
+  timestamp: number;
+}
+let startupsMemoryCache: StartupsMemoryCache | null = null;
+
 export const StartupsPage: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sectionFilter, setSectionFilter] = useState<"all" | "queue" | "active" | "inactive" | "exited" | "co-incubated">("all");
-  const [coIncubatedStartups, setCoIncubatedStartups] = useState<StartupItem[]>([]);
+  const [coIncubatedStartups, setCoIncubatedStartups] = useState<StartupItem[]>(() => startupsMemoryCache?.coIncubatedStartups || []);
 
   // State
   const { organization, user } = useAuth();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [startups, setStartups] = useState<StartupItem[]>([]);
+  const userOrgId = (user as any)?.organization_id;
+  const userId = user?.id;
+
+  // Restore from memory cache so page loads instantly without flashing skeletons when returning
+  const [loading, setLoading] = useState<boolean>(() => !startupsMemoryCache || startupsMemoryCache.startups.length === 0);
+  const [startups, setStartups] = useState<StartupItem[]>(() => startupsMemoryCache?.startups || []);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search query to avoid race conditions with backend requests
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [selectedIndustry, setSelectedIndustry] = useState("ALL");
   const [selectedStage, setSelectedStage] = useState("ALL");
   const [selectedDashboard, setSelectedDashboard] = useState<string>("all");
-  const [dashboardsAssignedCount, setDashboardsAssignedCount] = useState<number>(0);
+  const [dashboardsAssignedCount, setDashboardsAssignedCount] = useState<number>(() => startupsMemoryCache?.dashboardsAssignedCount || 0);
   const [selectedCohort, setSelectedCohort] = useState("ALL");
   const [sortBy, setSortBy] = useState("name-asc");
+
+  // Track last fetched query parameters and timestamp to prevent unnecessary auto-reloading
+  const lastFetchedRef = React.useRef<{ key: string; time: number }>({
+    key: startupsMemoryCache?.key || "",
+    time: startupsMemoryCache?.timestamp || 0,
+  });
 
   // Server-side pagination state synced with URL params (?page=1&limit=5)
   const [page, setPage] = useState<number>(() => {
@@ -317,7 +348,9 @@ export const StartupsPage: React.FC = () => {
     }
     return 5;
   });
-  const [serverTotalCount, setServerTotalCount] = useState<number>(0);
+  const [serverTotalCount, setServerTotalCount] = useState<number>(() => startupsMemoryCache?.totalCount || 0);
+  const [overallTotal, setOverallTotal] = useState<number>(() => startupsMemoryCache?.overallTotal || 0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>(() => startupsMemoryCache?.statusCounts || {});
 
   // Sync page and limit to URL search params
   useEffect(() => {
@@ -494,46 +527,62 @@ export const StartupsPage: React.FC = () => {
   // Load from API with fallback
   useEffect(() => {
     const loadStartups = async () => {
-      setLoading(true);
-      try {
-        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const orgIdFromUrl = searchParams?.get('org') || searchParams?.get('org_id');
-        const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
-        let orgId = organization?.id || orgIdFromUrl || orgIdFromStorage || (user as any)?.organization_id;
+      const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const orgIdFromUrl = searchParams?.get('org') || searchParams?.get('org_id');
+      const orgIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('org_id') : null;
+      let orgId = organization?.id || orgIdFromUrl || orgIdFromStorage || userOrgId;
 
-        if (!orgId) {
-          try {
-            const meRes = await fetch('/api/v1/auth/me');
-            if (meRes.ok) {
-              const meData = await meRes.json();
-              if (meData?.organization?.id) {
-                orgId = meData.organization.id;
-                if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
-              }
+      if (!orgId) {
+        try {
+          const meRes = await fetch('/api/v1/auth/me');
+          if (meRes.ok) {
+            const meData = await meRes.json();
+            if (meData?.organization?.id) {
+              orgId = meData.organization.id;
+              if (typeof window !== 'undefined') localStorage.setItem('org_id', orgId);
             }
-          } catch {}
-        }
+          }
+        } catch {}
+      }
 
-        if (!orgId) {
-          setStartups([]);
-          setLoading(false);
-          return;
-        }
+      if (!orgId) {
+        setStartups([]);
+        setLoading(false);
+        return;
+      }
 
-        const statusParam =
-          sectionFilter !== "all" && sectionFilter !== "co-incubated"
-            ? sectionFilter === "queue"
-              ? "pending"
-              : sectionFilter
-            : undefined;
+      const statusParam =
+        sectionFilter !== "all" && sectionFilter !== "co-incubated"
+          ? sectionFilter === "queue"
+            ? "pending"
+            : sectionFilter
+          : undefined;
 
+      const currentKey = `${orgId}_${page}_${limit}_${debouncedSearch}_${selectedIndustry}_${selectedStage}_${selectedDashboard}_${sectionFilter}`;
+
+      // Prevent unnecessary auto-reloading if data for this exact query was already fetched recently (within 5 mins)
+      if (
+        lastFetchedRef.current.key === currentKey &&
+        Date.now() - lastFetchedRef.current.time < 300000 &&
+        startups.length > 0
+      ) {
+        setLoading(false);
+        return;
+      }
+
+      // Only show full skeleton screen if we have no startups rendered yet
+      if (startups.length === 0) {
+        setLoading(true);
+      }
+
+      try {
         const res = await apiClient.get("/startups", {
           headers: { "x-org-id": orgId },
           params: {
             org_id: orgId,
             page,
             limit,
-            search: searchQuery.trim() || undefined,
+            search: debouncedSearch || undefined,
             sector: selectedIndustry !== "ALL" ? selectedIndustry : undefined,
             stage: selectedStage !== "ALL" ? selectedStage : undefined,
             status: statusParam,
@@ -549,16 +598,26 @@ export const StartupsPage: React.FC = () => {
           apiData = [];
         }
 
-        setServerTotalCount(typeof res.data?.total === "number" ? res.data.total : apiData.length);
-        if (typeof res.data?.dashboards_assigned === "number") {
-          setDashboardsAssignedCount(res.data.dashboards_assigned);
-        }
+        const totalResult = typeof res.data?.total === "number" ? res.data.total : apiData.length;
+        const assignedResult = typeof res.data?.dashboards_assigned === "number" ? res.data.dashboards_assigned : 0;
+        const overallResult = typeof res.data?.overall_total === "number"
+          ? res.data.overall_total
+          : totalResult;
+        const countsResult = res.data?.status_counts && typeof res.data.status_counts === "object"
+          ? res.data.status_counts
+          : {};
 
+        setServerTotalCount(totalResult);
+        setDashboardsAssignedCount(assignedResult);
+        setOverallTotal(overallResult);
+        setStatusCounts(countsResult);
+
+        let mergedList: StartupItem[] = [];
         if (Array.isArray(apiData)) {
           if (apiData.length === 0) {
             setStartups([]);
           } else {
-            const merged: StartupItem[] = apiData.map((item: any, idx: number) => {
+            mergedList = apiData.map((item: any, idx: number) => {
               return {
                 id: item.id || String(idx + 1),
                 name: item.startup_name || item.name || 'Startup',
@@ -591,11 +650,12 @@ export const StartupsPage: React.FC = () => {
                 coIncubators: item.coIncubators || [],
               };
             });
-            setStartups(merged);
+            setStartups(mergedList);
           }
         }
 
         // Load partner co-incubated startups (separated from own cohort)
+        let coMapped: StartupItem[] = [];
         try {
           const coincRes = await apiClient.get('/co-incubations', {
             params: { view: 'partner', status: 'active' },
@@ -603,7 +663,7 @@ export const StartupsPage: React.FC = () => {
           });
           const cData = coincRes.data?.data;
           if (Array.isArray(cData)) {
-            const coMapped: StartupItem[] = cData.map((c: any, idx: number) => {
+            coMapped = cData.map((c: any, idx: number) => {
               const st = c.startup || {};
               const stName = st.startup_name || st.name || 'Co-incubated Startup';
               return {
@@ -641,25 +701,40 @@ export const StartupsPage: React.FC = () => {
         } catch {
           setCoIncubatedStartups([]);
         }
+
+        // Save into memory cache to allow instant rendering when navigating between pages
+        lastFetchedRef.current = { key: currentKey, time: Date.now() };
+        startupsMemoryCache = {
+          key: currentKey,
+          startups: mergedList,
+          coIncubatedStartups: coMapped,
+          totalCount: totalResult,
+          overallTotal: overallResult,
+          statusCounts: countsResult,
+          dashboardsAssignedCount: assignedResult,
+          timestamp: Date.now(),
+        };
       } catch (e) {
         console.warn("Error fetching startups", e);
-        setStartups([]);
+        if (startups.length === 0) {
+          setStartups([]);
+        }
       } finally {
         setLoading(false);
       }
     };
     loadStartups();
-  }, [organization?.id, user, page, limit, searchQuery, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
+  }, [organization?.id, userOrgId, userId, page, limit, debouncedSearch, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
     return startups.filter((s) => {
       const industryVal = s.industry || s.sector || "";
       const matchSearch =
-        searchQuery === "" ||
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.founder.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        industryVal.toLowerCase().includes(searchQuery.toLowerCase());
+        debouncedSearch === "" ||
+        s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (s.founder || "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (s.founderEmail || "").toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchIndustry = selectedIndustry === "ALL" || industryVal.toLowerCase().includes(selectedIndustry.toLowerCase());
       const matchStage = selectedStage === "ALL" || s.stage.toLowerCase() === selectedStage.toLowerCase();
@@ -675,7 +750,7 @@ export const StartupsPage: React.FC = () => {
       if (sortBy === "name-desc") return b.name.localeCompare(a.name);
       return 0;
     });
-  }, [startups, searchQuery, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
+  }, [startups, debouncedSearch, selectedIndustry, selectedStage, selectedCohort, selectedDashboard, sortBy]);
 
   // Status Partitioning (Queue = Pending, Active = Active, Inactive = Inactive, Exited = Exited)
   const queueStartups = useMemo(() => {
@@ -1057,13 +1132,21 @@ export const StartupsPage: React.FC = () => {
   };
 
   // Aggregates for KPI banner
-  const totalCount = serverTotalCount || startups.length;
-  const activeCount = startups.filter((s) => s.status.toLowerCase() === "active").length;
+  const totalCount = overallTotal || serverTotalCount || startups.length;
+  const activeCount = typeof statusCounts.active === "number"
+    ? statusCounts.active
+    : startups.filter((s) => s.status.toLowerCase() === "active").length;
   const graduatedCount = startups.filter((s) => s.status.toLowerCase() === "graduated").length;
   const graduationRate = totalCount > 0 ? Math.round((graduatedCount / totalCount) * 100) : 0;
   const totalMentorsAllocated = startups.reduce((acc, s) => acc + (s.allocatedMentors?.length || 0), 0);
   const totalInvestorsAllocated = startups.reduce((acc, s) => acc + (s.allocatedInvestors?.length || 0), 0);
   const totalCoIncubations = startups.reduce((acc, s) => acc + (s.coIncubators?.length || 0), 0);
+
+  // Live count of startups where dashboard is assigned (combines loaded startup admission statuses and server count)
+  const liveDashboardsAssignedCount = useMemo(() => {
+    const assignedInList = startups.filter((s) => s.admission_status === "dashboard_assigned").length;
+    return Math.max(dashboardsAssignedCount, assignedInList);
+  }, [startups, dashboardsAssignedCount]);
 
   // Parse total capital raised (e.g. $1.2M + $4.5M)
   const totalCapitalRaisedFormatted = useMemo(() => {
@@ -1097,9 +1180,19 @@ export const StartupsPage: React.FC = () => {
       );
       if (res.data?.success) {
         showToast("Dashboard access assigned successfully", "success");
-        setStartups((prev) =>
-          prev.map((s) => (s.id === assignModalStartup.id ? { ...s, admission_status: 'dashboard_assigned' } : s))
-        );
+        setStartups((prev) => {
+          const updated = prev.map((s) =>
+            s.id === assignModalStartup.id ? { ...s, admission_status: 'dashboard_assigned' } : s
+          );
+          if (startupsMemoryCache) {
+            startupsMemoryCache.startups = updated;
+            startupsMemoryCache.dashboardsAssignedCount = Math.max(
+              startupsMemoryCache.dashboardsAssignedCount + 1,
+              updated.filter((s) => s.admission_status === 'dashboard_assigned').length
+            );
+          }
+          return updated;
+        });
         setDashboardsAssignedCount((prev) => prev + 1);
         setAssignModalStartup(null);
       } else {
@@ -1214,8 +1307,19 @@ export const StartupsPage: React.FC = () => {
           next[matchIdx] = { ...next[matchIdx], ...newStartup };
           return next;
         }
+        setServerTotalCount((c) => c + 1);
+        setOverallTotal((c) => c + 1);
+        setStatusCounts((counts) => ({
+          ...counts,
+          all: (counts.all || 0) + 1,
+          queue: (counts.queue || 0) + 1,
+        }));
         return [newStartup, ...prev];
       });
+
+      // Reset cache so newly added startup is preserved
+      startupsMemoryCache = null;
+      lastFetchedRef.current = { key: "", time: 0 };
 
       setOnboardForm({
         name: "",
@@ -1312,7 +1416,7 @@ export const StartupsPage: React.FC = () => {
             <div className="text-xl font-semibold text-slate-900 mt-1">{totalCount}</div>
             <div className="text-xs text-slate-500 mt-0.5">{activeCount} active</div>
             <div className="text-[11px] text-emerald-600 font-medium mt-1">
-              Dashboards assigned: {dashboardsAssignedCount} / {totalCount}
+              Dashboards assigned: {liveDashboardsAssignedCount} / {totalCount}
             </div>
           </div>
 
@@ -1366,7 +1470,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {filteredStartups.length}
+                {statusCounts.all ?? filteredStartups.length}
               </span>
             </button>
 
@@ -1386,7 +1490,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'queue' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
-                {queueStartups.length}
+                {statusCounts.queue ?? queueStartups.length}
               </span>
             </button>
 
@@ -1406,7 +1510,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'active' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
               }`}>
-                {activeStartups.length}
+                {statusCounts.active ?? activeStartups.length}
               </span>
             </button>
 
@@ -1425,7 +1529,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'inactive' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {inactiveStartups.length}
+                {statusCounts.inactive ?? inactiveStartups.length}
               </span>
             </button>
 
@@ -1444,7 +1548,7 @@ export const StartupsPage: React.FC = () => {
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] ${
                 sectionFilter === 'exited' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
               }`}>
-                {exitedStartups.length}
+                {statusCounts.exited ?? exitedStartups.length}
               </span>
             </button>
 
@@ -1524,9 +1628,9 @@ export const StartupsPage: React.FC = () => {
               }}
               className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="all">All dashboards</option>
-              <option value="assigned">Assigned</option>
-              <option value="unassigned">Not assigned</option>
+              <option value="all">All dashboards ({totalCount})</option>
+              <option value="assigned">Assigned ({liveDashboardsAssignedCount})</option>
+              <option value="unassigned">Not assigned ({Math.max(0, totalCount - liveDashboardsAssignedCount)})</option>
             </select>
 
             <div className="border-l border-slate-200 pl-2 flex items-center gap-1">

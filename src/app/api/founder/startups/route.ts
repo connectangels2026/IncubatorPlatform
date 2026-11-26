@@ -13,6 +13,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
     }
 
+    const userRole = (user?.role || '').toLowerCase();
+    if (
+      userRole === 'super-admin' ||
+      userRole === 'super_admin' ||
+      userRole === 'admin' ||
+      userRole === 'incubator' ||
+      userRole === 'incubator_admin' ||
+      userRole === 'organization'
+    ) {
+      return NextResponse.json({ error: 'Forbidden: Startup founders only', startups: [], total: 0 }, { status: 403 });
+    }
+
     const emailLower = (user.email || '').trim().toLowerCase();
 
     // 1. Fetch startups linked to this founder (by founder_id or founder_email)

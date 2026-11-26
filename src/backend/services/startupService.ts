@@ -461,7 +461,9 @@ export class StartupService {
     const isStaff =
       isSuperAdmin ||
       userRole.includes('admin') ||
-      userRole.includes('incubator');
+      userRole.includes('incubator') ||
+      userRole.includes('staff') ||
+      Boolean(user.organization_id);
 
     const isOwner =
       id === 'me' ||
@@ -505,6 +507,9 @@ export class StartupService {
         if (user.organization_id && current.organization_id && user.organization_id !== current.organization_id) {
           throw new Error('Forbidden: You can only edit startups enrolled in your organization');
         }
+      }
+      if (!current.organization_id && user.organization_id) {
+        cleanPayload.organization_id = user.organization_id;
       }
 
       // Incubator role may update ONLY incubator mutable fields
