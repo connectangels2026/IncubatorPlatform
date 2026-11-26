@@ -17,6 +17,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Loader2,
   Copy,
   Check,
@@ -351,6 +352,11 @@ export const StartupsPage: React.FC = () => {
   const [serverTotalCount, setServerTotalCount] = useState<number>(() => startupsMemoryCache?.totalCount || 0);
   const [overallTotal, setOverallTotal] = useState<number>(() => startupsMemoryCache?.overallTotal || 0);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>(() => startupsMemoryCache?.statusCounts || {});
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [bulkTargetStatus, setBulkTargetStatus] = useState<string | null>(null);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
+  const bulkMenuRef = React.useRef<HTMLDivElement>(null);
 
   // Sync page and limit to URL search params
   useEffect(() => {
@@ -360,6 +366,17 @@ export const StartupsPage: React.FC = () => {
     url.searchParams.set("limit", String(limit));
     window.history.replaceState({}, "", url.toString());
   }, [page, limit]);
+
+  useEffect(() => {
+    if (!bulkMenuOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(event.target as Node)) {
+        setBulkMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [bulkMenuOpen]);
 
   // Modals state
   const [selectedStartup, setSelectedStartup] = useState<StartupItem | null>(null);
@@ -570,10 +587,7 @@ export const StartupsPage: React.FC = () => {
         return;
       }
 
-      // Only show full skeleton screen if we have no startups rendered yet
-      if (startups.length === 0) {
-        setLoading(true);
-      }
+      setLoading(true);
 
       try {
         const res = await apiClient.get("/startups", {
@@ -724,7 +738,7 @@ export const StartupsPage: React.FC = () => {
       }
     };
     loadStartups();
-  }, [organization?.id, userOrgId, userId, page, limit, debouncedSearch, selectedIndustry, selectedStage, selectedDashboard, sectionFilter]);
+  }, [organization?.id, userOrgId, userId, page, limit, debouncedSearch, selectedIndustry, selectedStage, selectedDashboard, sectionFilter, reloadTick]);
 
   // Filtered & Sorted startups
   const filteredStartups = useMemo(() => {
@@ -822,6 +836,32 @@ export const StartupsPage: React.FC = () => {
     }
   };
 
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkTargetStatus || isBulkUpdating) return;
+    setIsBulkUpdating(true);
+    try {
+      const orgId = organization?.id || (typeof window !== 'undefined' ? localStorage.getItem('org_id') : null);
+      const res = await apiClient.post(
+        '/startups/bulk-status',
+        { status: bulkTargetStatus },
+        { headers: orgId ? { 'x-org-id': orgId } : undefined }
+      );
+      const updated = typeof res.data?.updated_count === 'number' ? res.data.updated_count : 0;
+      const label = bulkTargetStatus.charAt(0).toUpperCase() + bulkTargetStatus.slice(1);
+
+      setBulkTargetStatus(null);
+      setBulkMenuOpen(false);
+      startupsMemoryCache = null;
+      lastFetchedRef.current = { key: '', time: 0 };
+      setReloadTick((t) => t + 1);
+      showToast(`${label} set for ${updated} startups.`);
+    } catch (err: any) {
+      console.error('Failed to update statuses in bulk:', err);
+      showToast(err?.response?.data?.error || err?.message || 'Failed to update statuses. Please try again.', 'error');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
 
   // Handlers: View Profile Modal
   const handleOpenProfile = (startup: StartupItem) => {
@@ -1660,16 +1700,46 @@ export const StartupsPage: React.FC = () => {
           </div>
         </div>
 
+        {sectionFilter === 'all' && (
+          <div className="flex items-center justify-end">
+            <div className="relative" ref={bulkMenuRef}>
+              <button
+                type="button"
+                onClick={() => setBulkMenuOpen((open) => !open)}
+                disabled={isBulkUpdating}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
+              >
+                <span>Change status of all</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+              {bulkMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 z-30 w-44 bg-white border border-slate-200 rounded-lg shadow-xl py-1">
+                  {['pending', 'active', 'inactive', 'exited'].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => {
+                        setBulkTargetStatus(status);
+                        setBulkMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer capitalize"
+                    >
+                      Set all to {status}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Section Content Display */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-medium text-slate-900">
                 {loading ? (
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                    <span>Loading startups...</span>
-                  </span>
+                  <span className="text-slate-400">Loading startups...</span>
                 ) : (
                   `${displayedStartups.length} ${displayedStartups.length === 1 ? 'startup' : 'startups'}`
                 )}
@@ -1938,6 +2008,39 @@ export const StartupsPage: React.FC = () => {
           >
             {isAssigningDashboard && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>Assign</span>
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!bulkTargetStatus}
+        onClose={() => {
+          if (!isBulkUpdating) setBulkTargetStatus(null);
+        }}
+        title="Change status of all startups"
+        maxWidth="sm"
+      >
+        <p className="text-sm text-slate-600 mb-6">
+          This will set the status of every startup in your incubator to{" "}
+          <span className="font-semibold text-slate-900 capitalize">{bulkTargetStatus}</span>. This cannot be undone from this page.
+        </p>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setBulkTargetStatus(null)}
+            disabled={isBulkUpdating}
+            className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleBulkStatusUpdate}
+            disabled={isBulkUpdating}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait shadow-xs cursor-pointer"
+          >
+            {isBulkUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            <span>{isBulkUpdating ? 'Updating...' : 'Apply to all'}</span>
           </button>
         </div>
       </Modal>
