@@ -326,6 +326,12 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
   const arrVal = Number(activeStartup.arr || activeStartup.annual_revenue || mrrVal * 12);
   const fundingVal = activeStartup.funding || (activeStartup.funding_raised ? `$${Number(activeStartup.funding_raised).toLocaleString()}` : '$0');
   const customerCount = activeStartup.customers ?? activeStartup.customer_count ?? 0;
+  const registrationDateValue = activeStartup.incubation_start_date
+    ? new Date(`${String(activeStartup.incubation_start_date).slice(0, 10)}T00:00:00`)
+    : null;
+  const registrationDateLabel = registrationDateValue && !Number.isNaN(registrationDateValue.getTime())
+    ? registrationDateValue.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : null;
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/40 backdrop-blur-sm transition-opacity font-sans animate-in fade-in duration-150">
@@ -355,6 +361,12 @@ export const StartupDetailModal: React.FC<StartupDetailModalProps> = ({
                 <span className="text-[11px] px-2 py-0.5 rounded-md font-medium bg-slate-100 text-slate-600">
                   {activeStartup.cohort || <span className="text-slate-400">Not provided</span>}
                 </span>
+                {registrationDateLabel && (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md font-medium bg-indigo-50 text-indigo-700">
+                    <Clock className="w-3 h-3" />
+                    Registered: {registrationDateLabel}
+                  </span>
+                )}
 
                 {/* Status Badge / Dropdown */}
                 {isReadOnly ? (

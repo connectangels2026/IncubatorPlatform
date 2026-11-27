@@ -22,14 +22,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Ownership & Tenant check
     const role = user?.role?.toLowerCase() || '';
     const isSuperAdmin = role === 'super-admin' || role === 'super_admin';
-    const isStaff = isSuperAdmin || role === 'admin' || role === 'incubator_admin' || role === 'incubator';
+    const isStaff =
+      isSuperAdmin ||
+      role.includes('admin') ||
+      role.includes('incubator') ||
+      role.includes('staff') ||
+      Boolean(user?.organization_id);
+
     const isOwner =
       Boolean(startup.founder_id && startup.founder_id === user?.id) ||
       Boolean((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase()) ||
       Boolean(startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
 
+    const effectiveOrgId = orgId || user?.organization_id;
+
     if (!isSuperAdmin && !isOwner) {
-      if (isStaff && orgId && startup.organization_id !== orgId) {
+      if (isStaff && effectiveOrgId && startup.organization_id && startup.organization_id !== effectiveOrgId) {
         return NextResponse.json({ error: 'Forbidden: Startup does not belong to this organization' }, { status: 403 });
       }
 
@@ -84,20 +92,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const role = user?.role?.toLowerCase() || '';
     const isSuperAdmin = role === 'super-admin' || role === 'super_admin';
-    const isStaff = isSuperAdmin || role === 'admin' || role === 'incubator_admin' || role === 'incubator';
+    const isStaff =
+      isSuperAdmin ||
+      role.includes('admin') ||
+      role.includes('incubator') ||
+      role.includes('staff') ||
+      Boolean(user?.organization_id);
+
     const isOwner =
       Boolean(startup.founder_id && startup.founder_id === user?.id) ||
       Boolean(((startup as any).founder_email && (startup as any).founder_email.toLowerCase() === user?.email?.toLowerCase())) ||
       Boolean(startup.email && startup.email.toLowerCase() === user?.email?.toLowerCase());
 
+    const effectiveOrgId = orgId || user?.organization_id || startup.organization_id;
+
     if (!isSuperAdmin && !isOwner) {
       if (!isStaff) {
         return NextResponse.json({ error: 'Forbidden: Founders can only update their own startup' }, { status: 403 });
       }
-      if (!orgId) {
+      if (!effectiveOrgId) {
         return NextResponse.json({ error: 'Organization ID is required for staff updates' }, { status: 400 });
       }
-      if (startup.organization_id && startup.organization_id !== orgId) {
+      if (startup.organization_id && effectiveOrgId && startup.organization_id !== effectiveOrgId) {
         return NextResponse.json({ error: 'Forbidden: Startup does not belong to your organization' }, { status: 403 });
       }
     }
@@ -134,7 +150,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       });
     }
 
-    const updated = await UnifiedStartupService.updateStartup(id, body, user);
+    const userWithOrg = {
+      ...user,
+      organization_id: user?.organization_id || effectiveOrgId,
+      role: isStaff && (!user?.role || !user.role.toLowerCase().includes('admin')) ? 'incubator' : user?.role,
+    };
+    const updated = await UnifiedStartupService.updateStartup(id, body, userWithOrg);
     return NextResponse.json({ success: true, data: updated, startup: updated });
   } catch (error) {
     return handleApiError(error);

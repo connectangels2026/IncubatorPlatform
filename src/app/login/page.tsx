@@ -224,9 +224,19 @@ function LoginForm() {
 
     if (res.success) {
       redirectingToRole.current = true;
-      const targetDestination = (redirectTo && redirectTo.startsWith('/'))
-        ? redirectTo
-        : (res.redirect_to || '/programs/preincubator/status');
+      const userRole = (res.user?.role || '').toLowerCase();
+      const isStaffOrAdmin =
+        userRole === 'admin' ||
+        userRole === 'incubator' ||
+        userRole === 'incubator_admin' ||
+        userRole === 'super-admin' ||
+        userRole === 'super_admin' ||
+        userRole === 'organization';
+
+      let targetDestination = res.redirect_to || '/programs/preincubator/status';
+      if (redirectTo && redirectTo.startsWith('/') && !(isStaffOrAdmin && redirectTo.includes('choose-startup'))) {
+        targetDestination = redirectTo;
+      }
       router.push(targetDestination);
       return;
     } else if (res.code === 'ROLE_NOT_SELECTED') {
