@@ -414,6 +414,8 @@ export const StartupsPage: React.FC = () => {
     funding: "$0",
     cohort: "",
     pitch: "",
+    incubationStartDate: "",
+    useTodayAsRegistration: true,
   });
 
   // Combobox State for Startup Name in Onboard Modal
@@ -1262,6 +1264,15 @@ export const StartupsPage: React.FC = () => {
       return;
     }
 
+    const registrationDate = onboardForm.useTodayAsRegistration
+      ? new Date().toISOString().split('T')[0]
+      : onboardForm.incubationStartDate;
+    if (!registrationDate || !/^\d{4}-\d{2}-\d{2}$/.test(registrationDate) || Number.isNaN(new Date(registrationDate).getTime())) {
+      setOnboardError("Please select a valid incubation registration date.");
+      showToast("Please select a valid incubation registration date.", 'error');
+      return;
+    }
+
     let orgId = organization?.id || (typeof window !== "undefined" ? localStorage.getItem("org_id") : null);
     if (!orgId) {
       try {
@@ -1299,6 +1310,7 @@ export const StartupsPage: React.FC = () => {
           stage: onboardForm.stage || 'Idea',
           status: (onboardForm.status || 'Pending').toLowerCase(),
           description: onboardForm.pitch.trim() || null,
+          incubation_start_date: registrationDate,
           organization_id: orgId,
         },
         {
@@ -1324,6 +1336,7 @@ export const StartupsPage: React.FC = () => {
         arr: 0,
         customers: 0,
         cohort: onboardForm.cohort || "",
+        incubation_start_date: created?.incubation_start_date || registrationDate,
         tagline: onboardForm.pitch || "",
         pitch: onboardForm.pitch || "",
         founder: created?.founder_name || onboardForm.founder,
@@ -1372,6 +1385,8 @@ export const StartupsPage: React.FC = () => {
         funding: "$0",
         cohort: "",
         pitch: "",
+        incubationStartDate: "",
+        useTodayAsRegistration: true,
       });
       setIsNameLocked(false);
       setSelectedStartupId(null);
@@ -2284,6 +2299,31 @@ export const StartupsPage: React.FC = () => {
                     <option value="Exited">Exited</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Incubation registration date</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="date"
+                    value={onboardForm.useTodayAsRegistration ? new Date().toISOString().split('T')[0] : onboardForm.incubationStartDate}
+                    onChange={(e) => setOnboardForm({ ...onboardForm, incubationStartDate: e.target.value })}
+                    disabled={onboardForm.useTodayAsRegistration}
+                    className="h-10 text-xs px-2.5 rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-slate-50 disabled:text-slate-500"
+                  />
+                  <label className="inline-flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={onboardForm.useTodayAsRegistration}
+                      onChange={(e) => setOnboardForm({ ...onboardForm, useTodayAsRegistration: e.target.checked })}
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    Use today's date
+                  </label>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Use the date the startup originally joined your incubator (for year/quarter reports).
+                </p>
               </div>
 
               <div>

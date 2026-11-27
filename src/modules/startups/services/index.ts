@@ -414,6 +414,13 @@ export class StartupService {
       track: (data as any).track || null,
       website: (data as any).website || null,
       founded_date: (data as any).founded_date || null,
+      incubation_start_date: (() => {
+        const raw = (data as any).incubation_start_date;
+        if (typeof raw !== 'string' || !raw.trim()) return null;
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) return null;
+        return parsed.toISOString().split('T')[0];
+      })(),
       problem_statement: (data as any).problem_statement || (data as any).problem || null,
       solution_description: (data as any).solution_description || (data as any).solution || null,
       target_market: (data as any).target_market || (data as any).market || null,
